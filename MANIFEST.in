@@ -15,6 +15,7 @@ recursive-include assets *.h5
 
 # config
 include .isort.cfg
+include .bumpversion.cfg
 
 # notebooks
 recursive-include notebooks *.ipynb
