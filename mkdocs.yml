@@ -1,0 +1,6 @@
+site_name: RL-PLG
+site_description: >
+  Technical documentation for rlplg, a python library.
+
+nav:
+  - RL-PLG Home: 'index.md'
