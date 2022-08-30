@@ -6,21 +6,30 @@ import argparse
 import dataclasses
 import logging
 
-import numpy as np
 from tf_agents.trajectories import time_step as ts
 
-from rlplg import tracking
-from rlplg.environments.alphabet import env
-from rlplg.examples import qlearning
+from rlplg import envsuite, tracking
+from rlplg.examples import factories, qlearning, rendering
 
 
 @dataclasses.dataclass(frozen=True)
 class Args:
+    """
+    Example args.
+
+    Args:
+        num_letters: size of sequence length.
+        num_episodes: for Q-learning.
+    """
+
     num_letters: int
     num_episodes: int
 
 
 def parse_args() -> Args:
+    """
+    Parses std in arguments and returns an instanace of Args.
+    """
     arg_parser = argparse.ArgumentParser(prog="ABCSeq - Q-learning Control Example")
     arg_parser.add_argument("--num-letters", type=int, default=2)
     arg_parser.add_argument("--num-episodes", type=int, default=1000)
@@ -28,29 +37,24 @@ def parse_args() -> Args:
     return Args(**vars(args))
 
 
-def vis_learned_qtable(
-    qtable: np.ndarray,
-):
-    return "\n{}".format(np.around(qtable, 3))
-
-
-def initial_table(num_letters: int):
-    qtable = np.zeros(shape=(num_letters + 1, num_letters))
-    return qtable
-
-
 def main(args: Args):
+    """
+    Entry point.
+    """
     # init env and policy
-    environment = env.ABCSeq(length=args.num_letters)
+    env_spec = envsuite.load(name="ABCSeq", length=args.num_letters)
     epsilon = 0.5
     alpha = 0.1
     gamma = 1.0
     # Policy Control with Q-learning
     learned_policy, learned_qtable = qlearning.control(
-        environment,
+        env_spec.environment,
         num_episodes=args.num_episodes,
-        state_id_fn=env.get_state_id,
-        initial_qtable=initial_table(num_letters=args.num_letters),
+        state_id_fn=env_spec.discretizer.state,
+        initial_qtable=factories.initialize_action_values(
+            num_states=env_spec.env_desc.num_states,
+            num_actions=env_spec.env_desc.num_actions,
+        ),
         epsilon=epsilon,
         gamma=gamma,
         alpha=alpha,
@@ -58,10 +62,10 @@ def main(args: Args):
 
     logging.info("Using trained policy to play")
     logging.info("\n%s", learned_qtable)
-    logging.info(vis_learned_qtable(learned_qtable))
+    logging.info(rendering.vis_learned_array(learned_qtable))
     # stats tracking
     stats = tracking.EpisodeStats()
-    time_step = environment.reset()
+    time_step = env_spec.environment.reset()
     policy_state = learned_policy.get_initial_state(None)
     episode = 0
     steps = 0
@@ -69,23 +73,23 @@ def main(args: Args):
     while episode < 3:
         policy_step = learned_policy.action(time_step, policy_state)
         policy_state = policy_step.state
-        time_step = environment.step(policy_step.action)
+        time_step = env_spec.environment.step(policy_step.action)
 
         stats.new_reward(time_step.reward)
 
         if time_step.step_type == ts.StepType.LAST:
             episode += 1
             steps = 0
-            time_step = environment.reset()
+            time_step = env_spec.environment.reset()
             stats.end_episode(success=True)
             logging.info(stats)
 
         steps += 1
-        if steps > args.num_letters * 10:
+        if steps > env_spec.env_desc.num_states * 10:
             logging.warning("Stopping game play - policy doesn't solve the problem!")
             break
 
-    environment.close()
+    env_spec.environment.close()
 
 
 if __name__ == "__main__":

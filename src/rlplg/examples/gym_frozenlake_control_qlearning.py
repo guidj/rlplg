@@ -7,53 +7,58 @@ import argparse
 import dataclasses
 import logging
 
-import numpy as np
-from tf_agents.environments import suite_gym
 from tf_agents.trajectories import time_step as ts
 
-from rlplg import npsci
-from rlplg.examples import qlearning
+from rlplg import envsuite, npsci
+from rlplg.examples import factories, qlearning, rendering
 
 
 @dataclasses.dataclass(frozen=True)
 class Args:
+    """
+    Example args.
+
+    Args:
+        num_episodes: for Q-learning.
+    """
+
     num_episodes: int
 
 
 def parse_args() -> Args:
-    arg_parser = argparse.ArgumentParser(
-        prog="CliffWalking - Q-learning Control Example"
-    )
+    """
+    Parses std in arguments and returns an instanace of Args.
+    """
+    arg_parser = argparse.ArgumentParser(prog="FrozenLake - Q-learning Control Example")
     arg_parser.add_argument("--num-episodes", type=int, default=1000)
     args, _ = arg_parser.parse_known_args()
     return Args(**vars(args))
 
 
-def initial_table(num_states: int):
-    return np.zeros(shape=(num_states, 4))
-
-
-def main():
-    args = parse_args()
-
+def main(args: Args):
+    """
+    Entry point.
+    """
     # Init env and policy
-    num_states = 48
-    environment = suite_gym.load("CliffWalking-v0")
+    env_spec = envsuite.load("FrozenLake-v1")
     episode = 0
     # Policy Control with Q-learning
     learned_policy, qtable = qlearning.control(
-        environment=environment,
+        environment=env_spec.environment,
         num_episodes=args.num_episodes,
         state_id_fn=npsci.item,
-        initial_qtable=initial_table(num_states),
+        initial_qtable=factories.initialize_action_values(
+            num_states=env_spec.env_desc.num_states,
+            num_actions=env_spec.env_desc.num_actions,
+        ),
         epsilon=0.5,
         gamma=1.0,
         alpha=0.1,
     )
 
     logging.info("Using trained policy to play")
-    logging.info("\n%s", np.around(qtable, 2))
-    time_step = environment.reset()
+    logging.info("\n%s", rendering.vis_learned_array(qtable))
+    time_step = env_spec.environment.reset()
     policy_state = learned_policy.get_initial_state(None)
     episode = 0
     steps = 0
@@ -61,21 +66,21 @@ def main():
     while episode < 3:
         policy_step = learned_policy.action(time_step, policy_state)
         policy_state = policy_step.state
-        time_step = environment.step(policy_step.action)
+        time_step = env_spec.environment.step(policy_step.action)
 
+        logging.info(env_spec.environment.render(mode="human"))
         if time_step.step_type == ts.StepType.LAST:
             episode += 1
             steps = 0
-
-        logging.info(environment.render(mode="human"))
+            logging.info("Completed episode %d", episode + 1)
 
         steps += 1
-        if steps > num_states * 10:
+        if steps > env_spec.env_desc.num_states * 10:
             logging.warning("Stopping game play - policy doesn't solve the problem!")
             break
 
-    environment.close()
+    env_spec.environment.close()
 
 
 if __name__ == "__main__":
-    main()
+    main(args=parse_args())
