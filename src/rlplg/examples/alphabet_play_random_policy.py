@@ -74,6 +74,7 @@ def main(args: Args):
         if time_step.step_type == ts.StepType.LAST:
             episode += 1
             time_step = env_spec.environment.reset()
+            policy_state = policy.get_initial_state(None)
             stats.end_episode(success=True)
             logging.info(
                 "Stats: %s",

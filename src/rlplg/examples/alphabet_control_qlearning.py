@@ -81,6 +81,7 @@ def main(args: Args):
             episode += 1
             steps = 0
             time_step = env_spec.environment.reset()
+            policy_state = learned_policy.get_initial_state(None)
             stats.end_episode(success=True)
             logging.info(stats)
 
