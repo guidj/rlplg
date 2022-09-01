@@ -24,7 +24,7 @@ class Args:
     """
 
     num_letters: int
-    num_episodes: int
+    play_episodes: int
 
 
 def parse_args() -> Args:
@@ -33,7 +33,7 @@ def parse_args() -> Args:
     """
     arg_parser = argparse.ArgumentParser(prog="Alphabet - Random Policy Play Example")
     arg_parser.add_argument("--num-letters", type=int, default=4)
-    arg_parser.add_argument("--num-episodes", type=int, default=10)
+    arg_parser.add_argument("--play-episodes", type=int, default=3)
     args, _ = arg_parser.parse_known_args()
     return Args(**vars(args))
 
@@ -51,10 +51,6 @@ def main(args: Args):
         emit_log_probability=False,
     )
 
-    # reset env and state (get initial values)
-    time_step = env_spec.environment.reset()
-    policy_state = policy.get_initial_state(None)
-
     # stats tracking
     stats = tracking.EpisodeStats()
 
@@ -64,22 +60,21 @@ def main(args: Args):
         stats,
     )
 
-    while episode < args.num_episodes:
-        policy_step = policy.action(time_step, policy_state)
-        policy_state = policy_step.state
-        time_step = env_spec.environment.step(policy_step.action)
+    # play N times
+    for episode in range(args.play_episodes):
+        # reset env and state (get initial values)
+        time_step = env_spec.environment.reset()
+        policy_state = policy.get_initial_state(None)
 
-        stats.new_reward(time_step.reward)
-
-        if time_step.step_type == ts.StepType.LAST:
-            episode += 1
-            time_step = env_spec.environment.reset()
-            policy_state = policy.get_initial_state(None)
-            stats.end_episode(success=True)
-            logging.info(
-                "Stats: %s",
-                stats,
-            )
+        while True:
+            policy_step = policy.action(time_step, policy_state)
+            policy_state = policy_step.state
+            time_step = env_spec.environment.step(policy_step.action)
+            stats.new_reward(time_step.reward)
+            if time_step.step_type == ts.StepType.LAST:
+                stats.end_episode(success=True)
+                logging.info("Stats: %s, from episode %d", stats, episode + 1)
+                break
 
     env_spec.environment.close()
 

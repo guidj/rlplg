@@ -23,6 +23,7 @@ class Args:
     """
 
     num_episodes: int
+    play_episodes: int
 
 
 def parse_args() -> Args:
@@ -31,6 +32,7 @@ def parse_args() -> Args:
     """
     arg_parser = argparse.ArgumentParser(prog="FrozenLake - Q-learning Control Example")
     arg_parser.add_argument("--num-episodes", type=int, default=1000)
+    arg_parser.add_argument("--play-episodes", type=int, default=3)
     args, _ = arg_parser.parse_known_args()
     return Args(**vars(args))
 
@@ -58,28 +60,27 @@ def main(args: Args):
 
     logging.info("Using trained policy to play")
     logging.info("\n%s", rendering.vis_learned_array(qtable))
-    time_step = env_spec.environment.reset()
-    policy_state = learned_policy.get_initial_state(None)
-    episode = 0
-    steps = 0
-    # play 3 times
-    while episode < 3:
-        policy_step = learned_policy.action(time_step, policy_state)
-        policy_state = policy_step.state
-        time_step = env_spec.environment.step(policy_step.action)
+    # play N times
+    for episode in range(args.play_episodes):
+        time_step = env_spec.environment.reset()
+        policy_state = learned_policy.get_initial_state(None)
+        steps = 0
+        while True:
+            policy_step = learned_policy.action(time_step, policy_state)
+            policy_state = policy_step.state
+            time_step = env_spec.environment.step(policy_step.action)
 
-        logging.info(env_spec.environment.render(mode="human"))
-        if time_step.step_type == ts.StepType.LAST:
-            episode += 1
-            steps = 0
-            time_step = env_spec.environment.reset()
-            policy_state = learned_policy.get_initial_state(None)
-            logging.info("Completed episode %d", episode)
+            logging.info(env_spec.environment.render(mode="human"))
+            if time_step.step_type == ts.StepType.LAST:
+                logging.info("Completed episode %d", episode + 1)
+                break
 
-        steps += 1
-        if steps > env_spec.env_desc.num_states * 10:
-            logging.warning("Stopping game play - policy doesn't solve the problem!")
-            break
+            steps += 1
+            if steps > env_spec.env_desc.num_states * 10:
+                logging.warning(
+                    "Stopping game play - policy doesn't solve the problem!"
+                )
+                break
 
     env_spec.environment.close()
 
