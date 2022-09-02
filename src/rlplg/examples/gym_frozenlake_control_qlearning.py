@@ -1,5 +1,6 @@
 """
-Example on using Q-learning to find an optimal policy.
+Example on using OpenAI Gym's Toy Text CliffWalking:
+https://www.gymlibrary.ml/environments/toy_text/cliff_walking/
 """
 
 import argparse
@@ -8,7 +9,7 @@ import logging
 
 from tf_agents.trajectories import time_step as ts
 
-from rlplg import envsuite, tracking
+from rlplg import envsuite, npsci
 from rlplg.examples import factories, qlearning, rendering
 
 
@@ -18,11 +19,9 @@ class Args:
     Example args.
 
     Args:
-        num_letters: size of sequence length.
         num_episodes: for Q-learning.
     """
 
-    num_letters: int
     num_episodes: int
     play_episodes: int
 
@@ -31,8 +30,7 @@ def parse_args() -> Args:
     """
     Parses std in arguments and returns an instanace of Args.
     """
-    arg_parser = argparse.ArgumentParser(prog="ABCSeq - Q-learning Control Example")
-    arg_parser.add_argument("--num-letters", type=int, default=2)
+    arg_parser = argparse.ArgumentParser(prog="FrozenLake - Q-learning Control Example")
     arg_parser.add_argument("--num-episodes", type=int, default=1000)
     arg_parser.add_argument("--play-episodes", type=int, default=3)
     args, _ = arg_parser.parse_known_args()
@@ -43,30 +41,25 @@ def main(args: Args):
     """
     Entry point.
     """
-    # init env and policy
-    env_spec = envsuite.load(name="ABCSeq", length=args.num_letters)
-    epsilon = 0.5
-    alpha = 0.1
-    gamma = 1.0
+    # Init env and policy
+    env_spec = envsuite.load("FrozenLake-v1")
+    episode = 0
     # Policy Control with Q-learning
-    learned_policy, learned_qtable = qlearning.control(
-        env_spec.environment,
+    learned_policy, qtable = qlearning.control(
+        environment=env_spec.environment,
         num_episodes=args.num_episodes,
-        state_id_fn=env_spec.discretizer.state,
+        state_id_fn=npsci.item,
         initial_qtable=factories.initialize_action_values(
             num_states=env_spec.env_desc.num_states,
             num_actions=env_spec.env_desc.num_actions,
         ),
-        epsilon=epsilon,
-        gamma=gamma,
-        alpha=alpha,
+        epsilon=0.5,
+        gamma=1.0,
+        alpha=0.1,
     )
 
     logging.info("Using trained policy to play")
-    logging.info("\n%s", learned_qtable)
-    logging.info(rendering.vis_learned_array(learned_qtable))
-    # stats tracking
-    stats = tracking.EpisodeStats()
+    logging.info("\n%s", rendering.vis_learned_array(qtable))
     # play N times
     for episode in range(args.play_episodes):
         time_step = env_spec.environment.reset()
@@ -77,11 +70,9 @@ def main(args: Args):
             policy_state = policy_step.state
             time_step = env_spec.environment.step(policy_step.action)
 
-            stats.new_reward(time_step.reward)
-
+            logging.info(env_spec.environment.render(mode="human"))
             if time_step.step_type == ts.StepType.LAST:
-                stats.end_episode(success=True)
-                logging.info("Episode %d stats: %s", episode + 1, stats)
+                logging.info("Completed episode %d", episode + 1)
                 break
 
             steps += 1
