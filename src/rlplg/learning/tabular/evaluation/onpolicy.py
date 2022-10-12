@@ -81,10 +81,10 @@ def first_visit_monte_carlo_action_values(
         episode_return = 0
         for experience in experiences:
             key = visit_key(experience)
+            state_action_visits_remaining[key] -= 1
             state_id, action_id = key
             reward = experience.reward
             episode_return = gamma * episode_return + reward
-            state_action_visits_remaining[key] -= 1
 
             if state_action_visits_remaining[key] == 0:
                 state_action_updates[key] += 1
