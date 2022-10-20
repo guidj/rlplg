@@ -9,6 +9,9 @@ from tf_agents.trajectories import policy_step
 from tf_agents.trajectories import time_step as ts
 from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
+from rlplg import envdesc
+from rlplg.learning.tabular import markovdp
+
 GRID_WIDTH = 5
 GRID_HEIGHT = 5
 NUM_ACTIONS = 4
@@ -55,6 +58,8 @@ class CountEnv(BasePyEnv):
     """
 
     MAX_VALUE = 3
+    ACTION_NOTHING = 0
+    ACTION_NEXT = 1
     WRONG_MOVE_REWARD = -10
     RIGHT_MOVE_REWARD = -1
 
@@ -88,10 +93,10 @@ class CountEnv(BasePyEnv):
             corresponding to `action_spec()`.
         """
 
-        if action == 0:
+        if action == self.ACTION_NOTHING:
             new_obs = copy.deepcopy(self._observation)
             reward = self.WRONG_MOVE_REWARD
-        elif action == 1:
+        elif action == self.ACTION_NEXT:
             new_obs = np.array(
                 np.min([self._observation + 1, self.MAX_VALUE]), np.int32
             )
@@ -120,6 +125,62 @@ class CountEnv(BasePyEnv):
         """
         self._observation = np.array(0, np.int32)
         return ts.restart(observation=self._observation)
+
+
+class CountEnvMDP(markovdp.MDP):
+    """
+    Markov decision process definition for CountEnv.
+    """
+
+    def transition_probability(
+        self, state: NestedArray, action: NestedArray, next_state: NestedArray
+    ) -> float:
+        """
+        Given a state s, action a, and next state s' returns a transition probability.
+        Args:
+            state: starting state
+            action: agent's action
+            next_state: state transition into after taking the action.
+
+        Returns:
+            A transition probability.
+        """
+        # terminal state
+        if (
+            (state == CountEnv.MAX_VALUE and np.array_equal(next_state, state))
+            or (
+                action == CountEnv.ACTION_NEXT and np.array_equal(next_state, state + 1)
+            )
+            or (action == CountEnv.ACTION_NOTHING and np.array_equal(next_state, state))
+        ):
+            return 1.0
+        return 0.0
+
+    def reward(
+        self, state: NestedArray, action: NestedArray, next_state: NestedArray
+    ) -> float:
+        """
+        Given a state s, action a, and next state s' returns the expected reward.
+
+        Args:
+            state: starting state
+            action: agent's action
+            next_state: state transition into after taking the action.
+        Returns
+            A transition probability.
+        """
+        if state == CountEnv.MAX_VALUE:
+            return 0.0
+        elif action == CountEnv.ACTION_NOTHING:
+            return CountEnv.WRONG_MOVE_REWARD
+        return CountEnv.RIGHT_MOVE_REWARD
+
+    def env_desc(self) -> envdesc.EnvDesc:
+        """
+        Returns:
+            An instance of EnvDesc with properties of the environment.
+        """
+        return envdesc.EnvDesc(num_states=4, num_actions=2)
 
 
 class SingleStateEnv(BasePyEnv):
