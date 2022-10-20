@@ -2,8 +2,7 @@ import logging
 
 import numpy as np
 
-from rlplg.learning.tabular import markovdp
-from rlplg.learning.tabular import policies
+from rlplg.learning.tabular import markovdp, policies
 
 
 def iterative_policy_evaluation(
@@ -18,10 +17,10 @@ def iterative_policy_evaluation(
     """
     state_values = np.zeros(shape=mdp.env_desc().num_states)
     while True:
-        delta = 0.0
+        delta = np.zeros(shape=mdp.env_desc().num_states)
         for state in range(mdp.env_desc().num_states):
-            current_value = state_values[state]
-            new_value = 0
+            current_state_value = state_values[state]
+            new_state_value = 0
             for action in range(mdp.env_desc().num_actions):
                 action_prob = policy.action_probability(state, action)
                 cu_value = 0
@@ -34,12 +33,14 @@ def iterative_policy_evaluation(
                         + gamma * state_values[new_state]
                     )
                     cu_value += transition_prob * value
-                new_value += action_prob * cu_value
-            state_values[state] = new_value
+                new_state_value += action_prob * cu_value
+            state_values[state] = new_state_value
 
-            delta = max(delta, np.abs(current_value - state_values[state]))
-            if delta < accuracy:
-                return state_values
+            delta[state] = max(
+                delta[state], np.abs(current_state_value - new_state_value)
+            )
+        if np.alltrue(delta < accuracy):
+            return state_values
 
 
 def action_values_from_state_values(
