@@ -234,7 +234,7 @@ class ObservablePolicy(abc.ABC):
         """
 
 
-class PyRandomObservablePolicy(ObservablePolicy):
+class PyObservableRandomPolicy(ObservablePolicy):
     """
     Implements an observable random policy.
     """

@@ -31,7 +31,7 @@ def create_observable_random_policy(
     num_actions: int,
     emit_log_probability: bool = False,
 ):
-    return policies.PyRandomObservablePolicy(
+    return policies.PyObservableRandomPolicy(
         time_step_spec=environment.time_step_spec(),
         action_spec=environment.action_spec(),
         num_actions=num_actions,
