@@ -118,7 +118,7 @@ def collect_mdp_stats(
     environment.reset()
     transitions = collections.defaultdict(_create_trasitions)
     rewards = collections.defaultdict(_create_rewards)
-
+    logging_enabled = logging_frequency_episodes > 0
     for episode in range(1, num_episodes + 1):
         environment.reset()
         while True:
@@ -135,13 +135,14 @@ def collect_mdp_stats(
             if time_step.step_type == ts.StepType.LAST:
                 break
 
-        if episode % logging_frequency_episodes == 0:
+        # non-positive logging frequency disables logging
+        if logging_enabled and episode % logging_frequency_episodes == 0:
             logging.info("Episode %d/%d", episode, num_episodes)
 
     return MdpStats(transitions=transitions, rewards=rewards)
 
 
-def aggregate_stats(results: Sequence[MdpStats]) -> MdpStats:
+def aggregate_stats(elements: Sequence[MdpStats]) -> MdpStats:
     """
     Aggregates multiple instances of MDPStats into one.
     """
@@ -149,9 +150,9 @@ def aggregate_stats(results: Sequence[MdpStats]) -> MdpStats:
     transitions = collections.defaultdict(_create_trasitions)
     rewards = collections.defaultdict(_create_rewards)
 
-    for result in results:
-        transitions = _accumulate(transitions, result.transitions)
-        rewards = _accumulate(rewards, result.rewards)
+    for element in elements:
+        transitions = _accumulate(transitions, element.transitions)
+        rewards = _accumulate(rewards, element.rewards)
     return MdpStats(transitions=transitions, rewards=rewards)
 
 
@@ -213,7 +214,12 @@ def export_stats(
                 database.create_dataset(
                     f"{name}.{KREF_VALUES}", data=np.array(values, dtype=dtype)
                 )
-        tf.io.gfile.copy(src=tmp_file.name, dst=file_path, overwrite=overwrite)
+        try:
+            tf.io.gfile.copy(src=tmp_file.name, dst=file_path, overwrite=overwrite)
+        except tf.errors.OpError as err:
+            raise IOError(
+                f"Failed to export stats to {path}/{filename}.{FILE_EXT}"
+            ) from err
 
 
 def _flatten_mapping(
@@ -236,29 +242,34 @@ def load_stats(path: str, filename: str) -> MdpStats:
     file_path = os.path.join(path, f"{filename}.{FILE_EXT}")
     with tempfile.NamedTemporaryFile() as tmp_file:
         logging.info("Loading stats from %s", file_path)
-        tf.io.gfile.copy(src=file_path, dst=tmp_file.name, overwrite=True)
-        with h5py.File(tmp_file.name, "r") as database:
-            data = {}
-            for name, dtype in zip(
-                (
-                    KREF_TRANSITIONS,
-                    KREF_REWARDS,
-                ),
-                (int, float),
-            ):
-                keys = tuple(np.array(database[f"{name}.{KREF_KEYS}"]).tolist())
-                values = tuple(np.array(database[f"{name}.{KREF_VALUES}"]).tolist())
 
-                # unnest
-                data[name] = collections.defaultdict(
-                    lambda constructor=dtype: collections.defaultdict(
-                        lambda: constructor
+        try:
+            tf.io.gfile.copy(src=file_path, dst=tmp_file.name, overwrite=True)
+        except tf.errors.OpError as err:
+            raise IOError(f"Failed to load file from {file_path}") from err
+        else:
+            with h5py.File(tmp_file.name, "r") as database:
+                data = {}
+                for name, dtype in zip(
+                    (
+                        KREF_TRANSITIONS,
+                        KREF_REWARDS,
+                    ),
+                    (int, float),
+                ):
+                    keys = tuple(np.array(database[f"{name}.{KREF_KEYS}"]).tolist())
+                    values = tuple(np.array(database[f"{name}.{KREF_VALUES}"]).tolist())
+
+                    # unnest
+                    data[name] = collections.defaultdict(
+                        lambda constructor=dtype: collections.defaultdict(
+                            lambda: constructor
+                        )
                     )
-                )
-                for key, value in zip(keys, values):
-                    state, action, next_state = key
-                    data[name][(state, action)][next_state] = value
-            return MdpStats(**data)
+                    for key, value in zip(keys, values):
+                        state, action, next_state = key
+                        data[name][(state, action)][next_state] = value
+                return MdpStats(**data)
 
 
 def create_mdp_functions(mdp_stats: MdpStats) -> MdpFunctions:
@@ -280,11 +291,11 @@ def create_mdp_functions(mdp_stats: MdpStats) -> MdpFunctions:
     # only computes for visited states - so min visits = 1.
     for state_action, next_state_values in mdp_stats.transitions.items():
         state, action = state_action
-        max_visits = max(next_state_values.values())
+        total_visits = sum(next_state_values.values())
         for next_state, visits in next_state_values.items():
             entry_key = (state, action, next_state)
             # normalize visits
-            transitions[entry_key] = visits / max_visits
+            transitions[entry_key] = visits / total_visits
             # average rewards
             rewards[entry_key] = mdp_stats.rewards[state_action][next_state] / visits
     return MdpFunctions(transition=transitions, reward=rewards)
