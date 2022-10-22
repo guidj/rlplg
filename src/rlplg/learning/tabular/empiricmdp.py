@@ -242,29 +242,34 @@ def load_stats(path: str, filename: str) -> MdpStats:
     file_path = os.path.join(path, f"{filename}.{FILE_EXT}")
     with tempfile.NamedTemporaryFile() as tmp_file:
         logging.info("Loading stats from %s", file_path)
-        tf.io.gfile.copy(src=file_path, dst=tmp_file.name, overwrite=True)
-        with h5py.File(tmp_file.name, "r") as database:
-            data = {}
-            for name, dtype in zip(
-                (
-                    KREF_TRANSITIONS,
-                    KREF_REWARDS,
-                ),
-                (int, float),
-            ):
-                keys = tuple(np.array(database[f"{name}.{KREF_KEYS}"]).tolist())
-                values = tuple(np.array(database[f"{name}.{KREF_VALUES}"]).tolist())
 
-                # unnest
-                data[name] = collections.defaultdict(
-                    lambda constructor=dtype: collections.defaultdict(
-                        lambda: constructor
+        try:
+            tf.io.gfile.copy(src=file_path, dst=tmp_file.name, overwrite=True)
+        except tf.errors.OpError as err:
+            raise IOError(f"Failed to load file from {file_path}") from err
+        else:
+            with h5py.File(tmp_file.name, "r") as database:
+                data = {}
+                for name, dtype in zip(
+                    (
+                        KREF_TRANSITIONS,
+                        KREF_REWARDS,
+                    ),
+                    (int, float),
+                ):
+                    keys = tuple(np.array(database[f"{name}.{KREF_KEYS}"]).tolist())
+                    values = tuple(np.array(database[f"{name}.{KREF_VALUES}"]).tolist())
+
+                    # unnest
+                    data[name] = collections.defaultdict(
+                        lambda constructor=dtype: collections.defaultdict(
+                            lambda: constructor
+                        )
                     )
-                )
-                for key, value in zip(keys, values):
-                    state, action, next_state = key
-                    data[name][(state, action)][next_state] = value
-            return MdpStats(**data)
+                    for key, value in zip(keys, values):
+                        state, action, next_state = key
+                        data[name][(state, action)][next_state] = value
+                return MdpStats(**data)
 
 
 def create_mdp_functions(mdp_stats: MdpStats) -> MdpFunctions:

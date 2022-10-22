@@ -180,3 +180,10 @@ def test_export_stats_with_bad_path():
 
     with pytest.raises(IOError):
         empiricmdp.export_stats(path, filename=filename, mdp_stats=mdp_stats)
+
+
+def test_load_stats_with_bad_path():
+    path = "unrealistic-path"
+    filename = str(uuid.uuid4())
+    with pytest.raises(IOError):
+        empiricmdp.load_stats(path, filename=filename)
