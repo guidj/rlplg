@@ -118,7 +118,7 @@ def collect_mdp_stats(
     environment.reset()
     transitions = collections.defaultdict(_create_trasitions)
     rewards = collections.defaultdict(_create_rewards)
-
+    logging_enabled = logging_frequency_episodes > 0
     for episode in range(1, num_episodes + 1):
         environment.reset()
         while True:
@@ -135,13 +135,14 @@ def collect_mdp_stats(
             if time_step.step_type == ts.StepType.LAST:
                 break
 
-        if episode % logging_frequency_episodes == 0:
+        # non-positive logging frequency disables logging
+        if logging_enabled and episode % logging_frequency_episodes == 0:
             logging.info("Episode %d/%d", episode, num_episodes)
 
     return MdpStats(transitions=transitions, rewards=rewards)
 
 
-def aggregate_stats(results: Sequence[MdpStats]) -> MdpStats:
+def aggregate_stats(elements: Sequence[MdpStats]) -> MdpStats:
     """
     Aggregates multiple instances of MDPStats into one.
     """
@@ -149,9 +150,9 @@ def aggregate_stats(results: Sequence[MdpStats]) -> MdpStats:
     transitions = collections.defaultdict(_create_trasitions)
     rewards = collections.defaultdict(_create_rewards)
 
-    for result in results:
-        transitions = _accumulate(transitions, result.transitions)
-        rewards = _accumulate(rewards, result.rewards)
+    for element in elements:
+        transitions = _accumulate(transitions, element.transitions)
+        rewards = _accumulate(rewards, element.rewards)
     return MdpStats(transitions=transitions, rewards=rewards)
 
 
@@ -213,6 +214,7 @@ def export_stats(
                 database.create_dataset(
                     f"{name}.{KREF_VALUES}", data=np.array(values, dtype=dtype)
                 )
+
         tf.io.gfile.copy(src=tmp_file.name, dst=file_path, overwrite=overwrite)
 
 
