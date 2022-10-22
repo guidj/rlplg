@@ -282,11 +282,11 @@ def create_mdp_functions(mdp_stats: MdpStats) -> MdpFunctions:
     # only computes for visited states - so min visits = 1.
     for state_action, next_state_values in mdp_stats.transitions.items():
         state, action = state_action
-        max_visits = max(next_state_values.values())
+        total_visits = sum(next_state_values.values())
         for next_state, visits in next_state_values.items():
             entry_key = (state, action, next_state)
             # normalize visits
-            transitions[entry_key] = visits / max_visits
+            transitions[entry_key] = visits / total_visits
             # average rewards
             rewards[entry_key] = mdp_stats.rewards[state_action][next_state] / visits
     return MdpFunctions(transition=transitions, reward=rewards)

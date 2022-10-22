@@ -137,3 +137,17 @@ def test_aggregate_stats():
     output = empiricmdp.aggregate_stats(inputs)
 
     assert output == expected
+
+
+def test_create_mdp_functions():
+    mdp_stats = empiricmdp.MdpStats(
+        transitions={(0, 0): {0: 8, 1: 2}, (1, 0): {1: 10}},
+        rewards={(0, 0): {0: -16.0, 1: -2.0}, (1, 0): {1: 0.0}},
+    )
+    expected = empiricmdp.MdpFunctions(
+        transition={(0, 0, 0): 0.8, (0, 0, 1): 0.2, (1, 0, 1): 1.0},
+        reward={(0, 0, 0): -2, (0, 0, 1): -1.0, (1, 0, 1): 0.0},
+    )
+    output = empiricmdp.create_mdp_functions(mdp_stats)
+
+    assert output == expected
