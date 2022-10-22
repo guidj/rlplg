@@ -214,8 +214,12 @@ def export_stats(
                 database.create_dataset(
                     f"{name}.{KREF_VALUES}", data=np.array(values, dtype=dtype)
                 )
-
-        tf.io.gfile.copy(src=tmp_file.name, dst=file_path, overwrite=overwrite)
+        try:
+            tf.io.gfile.copy(src=tmp_file.name, dst=file_path, overwrite=overwrite)
+        except tf.errors.OpError as err:
+            raise IOError(
+                f"Failed to export stats to {path}/{filename}.{FILE_EXT}"
+            ) from err
 
 
 def _flatten_mapping(

@@ -3,6 +3,7 @@ import uuid
 
 import hypothesis
 import numpy as np
+import pytest
 from hypothesis import strategies as st
 
 from rlplg import envdesc
@@ -167,3 +168,15 @@ def test_export_and_load_stats_roundtrip():
     output = empiricmdp.load_stats(path, filename)
 
     assert output == mdp_stats
+
+
+def test_export_stats_with_bad_path():
+    mdp_stats = empiricmdp.MdpStats(
+        transitions={(0, 0): {0: 8, 1: 2}, (1, 0): {1: 10}},
+        rewards={(0, 0): {0: -16.0, 1: -2.0}, (1, 0): {1: 0.0}},
+    )
+    path = "unrealistic-path"
+    filename = str(uuid.uuid4())
+
+    with pytest.raises(IOError):
+        empiricmdp.export_stats(path, filename=filename, mdp_stats=mdp_stats)
