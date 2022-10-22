@@ -1,3 +1,6 @@
+import tempfile
+import uuid
+
 import hypothesis
 import numpy as np
 from hypothesis import strategies as st
@@ -151,3 +154,16 @@ def test_create_mdp_functions():
     output = empiricmdp.create_mdp_functions(mdp_stats)
 
     assert output == expected
+
+
+def test_export_and_load_stats_roundtrip():
+    mdp_stats = empiricmdp.MdpStats(
+        transitions={(0, 0): {0: 8, 1: 2}, (1, 0): {1: 10}},
+        rewards={(0, 0): {0: -16.0, 1: -2.0}, (1, 0): {1: 0.0}},
+    )
+    path = tempfile.gettempdir()
+    filename = str(uuid.uuid4())
+    empiricmdp.export_stats(path, filename=filename, mdp_stats=mdp_stats)
+    output = empiricmdp.load_stats(path, filename)
+
+    assert output == mdp_stats
