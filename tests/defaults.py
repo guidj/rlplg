@@ -287,7 +287,7 @@ def item(value: np.ndarray) -> Any:
     """
     try:
         return value.item()
-    except ValueError:
+    except AttributeError:
         pass
     return value
 

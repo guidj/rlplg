@@ -12,6 +12,6 @@ def item(value: Any) -> Any:
     """
     try:
         return value.item()
-    except ValueError:
+    except AttributeError:
         pass
     return value
