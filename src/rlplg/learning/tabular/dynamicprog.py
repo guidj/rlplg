@@ -1,3 +1,4 @@
+import copy
 import logging
 
 import numpy as np
@@ -11,36 +12,59 @@ def iterative_policy_evaluation(
     gamma: float = 1.0,
     accuracy: float = 1e-8,
 ):
+
     """
-    Implementation of dynamic programming for state value function.
-    V(s)_{pi}
+    Implementation of dynamic programming for state value function computation.
+    V(s)_{pi}.
+    Vectorized implementation.
     """
-    state_values = np.zeros(shape=mdp.env_desc().num_states)
+    pi_action = np.zeros(
+        (mdp.env_desc().num_states, mdp.env_desc().num_actions), dtype=np.float
+    )
+    transition = np.zeros(
+        (
+            mdp.env_desc().num_states,
+            mdp.env_desc().num_actions,
+            mdp.env_desc().num_states,
+        ),
+        dtype=np.float,
+    )
+    reward = np.zeros(
+        (
+            mdp.env_desc().num_states,
+            mdp.env_desc().num_actions,
+            mdp.env_desc().num_states,
+        ),
+        dtype=np.float,
+    )
+
+    for state in range(mdp.env_desc().num_states):
+        for action in range(mdp.env_desc().num_actions):
+            pi_action[state, action] = policy.action_probability(state, action)
+            for new_state in range(mdp.env_desc().num_states):
+                transition[state, action, new_state] = mdp.transition_probability(
+                    state, action, new_state
+                )
+                reward[state, action, new_state] = mdp.reward(state, action, new_state)
+
+    m_state_values = np.tile(
+        np.zeros(shape=mdp.env_desc().num_states), (mdp.env_desc().num_actions, 1)
+    )
     while True:
         delta = np.zeros(shape=mdp.env_desc().num_states)
-        for state in range(mdp.env_desc().num_states):
-            current_state_value = state_values[state]
-            new_state_value = 0
-            for action in range(mdp.env_desc().num_actions):
-                action_prob = policy.action_probability(state, action)
-                cu_value = 0
-                for new_state in range(mdp.env_desc().num_states):
-                    transition_prob = mdp.transition_probability(
-                        state, action, new_state
-                    )
-                    value = (
-                        mdp.reward(state, action, new_state)
-                        + gamma * state_values[new_state]
-                    )
-                    cu_value += transition_prob * value
-                new_state_value += action_prob * cu_value
-            state_values[state] = new_state_value
+        current_state_values = copy.deepcopy(m_state_values[0])
+        # |S| x |A| x |S'|
+        # |S| x |A|
+        values = np.sum(transition * (reward + gamma * m_state_values), axis=2)
+        new_state_values = np.diag(np.dot(pi_action, np.transpose(values)))
+        m_state_values = np.tile(new_state_values, (mdp.env_desc().num_actions, 1))
 
-            delta[state] = max(
-                delta[state], np.abs(current_state_value - new_state_value)
-            )
+        delta = np.maximum(
+            delta,
+            np.abs(current_state_values - new_state_values),
+        )
         if np.alltrue(delta < accuracy):
-            return state_values
+            return m_state_values[0, :]
 
 
 def action_values_from_state_values(
