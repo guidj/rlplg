@@ -80,13 +80,15 @@ class RedGreenSeq(py_environment.PyEnvironment):
             constants.KEY_OBS_CURE_SEQUENCE: array_spec.BoundedArraySpec(
                 shape=(len(self.cure_sequence),),
                 dtype=np.int32,
-                minimum=0,
+                minimum=np.array([min(constants.ACTIONS)] * len(cure)),
+                maximum=np.array([max(constants.ACTIONS)] * len(cure)),
                 name=constants.KEY_OBS_CURE_SEQUENCE,
             ),
             constants.KEY_OBS_POSITION: array_spec.BoundedArraySpec(
                 shape=(),
                 dtype=np.int32,
                 minimum=0,
+                maximum=len(cure),
                 name=constants.KEY_OBS_POSITION,
             ),
         }

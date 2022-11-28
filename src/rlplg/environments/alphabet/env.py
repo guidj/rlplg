@@ -11,16 +11,11 @@ The player reaches the end of the game when they reach the final letter,
 regardless of how many they have gone through.
 
 Observation:
-The agent can choose any letter next, or to stop playing - i.e. jump to the end.
+The agent can choose any letter.
 The observation is just what the agent has already mastered.
-As such, there is a final non-letter state/action, and the agent must choose it
-to end the game.
-Choosing this action before mastering every letter incurs a penalty
-equivalent to the number of letters unmastered.
-Failing to choose the action after mastering every letter incurs a penalty of -1.
 
-[A, B, C, D] => [0, 0, 0, 0, Stop]
-So the number of actions with 4 letters is 5.
+[A, B, C, D] => [1, 0, 0, 0, 0]
+So the number of actions with 4 letters.
 
 Transitions:
   - The agent can only say to have learned a letter if they have go to it after
@@ -31,16 +26,14 @@ Transitions:
   - If they choose a letter that lies before, they also get penalized - the entire sequence
   of steps forward until the beginning, and from there to the letter they chose.
   The state doesn't change.
-  - After msatering every letter, they must choose to stop playing. Any other
-  action will incur a penalty of one.
 
 The number of possible states is the number of letters plus one:
-E.g. With four letters
-  - starting: [0, 0, 0, 0]
-  - mastered the first letter: [1, 0, 0, 0]
-  - mastered the second letter: [1, 1, 0, 0]
-  - mastered the third letter: [1, 1, 1, 0]
-  - mastered the fourth letter: [1, 1, 1, 1] (terminal state)
+E.g. With four letters (first value is set to 1 to simplify calculations)
+  - starting: [1, 0, 0, 0, 0]
+  - mastered the first letter: [1, 1, 0, 0, 0]
+  - mastered the second letter: [1, 1, 1, 0, 0]
+  - mastered the third letter: [1, 1, 1, 1, 0]
+  - mastered the fourth letter: [1, 1, 1, 1, 1] (terminal state)
 
 
 Notes:
@@ -82,7 +75,8 @@ class ABCSeq(py_environment.PyEnvironment):
         self._observation_spec = array_spec.BoundedArraySpec(
             shape=(length + 1,),
             dtype=np.int32,
-            minimum=0,
+            minimum=np.array([1] + [0] * length),
+            maximum=np.ones(shape=(length + 1,)),
             name="observation",
         )
 

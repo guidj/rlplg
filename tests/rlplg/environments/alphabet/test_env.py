@@ -315,7 +315,8 @@ def observation_spec(length: int) -> array_spec.BoundedArraySpec:
     return array_spec.BoundedArraySpec(
         shape=(length + 1,),
         dtype=np.int32,
-        minimum=0,
+        minimum=np.array([1] + [0] * length),
+        maximum=np.array([1] * (length + 1)),
         name="observation",
     )
 
