@@ -298,11 +298,16 @@ def observation_spec(
         "cure_sequence": array_spec.BoundedArraySpec(
             shape=(len(cure_actions),),
             dtype=np.int32,
-            minimum=0,
+            minimum=[0] * len(cure_actions),
+            maximum=[2] * len(cure_actions),
             name="cure_sequence",
         ),
         "position": array_spec.BoundedArraySpec(
-            shape=(), dtype=np.int32, minimum=0, name="position"
+            shape=(),
+            dtype=np.int32,
+            minimum=0,
+            maximum=len(cure_actions),
+            name="position",
         ),
     }
 
