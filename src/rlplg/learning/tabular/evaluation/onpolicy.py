@@ -220,7 +220,7 @@ def first_visit_monte_carlo_state_values(
     # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
     state_updates = collections.defaultdict(int)
-    state_visits_remaining = collections.defaultdict(int)
+    state_visits = collections.defaultdict(int)
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
@@ -229,7 +229,7 @@ def first_visit_monte_carlo_state_values(
         experiences = []
         while len(_experiences) > 0:
             experience = _experiences.pop()
-            state_visits_remaining[state_id_fn(experience.observation)] += 1
+            state_visits[state_id_fn(experience.observation)] += 1
             experiences.append(experience)
 
         episode_return = 0
@@ -237,17 +237,17 @@ def first_visit_monte_carlo_state_values(
             state_id = state_id_fn(experience.observation)
             reward = experience.reward
             episode_return = gamma * episode_return + reward
-            state_visits_remaining[state_id] -= 1
+            state_visits[state_id] -= 1
 
-            if state_visits_remaining[state_id] == 0:
-                state_updates[state_id] += 1
-                if state_updates[state_id] == 1:
+            if state_visits[state_id] == 0:
+                if state_updates[state_id] == 0:
                     # first value
                     values[state_id] = episode_return
                 else:
                     values[state_id] = values[state_id] + (
                         (episode_return - values[state_id]) / state_updates[state_id]
                     )
+                state_updates[state_id] += 1
 
         # need to copy values because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(values)
