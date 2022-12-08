@@ -12,6 +12,7 @@ from tf_agents.trajectories import trajectory
 from tf_agents.typing.types import Array
 
 from rlplg import envplay
+from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 
 
@@ -105,7 +106,7 @@ def sarsa_action_values(
     policy: policies.PyQGreedyPolicy,
     environment: py_environment.PyEnvironment,
     num_episodes: int,
-    alpha: float,
+    alpha: schedules.LearningRateSchedule,
     gamma: float,
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
@@ -132,7 +133,7 @@ def sarsa_action_values(
         policy: A target policy, pi, whose value function we wish to evaluate.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate.
+        alpha: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
             the Q(S, A) table.
@@ -153,7 +154,7 @@ def sarsa_action_values(
     # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
 
-    for _ in range(num_episodes):
+    for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, num_episodes=1))
         for step in range(len(experiences) - 1):
@@ -164,7 +165,7 @@ def sarsa_action_values(
             next_state_id = state_id_fn(experiences[step + 1].observation)
             next_action_id = action_id_fn(experiences[step + 1].action)
 
-            qtable[state_id, action_id] += alpha * (
+            qtable[state_id, action_id] += alpha(episode) * (
                 reward
                 + gamma * qtable[next_state_id, next_action_id]
                 - qtable[state_id, action_id]
@@ -257,7 +258,7 @@ def one_step_td_state_values(
     policy: policies.PyQGreedyPolicy,
     environment: py_environment.PyEnvironment,
     num_episodes: int,
-    alpha: float,
+    alpha: schedules.LearningRateSchedule,
     gamma: float,
     state_id_fn: Callable[[Any], int],
     initial_values: np.ndarray,
@@ -279,7 +280,7 @@ def one_step_td_state_values(
         policy: A target policy, pi, whose value function we wish to evaluate.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate.
+        alpha: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
             the Q(S, A) table.
@@ -300,13 +301,13 @@ def one_step_td_state_values(
     # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
 
-    for _ in range(num_episodes):
+    for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, num_episodes=1))
         for step in range(len(experiences) - 1):
             state_id = state_id_fn(experiences[step].observation)
             next_state_id = state_id_fn(experiences[step + 1].observation)
-            values[state_id] += alpha * (
+            values[state_id] += alpha(episode) * (
                 experiences[step].reward
                 + gamma * values[next_state_id]
                 - values[state_id]

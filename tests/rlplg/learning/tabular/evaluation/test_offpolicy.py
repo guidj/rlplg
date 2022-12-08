@@ -11,6 +11,7 @@ from tf_agents.policies import py_policy
 from tf_agents.trajectories import time_step as ts
 from tf_agents.trajectories import trajectory
 
+from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 from rlplg.learning.tabular.evaluation import offpolicy
 from tests import defaults
@@ -153,7 +154,9 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
         collect_policy=policy,
         environment=environment,
         num_episodes=1,
-        alpha=0.1,
+        alpha=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=lambda initial_lr, _: initial_lr
+        ),
         gamma=0.95,
         nstep=1,
         policy_probability_fn=policy_prob_fn,
@@ -184,7 +187,9 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
         collect_policy=policy,
         environment=environment,
         num_episodes=2,
-        alpha=0.1,
+        alpha=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=lambda initial_lr, _: initial_lr
+        ),
         gamma=0.95,
         nstep=2,
         policy_probability_fn=policy_prob_fn,
@@ -228,7 +233,9 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every
         collect_policy=collect_policy,
         environment=environment,
         num_episodes=1,
-        alpha=0.1,
+        alpha=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=lambda initial_lr, _: initial_lr
+        ),
         gamma=0.95,
         nstep=1,
         policy_probability_fn=policy_prob_fn,
@@ -263,7 +270,9 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_ever
         collect_policy=collect_policy,
         environment=environment,
         num_episodes=1,
-        alpha=0.1,
+        alpha=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=lambda initial_lr, _: initial_lr
+        ),
         gamma=0.95,
         nstep=2,
         policy_probability_fn=policy_prob_fn,
