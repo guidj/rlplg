@@ -3,7 +3,7 @@ Policy utility functions.
 """
 
 import logging
-from typing import Set
+from typing import Any, Callable, Iterable, Set
 
 import numpy as np
 from tf_agents.policies import py_policy
@@ -43,7 +43,7 @@ def initial_table(
     num_actions: int,
     dtype: np.dtype = np.float32,
     random: bool = False,
-    terminal_states: Set[int] = set(),
+    terminal_states: Set[int] = frozenset(),
 ) -> np.ndarray:
     """
     The value of terminal states should be zero.
@@ -56,3 +56,17 @@ def initial_table(
         qtable[list(terminal_states), :] = 0.0
         return qtable.astype(dtype)
     return np.zeros(shape=(num_states, num_actions), dtype=dtype)
+
+
+def chain_map(inputs: Any, funcs: Iterable[Callable[[Any], Any]]):
+    """
+    Applies a chain of functions to an element.
+    """
+
+    funcs_iterator = iter(funcs)
+    while True:
+        try:
+            func = next(funcs_iterator)
+            inputs = func(inputs)
+        except StopIteration:
+            return inputs
