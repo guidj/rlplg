@@ -95,7 +95,7 @@ class ValueFnModel(abc.ABC):
         """
 
 
-class ApproxFn(abc.ABC):
+class ApproxFn:
     """
     Approximation of state or (state, action) functions.
     Wraps calls to a `ValueFnModel` by applying
@@ -114,7 +114,6 @@ class ApproxFn(abc.ABC):
         self._model = model
         self._pre_procs = pre_procs
 
-    @abc.abstractmethod
     def predict(self, features: Array) -> float:
         """
         Computes the value for a given context,
@@ -122,7 +121,6 @@ class ApproxFn(abc.ABC):
         """
         return self._model.predict(utils.chain_map(features, self._pre_procs))
 
-    @abc.abstractmethod
     def gradients(self, features: Array) -> Sequence[Array]:
         """
         Computes the gradients of the output
@@ -130,7 +128,6 @@ class ApproxFn(abc.ABC):
         """
         return self._model.gradients(utils.chain_map(features, self._pre_procs))
 
-    @abc.abstractmethod
     def predict_and_gradients(self, features: Array) -> Tuple[float, Sequence[Array]]:
         """
         Computes prediction and gradients of the
@@ -140,14 +137,12 @@ class ApproxFn(abc.ABC):
             utils.chain_map(features, self._pre_procs)
         )
 
-    @abc.abstractmethod
     def weights(self) -> Sequence[Array]:
         """
         Returns the current weights of the model.
         """
         return self._model.weights()
 
-    @abc.abstractmethod
     def assign_weights(self, weights: Sequence[Array]) -> None:
         """
         Assigns new values to the model weights.
