@@ -6,7 +6,7 @@ classes for function approximation in RL.
 import abc
 from typing import Callable, Sequence, Tuple
 
-from tf_agents.typing.types import Array
+from tf_agents.typing.types import Array, NestedArray
 
 from rlplg.learning import utils
 
@@ -69,27 +69,27 @@ class ValueFnModel(abc.ABC):
         """
 
     @abc.abstractmethod
-    def gradients(self, features: Array) -> Sequence[Array]:
+    def gradients(self, features: Array) -> NestedArray:
         """
         Computes the gradients of the output
         with respect to the weights.
         """
 
     @abc.abstractmethod
-    def predict_and_gradients(self, features: Array) -> Tuple[float, Sequence[Array]]:
+    def predict_and_gradients(self, features: Array) -> Tuple[float, NestedArray]:
         """
         Computes prediction and gradients of the
         weights for the prediction.
         """
 
     @abc.abstractmethod
-    def weights(self) -> Sequence[Array]:
+    def weights(self) -> NestedArray:
         """
         Returns the current weights of the model.
         """
 
     @abc.abstractmethod
-    def assign_weights(self, weights: Sequence[Array]) -> None:
+    def assign_weights(self, weights: NestedArray) -> None:
         """
         Assigns new values to the model weights.
         """
@@ -121,14 +121,14 @@ class ApproxFn:
         """
         return self._model.predict(utils.chain_map(features, self._pre_procs))
 
-    def gradients(self, features: Array) -> Sequence[Array]:
+    def gradients(self, features: Array) -> NestedArray:
         """
         Computes the gradients of the output
         with respect to the weights.
         """
         return self._model.gradients(utils.chain_map(features, self._pre_procs))
 
-    def predict_and_gradients(self, features: Array) -> Tuple[float, Sequence[Array]]:
+    def predict_and_gradients(self, features: Array) -> Tuple[float, NestedArray]:
         """
         Computes prediction and gradients of the
         weights for the prediction.
@@ -137,13 +137,13 @@ class ApproxFn:
             utils.chain_map(features, self._pre_procs)
         )
 
-    def weights(self) -> Sequence[Array]:
+    def weights(self) -> NestedArray:
         """
         Returns the current weights of the model.
         """
         return self._model.weights()
 
-    def assign_weights(self, weights: Sequence[Array]) -> None:
+    def assign_weights(self, weights: NestedArray) -> None:
         """
         Assigns new values to the model weights.
         """

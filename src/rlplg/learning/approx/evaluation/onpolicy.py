@@ -21,10 +21,9 @@ def gradient_monte_carlo_state_values(
     policy: py_policy.PyPolicy,
     environment: py_environment.PyEnvironment,
     num_episodes: int,
-    # alpha_and_lr_scheduler: Tuple[float, modelspec.LearningRateScheduler],
     alpha: float,
     # epoch_scheduler: modelspec.EpochScheduler,
-    # estimator: modelspec.ApproxFunction,
+    estimator: modelspec.ApproxFn,
     generate_episodes: Callable[
         [
             py_environment.PyEnvironment,
@@ -34,7 +33,10 @@ def gradient_monte_carlo_state_values(
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
 ) -> Generator[Tuple[int, Array, float], None, None]:
-    w0 = np.array([0, 0], np.float32)
+    """
+    Gradient monte-carlo based uses returns to
+    approximate the value function of a policy.
+    """
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, num_episodes=1))
@@ -43,13 +45,15 @@ def gradient_monte_carlo_state_values(
         # while step isn't last
         for experience in experiences:
             episode_return += experience.reward
-            state = np.array([1, experience.observation], np.float32)
-            gradient = state
+            # state = np.array([1, experience.observation], np.float32)
+            # gradient = state
             # TODO: Keep alpha here; have gradient provider; and weight update function
-            new_w0 = w0 + alpha * (episode_return - (w0.T * state)) * gradient
-            delta = np.sum(np.abs(w0 - new_w0))
-            # need a way to indicate state is terminal in its repr .e.g just zeros
-            w0 = new_w0
-            # compute delta?
+            state_value = estimator.predict(experience.observation)
+            gradients = estimator.gradients(experience.observation)
+            weights = estimator.weights()
+            new_weights = weights + alpha * (episode_return - state_value) * gradients
+            delta = np.sum(np.abs(weights - new_weights))
+            estimator.assign_weights(new_weights)
+            # TODO: need a way to indicate state is terminal in its repr .e.g just zeros
         # need to copy values because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(w0), delta
+        yield len(experiences), copy.deepcopy(estimator.weights()), delta

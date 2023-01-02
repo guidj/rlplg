@@ -1,11 +1,11 @@
 import copy
-from typing import Callable, Mapping, Sequence, Tuple
+from typing import Callable, Mapping, Tuple
 
 import hypothesis
 import numpy as np
 import pytest
 from hypothesis import strategies as st
-from tf_agents.typing.types import Array
+from tf_agents.typing.types import Array, NestedArray
 
 from rlplg.learning.approx import modelspec
 
@@ -27,27 +27,27 @@ class StaticValueFn(modelspec.ValueFnModel):
         """
         return self._value_fn(features)
 
-    def gradients(self, features: Array) -> Sequence[Array]:
+    def gradients(self, features: Array) -> NestedArray:
         """
         Computes the gradients of the output
         with respect to the weights.
         """
         return features
 
-    def predict_and_gradients(self, features: Array) -> Tuple[float, Sequence[Array]]:
+    def predict_and_gradients(self, features: Array) -> Tuple[float, NestedArray]:
         """
         Computes prediction and gradients of the
         weights for the prediction.
         """
         return self.predict(features), self.gradients(features)
 
-    def weights(self) -> Sequence[Array]:
+    def weights(self) -> NestedArray:
         """
         Returns the current weights of the model.
         """
         return self._weights
 
-    def assign_weights(self, weights: Sequence[Array]) -> None:
+    def assign_weights(self, weights: NestedArray) -> None:
         """
         Assigns new values to the model weights.
         """
