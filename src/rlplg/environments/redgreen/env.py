@@ -77,19 +77,19 @@ class RedGreenSeq(py_environment.PyEnvironment):
             name="action",
         )
         self._observation_spec = {
-            constants.KEY_OBS_CURE_SEQUENCE: array_spec.BoundedArraySpec(
+            constants.OBS_KEY_CURE_SEQUENCE: array_spec.BoundedArraySpec(
                 shape=(len(self.cure_sequence),),
                 dtype=np.int32,
                 minimum=np.array([min(constants.ACTIONS)] * len(cure)),
                 maximum=np.array([max(constants.ACTIONS)] * len(cure)),
-                name=constants.KEY_OBS_CURE_SEQUENCE,
+                name=constants.OBS_KEY_CURE_SEQUENCE,
             ),
-            constants.KEY_OBS_POSITION: array_spec.BoundedArraySpec(
+            constants.OBS_KEY_POSITION: array_spec.BoundedArraySpec(
                 shape=(),
                 dtype=np.int32,
                 minimum=0,
                 maximum=len(cure),
-                name=constants.KEY_OBS_POSITION,
+                name=constants.OBS_KEY_POSITION,
             ),
         }
 
@@ -213,16 +213,16 @@ def apply_action(
             reward = -1 + 0 = -1 (one penalty for acting)
 
     """
-    pos = observation[constants.KEY_OBS_POSITION]
-    terminal_state = len(observation[constants.KEY_OBS_CURE_SEQUENCE])
+    pos = observation[constants.OBS_KEY_POSITION]
+    terminal_state = len(observation[constants.OBS_KEY_CURE_SEQUENCE])
     new_observation = copy.deepcopy(observation)
-    if observation[constants.KEY_OBS_POSITION] == terminal_state:
+    if observation[constants.OBS_KEY_POSITION] == terminal_state:
         move_penalty = 0.0
         reward = 0.0
     else:
         move_penalty = -1.0
-        if action == observation[constants.KEY_OBS_CURE_SEQUENCE][pos]:
-            new_observation[constants.KEY_OBS_POSITION] += 1
+        if action == observation[constants.OBS_KEY_CURE_SEQUENCE][pos]:
+            new_observation[constants.OBS_KEY_POSITION] += 1
             reward = 0.0
         else:
             # wrong move
@@ -236,8 +236,8 @@ def beginning_state(cure_sequence: Sequence[int]):
     Generates the starting state.
     """
     return {
-        constants.KEY_OBS_CURE_SEQUENCE: cure_sequence,
-        constants.KEY_OBS_POSITION: 0,
+        constants.OBS_KEY_CURE_SEQUENCE: cure_sequence,
+        constants.OBS_KEY_POSITION: 0,
     }
 
 
@@ -248,8 +248,8 @@ def is_finished(observation: Mapping[Text, Any]) -> bool:
     """
     # does that fact that we just went into the
     # terminal state matter? No
-    terminal_state = len(observation[constants.KEY_OBS_CURE_SEQUENCE])
-    return observation[constants.KEY_OBS_POSITION] == terminal_state
+    terminal_state = len(observation[constants.OBS_KEY_CURE_SEQUENCE])
+    return observation[constants.OBS_KEY_POSITION] == terminal_state
 
 
 def create_env_spec(cure: Sequence[Text]) -> envspec.EnvSpec:
@@ -280,7 +280,7 @@ def get_state_id(observation: Mapping[Text, Any]) -> int:
     """
     Computes an integer ID that represents that state.
     """
-    return observation[constants.KEY_OBS_POSITION]
+    return observation[constants.OBS_KEY_POSITION]
 
 
 def state_observation(
@@ -297,8 +297,8 @@ def state_observation(
         A mapping with the cure sequence and the current state.
     """
     return {
-        constants.KEY_OBS_CURE_SEQUENCE: cure_sequence,
-        constants.KEY_OBS_POSITION: state_id,
+        constants.OBS_KEY_CURE_SEQUENCE: cure_sequence,
+        constants.OBS_KEY_POSITION: state_id,
     }
 
 
@@ -315,8 +315,8 @@ def state_representation(observation: Mapping[Text, Any]) -> Sequence[int]:
 
     output = [1, 1, 1, 0, 0]
     """
-    pos = observation[constants.KEY_OBS_POSITION]
+    pos = observation[constants.OBS_KEY_POSITION]
     return [
         1 if idx < pos else 0
-        for idx in range(len(observation[constants.KEY_OBS_CURE_SEQUENCE]))
+        for idx in range(len(observation[constants.OBS_KEY_CURE_SEQUENCE]))
     ]
