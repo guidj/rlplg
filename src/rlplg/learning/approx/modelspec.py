@@ -6,7 +6,7 @@ classes for function approximation in RL.
 import abc
 from typing import Callable, Sequence, Tuple
 
-from tf_agents.typing.types import Array, NestedArray
+from tf_agents.typing.types import NestedArray
 
 from rlplg.learning import utils
 
@@ -20,21 +20,21 @@ class ValueFnModel(abc.ABC):
     """
 
     @abc.abstractmethod
-    def predict(self, features: Array) -> float:
+    def predict(self, features: NestedArray) -> float:
         """
         Computes the value for a given context,
         i.e. state or (state, action)
         """
 
     @abc.abstractmethod
-    def gradients(self, features: Array) -> NestedArray:
+    def gradients(self, features: NestedArray) -> NestedArray:
         """
         Computes the gradients of the output
         with respect to the weights.
         """
 
     @abc.abstractmethod
-    def predict_and_gradients(self, features: Array) -> Tuple[float, NestedArray]:
+    def predict_and_gradients(self, features: NestedArray) -> Tuple[float, NestedArray]:
         """
         Computes prediction and gradients of the
         weights for the prediction.
@@ -64,7 +64,7 @@ class ApproxFn:
     def __init__(
         self,
         model: ValueFnModel,
-        pre_procs: Sequence[Callable[[Array], Array]] = (),
+        pre_procs: Sequence[Callable[[NestedArray], NestedArray]] = (),
     ):
         """
         Initialises instance.
@@ -72,21 +72,21 @@ class ApproxFn:
         self._model = model
         self._pre_procs = pre_procs
 
-    def predict(self, features: Array) -> float:
+    def predict(self, features: NestedArray) -> float:
         """
         Computes the value for a given context,
         i.e. state or (state, action)
         """
         return self._model.predict(utils.chain_map(features, self._pre_procs))
 
-    def gradients(self, features: Array) -> NestedArray:
+    def gradients(self, features: NestedArray) -> NestedArray:
         """
         Computes the gradients of the output
         with respect to the weights.
         """
         return self._model.gradients(utils.chain_map(features, self._pre_procs))
 
-    def predict_and_gradients(self, features: Array) -> Tuple[float, NestedArray]:
+    def predict_and_gradients(self, features: NestedArray) -> Tuple[float, NestedArray]:
         """
         Computes prediction and gradients of the
         weights for the prediction.
