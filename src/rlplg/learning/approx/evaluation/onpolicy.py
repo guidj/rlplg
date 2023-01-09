@@ -40,20 +40,17 @@ def gradient_monte_carlo_state_values(
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, num_episodes=1))
-        # reverse list and ammortize state visits
-        episode_return = 0
+        episode_return = np.sum([experience.reward for experience in experiences])
         # while step isn't last
         for experience in experiences:
-            episode_return += experience.reward
-            # state = np.array([1, experience.observation], np.float32)
-            # gradient = state
-            # TODO: Keep alpha here; have gradient provider; and weight update function
             state_value = estimator.predict(experience.observation)
             gradients = estimator.gradients(experience.observation)
             weights = estimator.weights()
             new_weights = weights + alpha * (episode_return - state_value) * gradients
             delta = np.sum(np.abs(weights - new_weights))
             estimator.assign_weights(new_weights)
+            # update returns for the next state
+            episode_return -= experience.reward
             # TODO: need a way to indicate state is terminal in its repr .e.g just zeros
         # need to copy values because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(estimator.weights()), delta
