@@ -11,48 +11,6 @@ from tf_agents.typing.types import Array, NestedArray
 from rlplg.learning import utils
 
 
-class EpochScheduler:
-    """
-    This class updates epoch based on the current episode,
-    based on a given function, `schedule`.
-    """
-
-    # TODO: delete
-
-    def __init__(self, schedule: Callable[[int], int], verbose: bool = False):
-        """
-        Args:
-            schedule: A functiont that takes the current episode
-            and returns a new epoch.
-            verbose: If true, logs updates.
-        """
-        self._schedule = schedule
-        self._verbose = verbose
-
-    def __call__(self, episode: int):
-        return self._schedule(episode=episode)
-
-
-class LearningRateScheduler:
-    """
-    This class updates the learning rate on every epoch according
-    to a given function, `schedule`.
-    """
-
-    def __init__(self, schedule: Callable[[int, float], float], verbose: bool = False):
-        """
-        Args:
-            schedule: A functiont that takes the current epoch and learning rate
-            and returns a new learning rate.
-            verbose: If true, logs updates.
-        """
-        self._schedule = schedule
-        self._verbose = verbose
-
-    def __call__(self, epoch: int, learning_rate: float):
-        return self._schedule(epoch, learning_rate)
-
-
 class ValueFnModel(abc.ABC):
     """
     This class defines an API for value functions
