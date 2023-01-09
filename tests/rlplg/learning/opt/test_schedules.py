@@ -1,39 +1,90 @@
+import hypothesis
+from hypothesis import strategies as st
+
 from rlplg.learning.opt import schedules
 
 
-def test_learning_rate_schedule_call():
-    def schedule(initial_learning_rate: float, step: int):
+@hypothesis.given(st.floats(allow_nan=False, allow_infinity=False))
+def test_learning_rate_schedule_init(initial_learning_rate: float):
+    def schedule(ilr: float, episode: int, step: int):
+        del episode
+        del step
+        return ilr
+
+    lrs = schedules.LearningRateSchedule(
+        initial_learning_rate=initial_learning_rate, schedule=schedule
+    )
+
+    assert lrs.initial_learning_rate == initial_learning_rate
+
+
+@hypothesis.given(step=st.integers())
+def test_learning_rate_schedule_call_with_episode_schedule(step: int):
+    def schedule(initial_learning_rate: float, episode: int, step: int):
+        del step
+        return initial_learning_rate * (0.9**episode)
+
+    assert (
+        schedules.LearningRateSchedule(initial_learning_rate=1.0, schedule=schedule)(
+            episode=1, step=step
+        )
+        == 0.9
+    )
+    # increase episode
+    assert (
+        schedules.LearningRateSchedule(initial_learning_rate=1.0, schedule=schedule)(
+            episode=2, step=step
+        )
+        == 0.81
+    )
+    # change initial learning rate
+    assert (
+        schedules.LearningRateSchedule(initial_learning_rate=100.0, schedule=schedule)(
+            episode=2, step=step
+        )
+        == 81
+    )
+
+
+@hypothesis.given(episode=st.integers())
+def test_learning_rate_schedule_call_with_step_schedule(episode: int):
+    def schedule(initial_learning_rate: float, episode: int, step: int):
+        del episode
         return initial_learning_rate * (0.9**step)
 
-    output_1 = schedules.LearningRateSchedule(
-        initial_learning_rate=1.0, schedule=schedule
-    )(step=1)
-    output_2 = schedules.LearningRateSchedule(
-        initial_learning_rate=1.0, schedule=schedule
-    )(step=2)
-    output_3 = schedules.LearningRateSchedule(
-        initial_learning_rate=100.0, schedule=schedule
-    )(step=2)
+    assert (
+        schedules.LearningRateSchedule(initial_learning_rate=1.0, schedule=schedule)(
+            episode=episode, step=1
+        )
+        == 0.9
+    )
+    # increase step
+    assert (
+        schedules.LearningRateSchedule(initial_learning_rate=1.0, schedule=schedule)(
+            episode=episode, step=2
+        )
+        == 0.81
+    )
+    # change initial learning rate
+    assert (
+        schedules.LearningRateSchedule(initial_learning_rate=100.0, schedule=schedule)(
+            episode=episode, step=2
+        )
+        == 81
+    )
 
-    assert output_1 == 0.9
-    assert output_2 == 0.81  # epoch doesn't affect output
-    assert output_3 == 81
 
-
-def test_learning_rate_schedule_call_using_epoch_based_scheduler():
-    def schedule(initial_learning_rate: float, step: int):
-        if step < 10:
+@hypothesis.given(step=st.integers())
+def test_learning_rate_schedule_call_with_decaying_schedule(step: int):
+    def schedule(initial_learning_rate: float, episode: int, step: int):
+        del step
+        if episode < 10:
             return initial_learning_rate
         return initial_learning_rate * 0.9
 
     lrs = schedules.LearningRateSchedule(initial_learning_rate=1.0, schedule=schedule)
 
-    output_1 = lrs(step=1)
-    output_2 = lrs(step=9)
-    output_3 = lrs(step=10)
-    output_4 = lrs(step=21)
-
-    assert output_1 == 1
-    assert output_2 == 1
-    assert output_3 == 0.9
-    assert output_4 == 0.9
+    assert lrs(episode=1, step=step) == 1
+    assert lrs(episode=9, step=step) == 1
+    assert lrs(episode=10, step=step) == 0.9
+    assert lrs(episode=21, step=step) == 0.9
