@@ -36,7 +36,7 @@ Teacher policy: optimize to make as fewer changes on the student policy
 import base64
 import copy
 import hashlib
-from typing import Any, Optional, Sequence, Text, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 from tf_agents.environments import py_environment
@@ -57,7 +57,7 @@ class RedGreenSeq(py_environment.PyEnvironment):
 
     metadata = {"render.modes": ["raw"]}
 
-    def __init__(self, cure: Sequence[Text]):
+    def __init__(self, cure: Sequence[str]):
         """
         Args:
             cure_sequence: sequence of actions to take to cure a patient.
@@ -77,24 +77,24 @@ class RedGreenSeq(py_environment.PyEnvironment):
             name="action",
         )
         self._observation_spec = {
-            constants.OBS_KEY_CURE_SEQUENCE: array_spec.BoundedArraySpec(
+            constants.KEY_OBS_CURE_SEQUENCE: array_spec.BoundedArraySpec(
                 shape=(len(self.cure_sequence),),
                 dtype=np.int32,
                 minimum=np.array([min(constants.ACTIONS)] * len(cure)),
                 maximum=np.array([max(constants.ACTIONS)] * len(cure)),
-                name=constants.OBS_KEY_CURE_SEQUENCE,
+                name=constants.KEY_OBS_CURE_SEQUENCE,
             ),
-            constants.OBS_KEY_POSITION: array_spec.BoundedArraySpec(
+            constants.KEY_OBS_POSITION: array_spec.BoundedArraySpec(
                 shape=(),
                 dtype=np.int32,
                 minimum=0,
                 maximum=len(cure),
-                name=constants.OBS_KEY_POSITION,
+                name=constants.KEY_OBS_POSITION,
             ),
         }
 
         # env specific
-        self._observation: Optional[NestedArray] = None
+        self._observation: Optional[np.ndarray] = None
         self._seed = None
 
     def observation_spec(self) -> NestedArraySpec:
@@ -128,10 +128,6 @@ class RedGreenSeq(py_environment.PyEnvironment):
             action: A NumPy array, or a nested dict, list or tuple of arrays
                 corresponding to `action_spec()`.
         """
-        if self._observation is None:
-            raise RuntimeError(
-                f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
-            )
         new_observation, reward = apply_action(self._observation, action)
 
         finished = is_finished(new_observation)
@@ -154,10 +150,6 @@ class RedGreenSeq(py_environment.PyEnvironment):
         return ts.restart(observation=copy.deepcopy(self._observation))
 
     def render(self, mode="rgb_array") -> Optional[NestedArray]:
-        if self._observation is None:
-            raise RuntimeError(
-                f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
-            )
         if mode == "rgb_array":
             return state_representation(self._observation)
         return super().render(mode)
@@ -186,13 +178,12 @@ class RedGreenMdpDiscretizer(markovdp.MdpDiscretizer):
         Maps an agent action to an action ID.
         """
         del self
-        action_: int = npsci.item(action)
-        return action_
+        return npsci.item(action)
 
 
 def apply_action(
-    observation: NestedArray, action: NestedArray
-) -> Tuple[NestedArray, float]:
+    observation: Mapping[str, Any], action: NestedArray
+) -> Tuple[Mapping[str, Any], float]:
     """
     Computes a new observation and reward given the current state and action.
 
@@ -222,16 +213,16 @@ def apply_action(
             reward = -1 + 0 = -1 (one penalty for acting)
 
     """
-    pos = observation[constants.OBS_KEY_POSITION]
-    terminal_state = len(observation[constants.OBS_KEY_CURE_SEQUENCE])
+    pos = observation[constants.KEY_OBS_POSITION]
+    terminal_state = len(observation[constants.KEY_OBS_CURE_SEQUENCE])
     new_observation = copy.deepcopy(observation)
-    if observation[constants.OBS_KEY_POSITION] == terminal_state:
+    if observation[constants.KEY_OBS_POSITION] == terminal_state:
         move_penalty = 0.0
         reward = 0.0
     else:
         move_penalty = -1.0
-        if action == observation[constants.OBS_KEY_CURE_SEQUENCE][pos]:
-            new_observation[constants.OBS_KEY_POSITION] += 1
+        if action == observation[constants.KEY_OBS_CURE_SEQUENCE][pos]:
+            new_observation[constants.KEY_OBS_POSITION] += 1
             reward = 0.0
         else:
             # wrong move
@@ -245,24 +236,23 @@ def beginning_state(cure_sequence: Sequence[int]):
     Generates the starting state.
     """
     return {
-        constants.OBS_KEY_CURE_SEQUENCE: cure_sequence,
-        constants.OBS_KEY_POSITION: 0,
+        constants.KEY_OBS_CURE_SEQUENCE: cure_sequence,
+        constants.KEY_OBS_POSITION: 0,
     }
 
 
-def is_finished(observation: NestedArray) -> bool:
+def is_finished(observation: Mapping[str, Any]) -> bool:
     """
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
     """
     # does that fact that we just went into the
     # terminal state matter? No
-    terminal_state = len(observation[constants.OBS_KEY_CURE_SEQUENCE])
-    is_finished_: bool = observation[constants.OBS_KEY_POSITION] == terminal_state
-    return is_finished_
+    terminal_state = len(observation[constants.KEY_OBS_CURE_SEQUENCE])
+    return observation[constants.KEY_OBS_POSITION] == terminal_state
 
 
-def create_env_spec(cure: Sequence[Text]) -> envspec.EnvSpec:
+def create_env_spec(cure: Sequence[str]) -> envspec.EnvSpec:
     """
     Creates an env spec from a gridworld config.
     """
@@ -280,21 +270,20 @@ def create_env_spec(cure: Sequence[Text]) -> envspec.EnvSpec:
     )
 
 
-def __encode_env(cure: Sequence[Text]) -> str:
+def __encode_env(cure: Sequence[str]) -> str:
     hash_key = tuple(cure)
     hashing = hashlib.sha512(str(hash_key).encode("UTF-8"))
     return base64.b32encode(hashing.digest()).decode("UTF-8")
 
 
-def get_state_id(observation: NestedArray) -> int:
+def get_state_id(observation: Mapping[str, Any]) -> int:
     """
     Computes an integer ID that represents that state.
     """
-    state_id: int = observation[constants.OBS_KEY_POSITION]
-    return state_id
+    return observation[constants.KEY_OBS_POSITION]
 
 
-def state_observation(cure_sequence: Sequence[int], state_id: int) -> NestedArray:
+def state_observation(cure_sequence: Sequence[int], state_id: int) -> Mapping[str, Any]:
     """
     Generates a state observation, given an interger ID and the cure sequence.
 
@@ -306,12 +295,12 @@ def state_observation(cure_sequence: Sequence[int], state_id: int) -> NestedArra
         A mapping with the cure sequence and the current state.
     """
     return {
-        constants.OBS_KEY_CURE_SEQUENCE: cure_sequence,
-        constants.OBS_KEY_POSITION: state_id,
+        constants.KEY_OBS_CURE_SEQUENCE: cure_sequence,
+        constants.KEY_OBS_POSITION: state_id,
     }
 
 
-def state_representation(observation: NestedArray) -> Sequence[int]:
+def state_representation(observation: Mapping[str, Any]) -> Sequence[int]:
     """
     An array view of the state, where successful steps are marked
     with 1s and missing steps are marked with a 0.
@@ -324,8 +313,8 @@ def state_representation(observation: NestedArray) -> Sequence[int]:
 
     output = [1, 1, 1, 0, 0]
     """
-    pos = observation[constants.OBS_KEY_POSITION]
+    pos = observation[constants.KEY_OBS_POSITION]
     return [
         1 if idx < pos else 0
-        for idx in range(len(observation[constants.OBS_KEY_CURE_SEQUENCE]))
+        for idx in range(len(observation[constants.KEY_OBS_CURE_SEQUENCE]))
     ]

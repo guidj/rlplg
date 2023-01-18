@@ -14,7 +14,7 @@ So an agent needs to learn the value of every state from scratch.
 import base64
 import copy
 import hashlib
-from typing import Any, Callable, Mapping, Optional, Sequence, Text, Tuple
+from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 from tf_agents.environments import py_environment
@@ -320,7 +320,7 @@ def create_observation(
     player: Tuple[int, int],
     cliffs: Sequence[Tuple[int, int]],
     exits: Sequence[Tuple[int, int]],
-) -> Mapping[Text, Any]:
+) -> Mapping[str, Any]:
     """
     Creates an observation representation - a mapping of the layers of the grid,
     and other information.
@@ -389,7 +389,7 @@ def assert_starting_grid(
 
 def create_state_id_fn(
     states: Mapping[Tuple[int, int], int]
-) -> Callable[[Mapping[Text, Any]], int]:
+) -> Callable[[Mapping[str, Any]], int]:
     """
     Creates a function that returns an integer state ID for a given observation.
 
@@ -399,7 +399,7 @@ def create_state_id_fn(
         A callable that takes an observation and returns a state ID.
     """
 
-    def state_id(observation: Mapping[Text, Any]) -> int:
+    def state_id(observation: Mapping[str, Any]) -> int:
         """
         A function that takes an observation and returns a state ID.
 
@@ -437,7 +437,7 @@ def create_position_from_state_id_fn(
     return position_from_state_id
 
 
-def as_grid(observation: Mapping[Text, Any]) -> NestedArray:
+def as_grid(observation: Mapping[str, Any]) -> NestedArray:
     """
     Creates a 3D array representation of the grid, with 1s where
     there is an item of the layer and 0 otherwise.
