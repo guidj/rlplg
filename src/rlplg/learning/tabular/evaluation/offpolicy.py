@@ -153,7 +153,7 @@ def nstep_sarsa_action_values(
     collect_policy: py_policy.PyPolicy,
     environment: py_environment.PyEnvironment,
     num_episodes: int,
-    alpha: schedules.LearningRateSchedule,
+    lrs: schedules.LearningRateSchedule,
     gamma: float,
     nstep: int,
     policy_probability_fn: Callable[
@@ -185,7 +185,7 @@ def nstep_sarsa_action_values(
         collect_policy: A behavior policy, used to generate episodes.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate schedule.
+        lrs: The learning rate schedule.
         gamma: The discount rate.
         nstep: The number of steps before value updates in the MDP sequence.
         policy_probability_fn: returns action propensity for the target policy,
@@ -212,7 +212,7 @@ def nstep_sarsa_action_values(
         raise ValueError(f"nstep must be > 1: {nstep}")
     # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
-
+    steps_counter = 0
     for episode in range(num_episodes):
         final_step = np.inf
         # This can be memory intensive, for long episodes and large state/action representations.
@@ -246,9 +246,11 @@ def nstep_sarsa_action_values(
 
                 state_id = state_id_fn(experiences[tau].observation)
                 action_id = action_id_fn(experiences[tau].action)
+                alpha = lrs(episode=episode, step=steps_counter)
                 qtable[state_id, action_id] += (
-                    alpha(episode) * rho * (returns - qtable[state_id, action_id])
+                    alpha * rho * (returns - qtable[state_id, action_id])
                 )
+            steps_counter += 1
             if tau == final_step - 1:
                 break
 

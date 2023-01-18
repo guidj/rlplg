@@ -43,7 +43,7 @@ class ValueFnModel(abc.ABC):
         """
 
     @abc.abstractmethod
-    def predict_and_gradients(self, inptus: ValueFnInputs) -> Tuple[float, NestedArray]:
+    def predict_and_gradients(self, inputs: ValueFnInputs) -> Tuple[float, NestedArray]:
         """
         Computes prediction and gradients of the
         weights for the prediction.
@@ -115,3 +115,6 @@ class ApproxFn:
         Assigns new values to the model weights.
         """
         self._model.assign_weights(weights)
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(model: {self._model})"

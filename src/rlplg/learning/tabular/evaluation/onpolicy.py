@@ -106,7 +106,7 @@ def sarsa_action_values(
     policy: policies.PyQGreedyPolicy,
     environment: py_environment.PyEnvironment,
     num_episodes: int,
-    alpha: schedules.LearningRateSchedule,
+    lrs: schedules.LearningRateSchedule,
     gamma: float,
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
@@ -133,7 +133,7 @@ def sarsa_action_values(
         policy: A target policy, pi, whose value function we wish to evaluate.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate schedule.
+        lrs: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
             the Q(S, A) table.
@@ -153,23 +153,24 @@ def sarsa_action_values(
     """
     # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
-
+    steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, num_episodes=1))
-        for step in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[step].observation)
-            action_id = action_id_fn(experiences[step].action)
-            reward = experiences[step].reward
+        for steps_counter in range(len(experiences) - 1):
+            state_id = state_id_fn(experiences[steps_counter].observation)
+            action_id = action_id_fn(experiences[steps_counter].action)
+            reward = experiences[steps_counter].reward
 
-            next_state_id = state_id_fn(experiences[step + 1].observation)
-            next_action_id = action_id_fn(experiences[step + 1].action)
-
-            qtable[state_id, action_id] += alpha(episode) * (
+            next_state_id = state_id_fn(experiences[steps_counter + 1].observation)
+            next_action_id = action_id_fn(experiences[steps_counter + 1].action)
+            alpha = lrs(episode=episode, step=steps_counter)
+            qtable[state_id, action_id] += alpha * (
                 reward
                 + gamma * qtable[next_state_id, next_action_id]
                 - qtable[state_id, action_id]
             )
+            steps_counter += 1
 
         # need to copy qtable because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(qtable)
@@ -200,7 +201,6 @@ def first_visit_monte_carlo_state_values(
         policy: A target policy, pi, whose value function we wish to evaluate.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
             the Q(S, A) table.
@@ -258,7 +258,7 @@ def one_step_td_state_values(
     policy: policies.PyQGreedyPolicy,
     environment: py_environment.PyEnvironment,
     num_episodes: int,
-    alpha: schedules.LearningRateSchedule,
+    lrs: schedules.LearningRateSchedule,
     gamma: float,
     state_id_fn: Callable[[Any], int],
     initial_values: np.ndarray,
@@ -280,7 +280,7 @@ def one_step_td_state_values(
         policy: A target policy, pi, whose value function we wish to evaluate.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate schedule.
+        lrs: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
             the Q(S, A) table.
@@ -300,18 +300,20 @@ def one_step_td_state_values(
     """
     # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
-
+    steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, num_episodes=1))
-        for step in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[step].observation)
-            next_state_id = state_id_fn(experiences[step + 1].observation)
-            values[state_id] += alpha(episode) * (
-                experiences[step].reward
+        for steps_counter in range(len(experiences) - 1):
+            state_id = state_id_fn(experiences[steps_counter].observation)
+            next_state_id = state_id_fn(experiences[steps_counter + 1].observation)
+            alpha = lrs(episode=episode, step=steps_counter)
+            values[state_id] += alpha * (
+                experiences[steps_counter].reward
                 + gamma * values[next_state_id]
                 - values[state_id]
             )
+            steps_counter += 1
 
         # need to copy values because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(values)

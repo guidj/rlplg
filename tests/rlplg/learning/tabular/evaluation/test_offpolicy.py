@@ -154,8 +154,8 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
         collect_policy=policy,
         environment=environment,
         num_episodes=1,
-        alpha=schedules.LearningRateSchedule(
-            initial_learning_rate=0.1, schedule=lambda initial_lr, _: initial_lr
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
         ),
         gamma=0.95,
         nstep=1,
@@ -187,8 +187,8 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
         collect_policy=policy,
         environment=environment,
         num_episodes=2,
-        alpha=schedules.LearningRateSchedule(
-            initial_learning_rate=0.1, schedule=lambda initial_lr, _: initial_lr
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
         ),
         gamma=0.95,
         nstep=2,
@@ -233,8 +233,8 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every
         collect_policy=collect_policy,
         environment=environment,
         num_episodes=1,
-        alpha=schedules.LearningRateSchedule(
-            initial_learning_rate=0.1, schedule=lambda initial_lr, _: initial_lr
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
         ),
         gamma=0.95,
         nstep=1,
@@ -270,8 +270,8 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_ever
         collect_policy=collect_policy,
         environment=environment,
         num_episodes=1,
-        alpha=schedules.LearningRateSchedule(
-            initial_learning_rate=0.1, schedule=lambda initial_lr, _: initial_lr
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
         ),
         gamma=0.95,
         nstep=2,
@@ -316,6 +316,12 @@ def collect_policy_prob_fn(
     """
     del policy
     return np.math.exp(traj.policy_info.log_probability)
+
+
+def constant_learning_rate(initial_lr: float, episode: int, step: int):
+    del episode
+    del step
+    return initial_lr
 
 
 @pytest.fixture(scope="function")
