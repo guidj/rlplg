@@ -16,7 +16,7 @@ def rmse(pred: np.ndarray, actual: np.ndarray, mask: np.ndarray = None) -> np.nd
     """
     if mask is None:
         mask = np.ones_like(pred)
-    mask = mask.astype(np.bool)
+    mask = mask.astype(bool)
     y_pred = pred[mask].astype(np.float32)
     y_actual = actual[mask].astype(np.float32)
     return np.math.sqrt(np.mean(np.power(y_pred - y_actual, 2.0)))
@@ -37,7 +37,7 @@ def rmsle(
     """
     if mask is None:
         mask = np.ones_like(pred)
-    mask = mask.astype(np.bool)
+    mask = mask.astype(bool)
     y_pred = pred[mask].astype(np.float32)
     y_actual = actual[mask].astype(np.float32)
     if translate:
@@ -57,7 +57,7 @@ def mean_error(
     """
     if mask is None:
         mask = np.ones_like(pred)
-    mask = mask.astype(np.bool)
+    mask = mask.astype(bool)
     y_pred = pred[mask].astype(np.float32)
     y_actual = actual[mask].astype(np.float32)
     return np.mean(y_pred - y_actual)
@@ -72,7 +72,7 @@ def pearson_correlation(
     """
     if mask is None:
         mask = np.ones_like(pred)
-    mask = mask.astype(np.bool)
+    mask = mask.astype(bool)
     y_pred = pred[mask].astype(np.float32)
     y_actual = actual[mask].astype(np.float32)
     result: Tuple[float, float] = mstats.pearsonr(
@@ -90,7 +90,7 @@ def spearman_correlation(
     """
     if mask is None:
         mask = np.ones_like(pred)
-    mask = mask.astype(np.bool)
+    mask = mask.astype(bool)
     y_pred = pred[mask].astype(np.float32)
     y_actual = actual[mask].astype(np.float32)
     result: Tuple[float, float] = mstats.spearmanr(
