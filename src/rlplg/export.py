@@ -4,7 +4,7 @@ import logging
 import os.path
 import queue
 import time
-from typing import Any, Generator, Iterator, Mapping, Sequence, Text
+from typing import Any, Generator, Iterator, Mapping, Sequence
 
 import numpy as np
 import tensorflow as tf
@@ -44,7 +44,7 @@ class TrajectoryWriter(abc.ABC):
 
     def __init__(
         self,
-        output_dir: Text,
+        output_dir: str,
         time_step_spec: ts.TimeStep,
         action_spec: tensor_spec.BoundedTensorSpec,
         partition_size: int = 2**16,
@@ -131,7 +131,7 @@ class TrajectoryJsonWriter(TrajectoryWriter):
     def serialize(
         cls,
         traj: trajectory.Trajectory,
-    ) -> Mapping[Text, Any]:
+    ) -> Mapping[str, Any]:
         if traj.policy_info not in ((), None):
             policy_info = {
                 "log_probability": traj.policy_info.log_probability.tolist(),
@@ -176,7 +176,7 @@ class TrajectoryTFRecordReader(TrajectoryReader):
     Note: does not support policy_info, since it's a custom object of any type.
     """
 
-    def __init__(self, data_dir: Text):
+    def __init__(self, data_dir: str):
         """
         Args:
             data_dir (str): directory to save trajectories
@@ -225,7 +225,7 @@ class TrajectoryJsonReader(TrajectoryReader):
     Note: does not support policy_info, since it's a custom object of any type.
     """
 
-    def __init__(self, data_dir: Text):
+    def __init__(self, data_dir: str):
         """
         Args:
             data_dir (str): directory to save trajectories
@@ -243,7 +243,7 @@ class TrajectoryJsonReader(TrajectoryReader):
         self._generator_types = dict(self._types, policy_info=(np.float32,))
 
     def _as_dataset(self) -> tf.data.Dataset:
-        def parse_trajectory(record: Mapping[Text, Any]):
+        def parse_trajectory(record: Mapping[str, Any]):
             return trajectory.Trajectory(**record)
 
         return tf.data.Dataset.from_generator(
@@ -258,7 +258,7 @@ class TrajectoryJsonReader(TrajectoryReader):
         for value in iterator:
             yield value
 
-    def _create_generator(self) -> Generator[Mapping[Text, Any], None, None]:
+    def _create_generator(self) -> Generator[Mapping[str, Any], None, None]:
         for file_path in self._files:
             with tf.io.gfile.GFile(file_path, "r") as reader:
                 for row in reader:
@@ -288,7 +288,7 @@ class TrajectoryJsonReader(TrajectoryReader):
 
 def infer_trajectory_field_types(
     time_step_spec: ts.TimeStep, action_spec: tensor_spec.BoundedTensorSpec
-) -> Mapping[Text, np.dtype]:
+) -> Mapping[str, np.dtype]:
     return {
         "action": action_spec.dtype,
         "reward": time_step_spec.reward.dtype,
@@ -299,7 +299,7 @@ def infer_trajectory_field_types(
     }
 
 
-def save_schema(schema: Mapping[Text, np.dtype], path: Text) -> None:
+def save_schema(schema: Mapping[str, np.dtype], path: str) -> None:
     payload = {key: TYPE_MAPPING[dtype] for key, dtype in schema.items()}
     with tf.io.gfile.GFile(path, "w") as writer:
         json.dump(payload, fp=writer)
@@ -325,7 +325,7 @@ def bytes_feature(value: bytes):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def resolve_files(dirs: Sequence[Text], pattern: Text) -> Sequence[Text]:
+def resolve_files(dirs: Sequence[str], pattern: str) -> Sequence[str]:
     files = []
     for _dir in dirs:
         file_paths = tf.io.gfile.glob(os.path.join(_dir, pattern))
@@ -333,7 +333,7 @@ def resolve_files(dirs: Sequence[Text], pattern: Text) -> Sequence[Text]:
     return files
 
 
-def load_schema(path: Text) -> Mapping[Text, np.dtype]:
+def load_schema(path: str) -> Mapping[str, np.dtype]:
     try:
         with tf.io.gfile.GFile(path, "r") as reader:
             serialized_schema = json.load(reader)
@@ -349,7 +349,7 @@ def load_schema(path: Text) -> Mapping[Text, np.dtype]:
         ) from err
 
 
-def parsing_feature_spec() -> Mapping[Text, tf.io.FixedLenFeature]:
+def parsing_feature_spec() -> Mapping[str, tf.io.FixedLenFeature]:
     return {
         "action": tf.io.FixedLenFeature(shape=[], dtype=tf.string),
         "reward": tf.io.FixedLenFeature(shape=[], dtype=tf.string),
@@ -361,7 +361,7 @@ def parsing_feature_spec() -> Mapping[Text, tf.io.FixedLenFeature]:
 
 
 def serialized_tensors_to_trajectory(
-    serialized_tensors: Mapping[Text, bytes], types: Mapping[Text, np.dtype]
+    serialized_tensors: Mapping[str, bytes], types: Mapping[str, np.dtype]
 ) -> trajectory.Trajectory:
     traj = {
         key: tf.io.parse_tensor(serialized, out_type=types[key])

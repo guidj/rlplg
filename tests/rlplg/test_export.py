@@ -1,5 +1,3 @@
-from typing import Text
-
 import numpy as np
 import pytest
 import tensorflow as tf
@@ -13,7 +11,7 @@ from tests import defaults
 
 
 def test_tf_record_serdes(
-    tmpdir: Text,
+    tmpdir: str,
     time_step_spec: ts.TimeStep,
     action_spec: array_spec.BoundedArraySpec,
 ):
@@ -63,7 +61,7 @@ def test_tf_record_serdes(
 
 
 def test_json_serdes(
-    tmpdir: Text,
+    tmpdir: str,
     time_step_spec: ts.TimeStep,
     action_spec: array_spec.BoundedArraySpec,
 ):

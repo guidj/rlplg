@@ -1,5 +1,5 @@
 import random
-from typing import Mapping, Sequence, Text
+from typing import Mapping, Sequence
 
 import hypothesis
 import hypothesis.strategies as st
@@ -14,7 +14,7 @@ VALID_ACTIONS = ["red", "green", "wait"]
 
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
-def test_redgreen_init(cure: Sequence[Text]):
+def test_redgreen_init(cure: Sequence[str]):
     cure_sequence = [constants.ACTION_NAME_MAPPING[step] for step in cure]
     environment = env.RedGreenSeq(cure)
     assert environment.cure_sequence == cure_sequence
@@ -119,7 +119,7 @@ def test_redgreen_simple_sequence():
 
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
-def test_redgreen_render(cure: Sequence[Text]):
+def test_redgreen_render(cure: Sequence[str]):
     environment = env.RedGreenSeq(cure)
     environment.reset()
     # starting point
@@ -135,7 +135,7 @@ def test_redgreen_render(cure: Sequence[Text]):
 
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
-def test_redgreen_render_with_invalid_modes(cure: Sequence[Text]):
+def test_redgreen_render_with_invalid_modes(cure: Sequence[str]):
     modes = ("human",)
     environment = env.RedGreenSeq(cure)
     environment.reset()
@@ -294,7 +294,7 @@ def action_spec() -> array_spec.BoundedArraySpec:
 
 def observation_spec(
     cure_actions: Sequence[int],
-) -> Mapping[Text, array_spec.BoundedArraySpec]:
+) -> Mapping[str, array_spec.BoundedArraySpec]:
     return {
         "cure_sequence": array_spec.BoundedArraySpec(
             shape=(len(cure_actions),),
