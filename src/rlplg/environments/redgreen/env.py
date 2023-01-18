@@ -36,7 +36,7 @@ Teacher policy: optimize to make as fewer changes on the student policy
 import base64
 import copy
 import hashlib
-from typing import Any, Mapping, Optional, Sequence, Text, Tuple
+from typing import Any, Optional, Sequence, Text, Tuple
 
 import numpy as np
 from tf_agents.environments import py_environment
@@ -94,7 +94,7 @@ class RedGreenSeq(py_environment.PyEnvironment):
         }
 
         # env specific
-        self._observation: Optional[np.ndarray] = None
+        self._observation: Optional[NestedArray] = None
         self._seed = None
 
     def observation_spec(self) -> NestedArraySpec:
@@ -128,6 +128,10 @@ class RedGreenSeq(py_environment.PyEnvironment):
             action: A NumPy array, or a nested dict, list or tuple of arrays
                 corresponding to `action_spec()`.
         """
+        if self._observation is None:
+            raise RuntimeError(
+                f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
+            )
         new_observation, reward = apply_action(self._observation, action)
 
         finished = is_finished(new_observation)
@@ -150,6 +154,10 @@ class RedGreenSeq(py_environment.PyEnvironment):
         return ts.restart(observation=copy.deepcopy(self._observation))
 
     def render(self, mode="rgb_array") -> Optional[NestedArray]:
+        if self._observation is None:
+            raise RuntimeError(
+                f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
+            )
         if mode == "rgb_array":
             return state_representation(self._observation)
         return super().render(mode)
@@ -178,12 +186,13 @@ class RedGreenMdpDiscretizer(markovdp.MdpDiscretizer):
         Maps an agent action to an action ID.
         """
         del self
-        return npsci.item(action)
+        action_: int = npsci.item(action)
+        return action_
 
 
 def apply_action(
-    observation: Mapping[str, Any], action: NestedArray
-) -> Tuple[Mapping[str, Any], float]:
+    observation: NestedArray, action: NestedArray
+) -> Tuple[NestedArray, float]:
     """
     Computes a new observation and reward given the current state and action.
 
@@ -241,7 +250,7 @@ def beginning_state(cure_sequence: Sequence[int]):
     }
 
 
-def is_finished(observation: Mapping[Text, Any]) -> bool:
+def is_finished(observation: NestedArray) -> bool:
     """
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
@@ -249,7 +258,8 @@ def is_finished(observation: Mapping[Text, Any]) -> bool:
     # does that fact that we just went into the
     # terminal state matter? No
     terminal_state = len(observation[constants.OBS_KEY_CURE_SEQUENCE])
-    return observation[constants.OBS_KEY_POSITION] == terminal_state
+    is_finished_: bool = observation[constants.OBS_KEY_POSITION] == terminal_state
+    return is_finished_
 
 
 def create_env_spec(cure: Sequence[Text]) -> envspec.EnvSpec:
@@ -276,16 +286,15 @@ def __encode_env(cure: Sequence[Text]) -> str:
     return base64.b32encode(hashing.digest()).decode("UTF-8")
 
 
-def get_state_id(observation: Mapping[Text, Any]) -> int:
+def get_state_id(observation: NestedArray) -> int:
     """
     Computes an integer ID that represents that state.
     """
-    return observation[constants.OBS_KEY_POSITION]
+    state_id: int = observation[constants.OBS_KEY_POSITION]
+    return state_id
 
 
-def state_observation(
-    cure_sequence: Sequence[int], state_id: int
-) -> Mapping[Text, Any]:
+def state_observation(cure_sequence: Sequence[int], state_id: int) -> NestedArray:
     """
     Generates a state observation, given an interger ID and the cure sequence.
 
@@ -302,7 +311,7 @@ def state_observation(
     }
 
 
-def state_representation(observation: Mapping[Text, Any]) -> Sequence[int]:
+def state_representation(observation: NestedArray) -> Sequence[int]:
     """
     An array view of the state, where successful steps are marked
     with 1s and missing steps are marked with a 0.

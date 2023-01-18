@@ -3,7 +3,7 @@ Policy utility functions.
 """
 
 import logging
-from typing import Any, Callable, Iterable, Set
+from typing import Any, Callable, Iterable, Optional, Set
 
 import numpy as np
 from tf_agents.policies import py_policy
@@ -23,7 +23,8 @@ def policy_prob_fn(policy: py_policy.PyPolicy, traj: trajectory.Trajectory) -> f
         observation=traj.observation,
     )
     policy_step = policy.action(time_step)
-    return np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
+    prob: float = np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
+    return prob
 
 
 def collect_policy_prob_fn(
@@ -35,7 +36,8 @@ def collect_policy_prob_fn(
     We just have to return exp(log_prob).
     """
     del policy
-    return np.math.exp(traj.policy_info.log_probability)
+    prob: float = np.math.exp(traj.policy_info.log_probability)
+    return prob
 
 
 def initial_table(
@@ -43,17 +45,17 @@ def initial_table(
     num_actions: int,
     dtype: np.dtype = np.float32,
     random: bool = False,
-    terminal_states: Set[int] = frozenset(),
+    terminal_states: Optional[Set[int]] = None,
 ) -> np.ndarray:
     """
     The value of terminal states should be zero.
     """
     if random:
-        if not terminal_states:
+        if terminal_states is None:
             logging.warning("Creating Q-table with no terminal states")
 
         qtable = np.random.rand(num_states, num_actions)
-        qtable[list(terminal_states), :] = 0.0
+        qtable[list(terminal_states or []), :] = 0.0
         return qtable.astype(dtype)
     return np.zeros(shape=(num_states, num_actions), dtype=dtype)
 

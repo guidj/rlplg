@@ -23,7 +23,9 @@ class GridWorldRenderer:
     metadata = {"render.modes": ["raw", "rgb_array", "human", "ansi"]}
 
     def __init__(self, sprites_dir: Optional[str]):
-        self.sprites = BlueMoonSprites(sprites_dir) if sprites_dir is not None else None
+        self.sprites: Optional[Sprites] = (
+            BlueMoonSprites(sprites_dir) if sprites_dir is not None else None
+        )
         self.viewer: Optional[Any] = None
         try:
             from gym.envs.classic_control import rendering
@@ -54,12 +56,16 @@ class GridWorldRenderer:
         if mode == "raw":
             output = observation
         elif mode == "rgb_array":
+            if self.sprites is None:
+                raise RuntimeError(f"No sprites fo reder in {mode} mode.")
             output = observation_as_image(self.sprites, observation, last_move)
         elif mode == "human":
             if self.viewer is None:
                 raise RuntimeError(
                     "ImageViewer is undefined. Likely cause: pyglget import failure."
                 )
+            if self.sprites is None:
+                raise RuntimeError(f"No sprites fo reder in {mode} mode.")
 
             self.viewer.imshow(
                 observation_as_image(self.sprites, observation, last_move)
@@ -82,7 +88,7 @@ class GridWorldRenderer:
             self.viewer.close()
 
 
-class Sprites(metaclass=abc.ABCMeta):
+class Sprites(abc.ABC):
     @property
     @abc.abstractmethod
     def cliff_sprite(self):

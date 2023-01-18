@@ -98,7 +98,7 @@ class GridWorld(py_environment.PyEnvironment):
         }
 
         # env specific
-        self._observation: Optional[Mapping[Text, np.ndarray]] = None
+        self._observation: Optional[NestedArray] = None
         self._seed = None
 
     def observation_spec(self) -> NestedArraySpec:
@@ -132,6 +132,10 @@ class GridWorld(py_environment.PyEnvironment):
         action: A NumPy array, or a nested dict, list or tuple of arrays
             corresponding to `action_spec()`.
         """
+        if self._observation is None:
+            raise RuntimeError(
+                f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
+            )
         next_observation, reward = apply_action(self._observation, action)
 
         self._observation = next_observation
@@ -153,12 +157,16 @@ class GridWorld(py_environment.PyEnvironment):
             size=self._size,
             start=self._start,
             player=self._start,
-            cliffs=self._cliffs,
-            exits=self._exits,
+            cliffs=tuple(self._cliffs),
+            exits=tuple(self._exits),
         )
         return ts.restart(observation=copy.deepcopy(self._observation))
 
     def render(self, mode="rgb_array") -> Optional[NestedArray]:
+        if self._observation is None:
+            raise RuntimeError(
+                f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
+            )
         if mode == "rgb_array":
             return as_grid(self._observation)
         return super().render(mode)
@@ -194,7 +202,8 @@ class GridWorldMdpDiscretizer(markovdp.MdpDiscretizer):
         Maps an agent action to an action ID.
         """
         del self
-        return npsci.item(action)
+        action_: int = npsci.item(action)
+        return action_
 
 
 def create_env_spec(
@@ -234,7 +243,7 @@ def __encode_env(
 
 def states_mapping(
     size: Tuple[int, int], cliffs: Sequence[Tuple[int, int]]
-) -> Mapping[int, Tuple[int, int]]:
+) -> Mapping[Tuple[int, int], int]:
     """
     Creates a mapping of state IDs to grid positions.
 
@@ -242,7 +251,7 @@ def states_mapping(
        size: the grid size, width x height.
        cliffs: the position of cliffs on the grid.
     Returns:
-        A mapping of state IDs to grid positions.
+        A mapping grid positions to state ID.
     """
     states = []
     height, width = size
@@ -251,7 +260,7 @@ def states_mapping(
             state = (pos_x, pos_y)
             if state not in set(cliffs):
                 states.append(state)
-    return {value: key for key, value in enumerate(states)}
+    return {value: key for key, value in enumerate(sorted(states))}
 
 
 def apply_action(
@@ -281,7 +290,8 @@ def apply_action(
 def _step(observation: NestedArray, action: NestedArray) -> Tuple[int, int]:
     # If in exit, stay
     if observation[constants.Strings.player] in observation[constants.Strings.exits]:
-        return copy.deepcopy(observation[constants.Strings.player])
+        pos: Tuple[int, int] = copy.deepcopy(observation[constants.Strings.player])
+        return pos
     pos_x, pos_y = observation[constants.Strings.player]
     height, width = observation[constants.Strings.size]
     if action == constants.LEFT:

@@ -30,7 +30,7 @@ def gradient_monte_carlo_state_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, modelspec.ApproxFn, float], None, None]:
+) -> Generator[Tuple[int, modelspec.ApproxFn], None, None]:
     """
     Gradient monte-carlo based uses returns to
     approximate the value function of a policy.
@@ -38,7 +38,7 @@ def gradient_monte_carlo_state_values(
     steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, policy, num_episodes=1))
+        experiences = list(generate_episodes(environment, policy, 1))
         episode_return = np.sum([experience.reward for experience in experiences])
         # while step isn't last
         for experience in experiences:
@@ -47,11 +47,10 @@ def gradient_monte_carlo_state_values(
             gradients = estimator.gradients(experience.observation)
             weights = estimator.weights()
             new_weights = weights + alpha * (episode_return - state_value) * gradients
-            delta = np.sum(np.abs(weights - new_weights))
             estimator.assign_weights(new_weights)
             # update returns for the next state
             episode_return -= experience.reward
             steps_counter += 1
         # need to copy values because they can be mutable np.ndarrays or tf.tensors
         # we use shallow copy because tf doesn't play nicely with deepcopy
-        yield len(experiences), copy.copy(estimator), delta
+        yield len(experiences), copy.copy(estimator)

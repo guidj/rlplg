@@ -44,7 +44,7 @@ def monte_carlo_action_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """Off-policy MC Prediction.
     Estimates Q (table) for a fixed policy pi.
 
@@ -83,9 +83,7 @@ def monte_carlo_action_values(
     cu_sum = np.zeros_like(initial_qtable)
 
     for _ in range(num_episodes):
-        experiences = list(
-            generate_episodes(environment, collect_policy, num_episodes=1)
-        )
+        experiences = list(generate_episodes(environment, collect_policy, 1))
         num_steps = len(experiences)
         returns, weight = 0.0, 1.0
         # process from the ending
@@ -175,7 +173,7 @@ def nstep_sarsa_action_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     Off-policy n-step Sarsa Prediction.
     Estimates Q (table) for a fixed policy pi.
@@ -216,9 +214,7 @@ def nstep_sarsa_action_values(
     for episode in range(num_episodes):
         final_step = np.inf
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(
-            generate_episodes(environment, collect_policy, num_episodes=1)
-        )
+        experiences = list(generate_episodes(environment, collect_policy, 1))
         for step, _ in enumerate(experiences):
             if step < final_step:
                 # we don't need to transition because we already collected the experience

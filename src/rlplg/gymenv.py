@@ -18,14 +18,16 @@ class GymEnvMdpDiscretizer(markovdp.MdpDiscretizer):
         Maps an observation to a state ID.
         """
         del self
-        return npsci.item(observation)
+        state_: int = npsci.item(observation)
+        return state_
 
     def action(self, action: Any) -> int:
         """
         Maps an agent action to an action ID.
         """
         del self
-        return npsci.item(action)
+        action_: int = npsci.item(action)
+        return action_
 
 
 def create_env_spec(name: str, **kwargs: Mapping[str, Any]) -> envspec.EnvSpec:
@@ -55,7 +57,7 @@ def create_env_spec(name: str, **kwargs: Mapping[str, Any]) -> envspec.EnvSpec:
 def __encode_env(**kwargs: Mapping[str, Any]) -> str:
     keys = []
     values = []
-    for key, value in sorted(kwargs):
+    for key, value in sorted(kwargs.items()):
         keys.append(key)
         values.append(value)
 

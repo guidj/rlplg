@@ -1,3 +1,8 @@
+"""
+This module defines metrics functions.
+"""
+
+
 from typing import Tuple
 
 import numpy as np
@@ -60,7 +65,7 @@ def mean_error(
 
 def pearson_correlation(
     pred: np.ndarray, actual: np.ndarray, mask: np.ndarray = None
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[float, float]:
     """
     Mean error.
     sum(y_pred - y_actual) / 2
@@ -70,12 +75,15 @@ def pearson_correlation(
     mask = mask.astype(np.bool)
     y_pred = pred[mask].astype(np.float32)
     y_actual = actual[mask].astype(np.float32)
-    return mstats.pearsonr(x=y_pred.flatten(), y=y_actual.flatten())
+    result: Tuple[float, float] = mstats.pearsonr(
+        x=y_pred.flatten(), y=y_actual.flatten()
+    )
+    return result
 
 
 def spearman_correlation(
     pred: np.ndarray, actual: np.ndarray, mask: np.ndarray = None
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[float, float]:
     """
     Mean error.
     sum(y_pred - y_actual) / 2
@@ -85,4 +93,7 @@ def spearman_correlation(
     mask = mask.astype(np.bool)
     y_pred = pred[mask].astype(np.float32)
     y_actual = actual[mask].astype(np.float32)
-    return mstats.spearmanr(x=y_pred.flatten(), y=y_actual.flatten())
+    result: Tuple[float, float] = mstats.spearmanr(
+        x=y_pred.flatten(), y=y_actual.flatten()
+    )
+    return result

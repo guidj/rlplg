@@ -27,7 +27,7 @@ KREF_VALUES = "values"
 
 FILE_EXT = "h5"
 
-T = TypeVar("T")
+Numeric = TypeVar("Numeric", int, float)
 
 StateAction = Tuple[int, int]
 TransitionStats = Mapping[StateAction, Mapping[int, int]]
@@ -116,8 +116,12 @@ def collect_mdp_stats(
     Collections emperical statistics from an environment through play.
     """
     environment.reset()
-    transitions = collections.defaultdict(_create_trasitions)
-    rewards = collections.defaultdict(_create_rewards)
+    transitions: DefaultDict[
+        StateAction, DefaultDict[int, int]
+    ] = collections.defaultdict(_trasitions_defaultdict)
+    rewards: DefaultDict[
+        StateAction, DefaultDict[int, float]
+    ] = collections.defaultdict(_rewards_defaultdict)
     logging_enabled = logging_frequency_episodes > 0
     for episode in range(1, num_episodes + 1):
         environment.reset()
@@ -147,8 +151,12 @@ def aggregate_stats(elements: Sequence[MdpStats]) -> MdpStats:
     Aggregates multiple instances of MDPStats into one.
     """
 
-    transitions = collections.defaultdict(_create_trasitions)
-    rewards = collections.defaultdict(_create_rewards)
+    transitions: DefaultDict[
+        StateAction, DefaultDict[int, int]
+    ] = collections.defaultdict(_trasitions_defaultdict)
+    rewards: DefaultDict[
+        StateAction, DefaultDict[int, float]
+    ] = collections.defaultdict(_rewards_defaultdict)
 
     for element in elements:
         transitions = _accumulate(transitions, element.transitions)
@@ -157,9 +165,9 @@ def aggregate_stats(elements: Sequence[MdpStats]) -> MdpStats:
 
 
 def _accumulate(
-    collector: DefaultDict[StateAction, DefaultDict[int, T]],
-    element: DefaultDict[StateAction, DefaultDict[int, T]],
-) -> Mapping[StateAction, Mapping[int, T]]:
+    collector: DefaultDict[StateAction, DefaultDict[int, Numeric]],
+    element: Mapping[StateAction, Mapping[int, Numeric]],
+) -> DefaultDict[StateAction, DefaultDict[int, Numeric]]:
     """
     Accumulates stats from element into collector.
     """
@@ -170,7 +178,7 @@ def _accumulate(
     return new_collector
 
 
-def _create_trasitions() -> DefaultDict[int, int]:
+def _trasitions_defaultdict() -> DefaultDict[int, int]:
     """
     Returns:
         A defaultdict of integers.
@@ -179,7 +187,7 @@ def _create_trasitions() -> DefaultDict[int, int]:
     return collections.defaultdict(int)
 
 
-def _create_rewards() -> DefaultDict[int, float]:
+def _rewards_defaultdict() -> DefaultDict[int, float]:
     """
     A defaultdict of floats.
     Created to bypass serialization issues with lambdas.
@@ -249,27 +257,26 @@ def load_stats(path: str, filename: str) -> MdpStats:
             raise IOError(f"Failed to load file from {file_path}") from err
         else:
             with h5py.File(tmp_file.name, "r") as database:
-                data = {}
-                for name, dtype in zip(
-                    (
-                        KREF_TRANSITIONS,
-                        KREF_REWARDS,
-                    ),
-                    (int, float),
-                ):
-                    keys = tuple(np.array(database[f"{name}.{KREF_KEYS}"]).tolist())
-                    values = tuple(np.array(database[f"{name}.{KREF_VALUES}"]).tolist())
-
-                    # unnest
-                    data[name] = collections.defaultdict(
-                        lambda constructor=dtype: collections.defaultdict(
-                            lambda: constructor
-                        )
-                    )
-                    for key, value in zip(keys, values):
-                        state, action, next_state = key
-                        data[name][(state, action)][next_state] = value
-                return MdpStats(**data)
+                keys = tuple(
+                    np.array(database[f"{KREF_TRANSITIONS}.{KREF_KEYS}"]).tolist()
+                )
+                values = tuple(
+                    np.array(database[f"{KREF_TRANSITIONS}.{KREF_VALUES}"]).tolist()
+                )
+                # unnest
+                transitions: DefaultDict[
+                    StateAction, DefaultDict[int, int]
+                ] = collections.defaultdict(_trasitions_defaultdict)
+                for key, value in zip(keys, values):
+                    state, action, next_state = key
+                    transitions[(state, action)][next_state] = value
+                rewards: DefaultDict[
+                    StateAction, DefaultDict[int, float]
+                ] = collections.defaultdict(_rewards_defaultdict)
+                for key, value in zip(keys, values):
+                    state, action, next_state = key
+                    rewards[(state, action)][next_state] = value
+                return MdpStats(transitions=transitions, rewards=rewards)
 
 
 def create_mdp_functions(mdp_stats: MdpStats) -> MdpFunctions:

@@ -3,7 +3,7 @@ Policy evaluation methods.
 """
 import collections
 import copy
-from typing import Any, Callable, Generator, Tuple
+from typing import Any, Callable, DefaultDict, Generator, Tuple
 
 import numpy as np
 from tf_agents.environments import py_environment
@@ -32,7 +32,7 @@ def first_visit_monte_carlo_action_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     First-Visit Monte Carlo Prediction.
     Estimates Q(s, a) for a fixed policy pi.
@@ -66,12 +66,16 @@ def first_visit_monte_carlo_action_values(
 
     # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
-    state_action_updates = collections.defaultdict(int)
-    state_action_visits_remaining = collections.defaultdict(int)
+    state_action_updates: DefaultDict[Tuple[int, int], int] = collections.defaultdict(
+        int
+    )
+    state_action_visits_remaining: DefaultDict[
+        Tuple[int, int], int
+    ] = collections.defaultdict(int)
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        _experiences = list(generate_episodes(environment, policy, num_episodes=1))
+        _experiences = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
         experiences = []
         while len(_experiences) > 0:
@@ -119,7 +123,7 @@ def sarsa_action_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     On-policy Sarsa Prediction.
     Estimates Q(s, a) for a fixed policy pi.
@@ -156,7 +160,7 @@ def sarsa_action_values(
     steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, policy, num_episodes=1))
+        experiences = list(generate_episodes(environment, policy, 1))
         for steps_counter in range(len(experiences) - 1):
             state_id = state_id_fn(experiences[steps_counter].observation)
             action_id = action_id_fn(experiences[steps_counter].action)
@@ -191,7 +195,7 @@ def first_visit_monte_carlo_state_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     First-Visit Monte Carlo Prediction.
     Estimates V(s) for a fixed policy pi.
@@ -220,12 +224,12 @@ def first_visit_monte_carlo_state_values(
     """
     # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
-    state_updates = collections.defaultdict(int)
-    state_visits = collections.defaultdict(int)
+    state_updates: DefaultDict[int, int] = collections.defaultdict(int)
+    state_visits: DefaultDict[int, int] = collections.defaultdict(int)
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        _experiences = list(generate_episodes(environment, policy, num_episodes=1))
+        _experiences = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
         experiences = []
         while len(_experiences) > 0:
@@ -270,7 +274,7 @@ def one_step_td_state_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     TD(0) or one-step TD.
     Estimates V(s) for a fixed policy pi.
@@ -303,7 +307,7 @@ def one_step_td_state_values(
     steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, policy, num_episodes=1))
+        experiences = list(generate_episodes(environment, policy, 1))
         for steps_counter in range(len(experiences) - 1):
             state_id = state_id_fn(experiences[steps_counter].observation)
             next_state_id = state_id_fn(experiences[steps_counter + 1].observation)
