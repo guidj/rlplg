@@ -115,6 +115,7 @@ def create_state_values_fn() -> Callable[[NestedArray], float]:
     """
 
     def value_fn(features: NestedArray) -> float:
-        return features**2.0
+        value: float = features**2.0
+        return value
 
     return value_fn

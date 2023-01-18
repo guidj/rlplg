@@ -303,7 +303,8 @@ def policy_prob_fn(policy: py_policy.PyPolicy, traj: trajectory.Trajectory) -> f
         observation=traj.observation,
     )
     policy_step = policy.action(time_step)
-    return np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
+    prob: float = np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
+    return prob
 
 
 def collect_policy_prob_fn(
@@ -315,7 +316,8 @@ def collect_policy_prob_fn(
     We just have to return exp(log_prob).
     """
     del policy
-    return np.math.exp(traj.policy_info.log_probability)
+    prob: float = np.math.exp(traj.policy_info.log_probability)
+    return prob
 
 
 def constant_learning_rate(initial_lr: float, episode: int, step: int):
