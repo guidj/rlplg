@@ -21,7 +21,7 @@ def grid(
     cliffs: Sequence[Tuple[int, int]] = (),
     exits: Sequence[Tuple[int, int]] = (),
 ) -> np.ndarray:
-    obs = np.zeros(shape=(3, height, width), dtype=np.int32)
+    obs = np.zeros(shape=(3, height, width), dtype=np.int64)
     # player
     obs[0, x, y] = 1
     for x, y in cliffs:
@@ -32,7 +32,7 @@ def grid(
 
 
 def empty_grid() -> np.ndarray:
-    return np.zeros(shape=(3, GRID_HEIGHT, GRID_WIDTH), dtype=np.int32)
+    return np.zeros(shape=(3, GRID_HEIGHT, GRID_WIDTH), dtype=np.int64)
 
 
 def color_block(

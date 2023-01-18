@@ -36,7 +36,7 @@ Teacher policy: optimize to make as fewer changes on the student policy
 import base64
 import copy
 import hashlib
-from typing import Any, Optional, Sequence, Text, Tuple
+from typing import Any, Optional, Sequence, Tuple
 
 import numpy as np
 from tf_agents.environments import py_environment
@@ -57,7 +57,7 @@ class RedGreenSeq(py_environment.PyEnvironment):
 
     metadata = {"render.modes": ["raw"]}
 
-    def __init__(self, cure: Sequence[Text]):
+    def __init__(self, cure: Sequence[str]):
         """
         Args:
             cure_sequence: sequence of actions to take to cure a patient.
@@ -71,7 +71,7 @@ class RedGreenSeq(py_environment.PyEnvironment):
         self.cure_sequence = [constants.ACTION_NAME_MAPPING[action] for action in cure]
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=0,
             maximum=len(constants.ACTIONS) - 1,
             name="action",
@@ -79,14 +79,14 @@ class RedGreenSeq(py_environment.PyEnvironment):
         self._observation_spec = {
             constants.OBS_KEY_CURE_SEQUENCE: array_spec.BoundedArraySpec(
                 shape=(len(self.cure_sequence),),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=np.array([min(constants.ACTIONS)] * len(cure)),
                 maximum=np.array([max(constants.ACTIONS)] * len(cure)),
                 name=constants.OBS_KEY_CURE_SEQUENCE,
             ),
             constants.OBS_KEY_POSITION: array_spec.BoundedArraySpec(
                 shape=(),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=0,
                 maximum=len(cure),
                 name=constants.OBS_KEY_POSITION,
@@ -262,7 +262,7 @@ def is_finished(observation: NestedArray) -> bool:
     return is_finished_
 
 
-def create_env_spec(cure: Sequence[Text]) -> envspec.EnvSpec:
+def create_env_spec(cure: Sequence[str]) -> envspec.EnvSpec:
     """
     Creates an env spec from a gridworld config.
     """
@@ -280,7 +280,7 @@ def create_env_spec(cure: Sequence[Text]) -> envspec.EnvSpec:
     )
 
 
-def __encode_env(cure: Sequence[Text]) -> str:
+def __encode_env(cure: Sequence[str]) -> str:
     hash_key = tuple(cure)
     hashing = hashlib.sha512(str(hash_key).encode("UTF-8"))
     return base64.b32encode(hashing.digest()).decode("UTF-8")

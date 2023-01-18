@@ -202,13 +202,13 @@ def test_slice_trajectory_with_out_of_range_index():
     )
 
     expected = trajectory.Trajectory(
-        step_type=np.empty((), dtype=np.int32),
-        observation=np.empty((), dtype=np.int32),
-        action=np.empty((), dtype=np.int32),
+        step_type=np.empty((), dtype=np.int64),
+        observation=np.empty((), dtype=np.int64),
+        action=np.empty((), dtype=np.int64),
         policy_info=policy_step.PolicyInfo(
             log_probability=np.empty((), dtype=np.float32)
         ),
-        next_step_type=np.empty((), dtype=np.int32),
+        next_step_type=np.empty((), dtype=np.int64),
         reward=np.empty((), dtype=np.float32),
         discount=np.empty((), dtype=np.float32),
     )

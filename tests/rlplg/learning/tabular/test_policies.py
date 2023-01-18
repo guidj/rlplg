@@ -58,7 +58,7 @@ def test_random_policy_validity():
 
     environment.reset()
     expected = np.array([1.0 / num_actions] * num_actions, np.float32)
-    output = np.zeros(shape=(num_actions), dtype=np.int32)
+    output = np.zeros(shape=(num_actions), dtype=np.int64)
     for _ in range(10_000):
         _policy_step = policy.action(environment.current_time_step())
         output[_policy_step.action] += 1
@@ -153,7 +153,7 @@ def test_qgreedy_policy_validity():
         [0, 0, 1.0, 0],
         np.float32,
     )
-    output = np.zeros(shape=(num_actions), dtype=np.int32)
+    output = np.zeros(shape=(num_actions), dtype=np.int64)
     for _ in range(10_000):
         _policy_step = qgreedy_policy.action(environment.current_time_step())
         output[_policy_step.action] += 1
@@ -265,7 +265,7 @@ def test_egreedy_policy_validity():
     )
     # Action 2 is the best, add exploited
     expected[2] += 1.0 - epsilon
-    output = np.zeros(shape=(num_actions), dtype=np.int32)
+    output = np.zeros(shape=(num_actions), dtype=np.int64)
     for _ in range(10_000):
         _policy_step = epsilon_greedy_policy.action(environment.current_time_step())
         output[_policy_step.action] += 1

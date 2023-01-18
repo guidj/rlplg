@@ -17,42 +17,42 @@ def test_gridworld_init():
     assert environment.observation_spec() == {
         "start": array_spec.BoundedArraySpec(
             shape=(2,),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=np.array([3, 0]),
             maximum=np.array([3, 0]),
             name="player",
         ),
         "player": array_spec.BoundedArraySpec(
             shape=(2,),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=np.array([0, 0]),
             maximum=np.array([3, 11]),
             name="player",
         ),
         "cliffs": array_spec.BoundedArraySpec(
             shape=(0, 2),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=np.array([0, 0]),
             maximum=np.array([3, 11]),
             name="cliffs",
         ),
         "exits": array_spec.BoundedArraySpec(
             shape=(0, 2),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=np.array([0, 0]),
             maximum=np.array([3, 11]),
             name="exits",
         ),
         "size": array_spec.BoundedArraySpec(
             shape=(2,),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=np.array([4, 12]),
             maximum=np.array([4, 12]),
             name="size",
         ),
     }
     assert environment.action_spec() == array_spec.BoundedArraySpec(
-        shape=(), dtype=np.int32, minimum=0, maximum=3, name="action"
+        shape=(), dtype=np.int64, minimum=0, maximum=3, name="action"
     )
 
 
@@ -358,6 +358,6 @@ def test_as_grid():
             np.array([[0, 0, 1, 0], [0, 0, 0, 0]]),
             np.array([[0, 0, 0, 0], [0, 0, 0, 1]]),
         ],
-        dtype=np.int32,
+        dtype=np.int64,
     )
     np.testing.assert_array_equal(output, expected)

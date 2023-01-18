@@ -1,5 +1,3 @@
-from typing import Text
-
 import numpy as np
 import pytest
 import tensorflow as tf
@@ -13,7 +11,7 @@ from tests import defaults
 
 
 def test_tf_record_serdes(
-    tmpdir: Text,
+    tmpdir: str,
     time_step_spec: ts.TimeStep,
     action_spec: array_spec.BoundedArraySpec,
 ):
@@ -63,7 +61,7 @@ def test_tf_record_serdes(
 
 
 def test_json_serdes(
-    tmpdir: Text,
+    tmpdir: str,
     time_step_spec: ts.TimeStep,
     action_spec: array_spec.BoundedArraySpec,
 ):
@@ -179,7 +177,7 @@ def test_json_serdes(
 def time_step_spec():
     observation_spec = array_spec.BoundedArraySpec(
         shape=(),
-        dtype=np.int32,
+        dtype=np.int64,
         minimum=0,
         maximum=100,
         name="observation",
@@ -201,6 +199,6 @@ def action_spec():
         shape=(),
         minimum=1,
         maximum=100,
-        dtype=np.int32,
+        dtype=np.int64,
         name="action",
     )
