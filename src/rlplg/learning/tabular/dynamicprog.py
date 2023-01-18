@@ -19,7 +19,7 @@ def iterative_policy_evaluation(
     Vectorized implementation.
     """
     pi_action = np.zeros(
-        (mdp.env_desc().num_states, mdp.env_desc().num_actions), dtype=np.float
+        (mdp.env_desc().num_states, mdp.env_desc().num_actions), dtype=np.float32
     )
     transition = np.zeros(
         (
@@ -27,7 +27,7 @@ def iterative_policy_evaluation(
             mdp.env_desc().num_actions,
             mdp.env_desc().num_states,
         ),
-        dtype=np.float,
+        dtype=np.float32,
     )
     reward = np.zeros(
         (
@@ -35,7 +35,7 @@ def iterative_policy_evaluation(
             mdp.env_desc().num_actions,
             mdp.env_desc().num_states,
         ),
-        dtype=np.float,
+        dtype=np.float32,
     )
 
     for state in range(mdp.env_desc().num_states):
