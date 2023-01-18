@@ -247,6 +247,12 @@ def load_stats(path: str, filename: str) -> MdpStats:
     """
     Loads stas from an hdf5 file.
     """
+
+    def items(database: h5py.File, entity: str):
+        keys = tuple(np.array(database[f"{entity}.{KREF_KEYS}"]).tolist())
+        values = tuple(np.array(database[f"{entity}.{KREF_VALUES}"]).tolist())
+        return keys, values
+
     file_path = os.path.join(path, f"{filename}.{FILE_EXT}")
     with tempfile.NamedTemporaryFile() as tmp_file:
         logging.info("Loading stats from %s", file_path)
@@ -257,23 +263,17 @@ def load_stats(path: str, filename: str) -> MdpStats:
             raise IOError(f"Failed to load file from {file_path}") from err
         else:
             with h5py.File(tmp_file.name, "r") as database:
-                keys = tuple(
-                    np.array(database[f"{KREF_TRANSITIONS}.{KREF_KEYS}"]).tolist()
-                )
-                values = tuple(
-                    np.array(database[f"{KREF_TRANSITIONS}.{KREF_VALUES}"]).tolist()
-                )
                 # unnest
                 transitions: DefaultDict[
                     StateAction, DefaultDict[int, int]
                 ] = collections.defaultdict(_trasitions_defaultdict)
-                for key, value in zip(keys, values):
+                for key, value in zip(*items(database, KREF_TRANSITIONS)):
                     state, action, next_state = key
                     transitions[(state, action)][next_state] = value
                 rewards: DefaultDict[
                     StateAction, DefaultDict[int, float]
                 ] = collections.defaultdict(_rewards_defaultdict)
-                for key, value in zip(keys, values):
+                for key, value in zip(*items(database, KREF_REWARDS)):
                     state, action, next_state = key
                     rewards[(state, action)][next_state] = value
                 return MdpStats(transitions=transitions, rewards=rewards)

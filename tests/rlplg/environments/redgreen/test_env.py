@@ -138,6 +138,7 @@ def test_redgreen_render(cure: Sequence[Text]):
 def test_redgreen_render_with_invalid_modes(cure: Sequence[Text]):
     modes = ("human",)
     environment = env.RedGreenSeq(cure)
+    environment.reset()
     for mode in modes:
         with pytest.raises(NotImplementedError):
             environment.render(mode)
