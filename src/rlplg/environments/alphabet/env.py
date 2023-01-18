@@ -67,14 +67,14 @@ class ABCSeq(py_environment.PyEnvironment):
             )
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=0,
             maximum=length - 1,
             name="action",
         )
         self._observation_spec = array_spec.BoundedArraySpec(
             shape=(length + 1,),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=np.array([1] + [0] * length),
             maximum=np.ones(shape=(length + 1,)),
             name="observation",
@@ -231,7 +231,7 @@ def beginning_state(length: int):
     Returns:
         Initial observation for a starting game.
     """
-    observation = np.zeros(shape=(length + 1,), dtype=np.int32)
+    observation = np.zeros(shape=(length + 1,), dtype=np.int64)
     observation[0] = 1
     return observation
 
@@ -283,6 +283,6 @@ def state_observation(state_id: int, length: int) -> np.ndarray:
     """
     if state_id > length:
         raise ValueError(f"State id should be <= length: {state_id} > {length}")
-    observation = np.zeros(shape=(length + 1,), dtype=np.int32)
+    observation = np.zeros(shape=(length + 1,), dtype=np.int64)
     observation[: state_id + 1] = 1
     return observation

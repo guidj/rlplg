@@ -71,7 +71,7 @@ class RedGreenSeq(py_environment.PyEnvironment):
         self.cure_sequence = [constants.ACTION_NAME_MAPPING[action] for action in cure]
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=0,
             maximum=len(constants.ACTIONS) - 1,
             name="action",
@@ -79,14 +79,14 @@ class RedGreenSeq(py_environment.PyEnvironment):
         self._observation_spec = {
             constants.OBS_KEY_CURE_SEQUENCE: array_spec.BoundedArraySpec(
                 shape=(len(self.cure_sequence),),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=np.array([min(constants.ACTIONS)] * len(cure)),
                 maximum=np.array([max(constants.ACTIONS)] * len(cure)),
                 name=constants.OBS_KEY_CURE_SEQUENCE,
             ),
             constants.OBS_KEY_POSITION: array_spec.BoundedArraySpec(
                 shape=(),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=0,
                 maximum=len(cure),
                 name=constants.OBS_KEY_POSITION,

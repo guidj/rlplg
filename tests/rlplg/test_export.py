@@ -177,7 +177,7 @@ def test_json_serdes(
 def time_step_spec():
     observation_spec = array_spec.BoundedArraySpec(
         shape=(),
-        dtype=np.int32,
+        dtype=np.int64,
         minimum=0,
         maximum=100,
         name="observation",
@@ -199,6 +199,6 @@ def action_spec():
         shape=(),
         minimum=1,
         maximum=100,
-        dtype=np.int32,
+        dtype=np.int64,
         name="action",
     )

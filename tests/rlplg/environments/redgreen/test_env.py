@@ -285,7 +285,7 @@ def test_state_representation():
 def action_spec() -> array_spec.BoundedArraySpec:
     return array_spec.BoundedArraySpec(
         shape=(),
-        dtype=np.int32,
+        dtype=np.int64,
         minimum=0,
         maximum=2,
         name="action",
@@ -298,14 +298,14 @@ def observation_spec(
     return {
         "cure_sequence": array_spec.BoundedArraySpec(
             shape=(len(cure_actions),),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=[0] * len(cure_actions),
             maximum=[2] * len(cure_actions),
             name="cure_sequence",
         ),
         "position": array_spec.BoundedArraySpec(
             shape=(),
-            dtype=np.int32,
+            dtype=np.int64,
             minimum=0,
             maximum=len(cure_actions),
             name="position",

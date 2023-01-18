@@ -304,7 +304,7 @@ def test_state_id():
 def action_spec(length: int) -> array_spec.BoundedArraySpec:
     return array_spec.BoundedArraySpec(
         shape=(),
-        dtype=np.int32,
+        dtype=np.int64,
         minimum=0,
         maximum=length - 1,
         name="action",
@@ -314,7 +314,7 @@ def action_spec(length: int) -> array_spec.BoundedArraySpec:
 def observation_spec(length: int) -> array_spec.BoundedArraySpec:
     return array_spec.BoundedArraySpec(
         shape=(length + 1,),
-        dtype=np.int32,
+        dtype=np.int64,
         minimum=np.array([1] + [0] * length),
         maximum=np.array([1] * (length + 1)),
         name="observation",

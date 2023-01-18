@@ -217,7 +217,7 @@ def export_stats(
                 # nested numpys arrays can't be built from tuples
                 database.create_dataset(
                     f"{name}.{KREF_KEYS}",
-                    data=np.array(list(keys), dtype=(np.int32, 3)),
+                    data=np.array(list(keys), dtype=(np.int64, 3)),
                 )
                 database.create_dataset(
                     f"{name}.{KREF_VALUES}", data=np.array(values, dtype=dtype)

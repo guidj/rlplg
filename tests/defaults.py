@@ -67,14 +67,14 @@ class CountEnv(BasePyEnv):
         super().__init__(
             action_spec=array_spec.BoundedArraySpec(
                 shape=(),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=0,
                 maximum=1,
                 name="action",
             ),
             observation_spec=array_spec.BoundedArraySpec(
                 shape=(),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=0,
                 name="observation",
             ),
@@ -103,7 +103,7 @@ class CountEnv(BasePyEnv):
             reward = self.WRONG_MOVE_REWARD
         elif action == self.ACTION_NEXT:
             new_obs = np.array(
-                np.min([self._observation + 1, self.MAX_VALUE]), np.int32
+                np.min([self._observation + 1, self.MAX_VALUE]), np.int64
             )
             reward = self.RIGHT_MOVE_REWARD
         else:
@@ -128,7 +128,7 @@ class CountEnv(BasePyEnv):
 
         See `reset(self)` docstring for more details
         """
-        self._observation = np.array(0, np.int32)
+        self._observation = np.array(0, np.int64)
         return ts.restart(observation=self._observation)
 
 
@@ -199,14 +199,14 @@ class SingleStateEnv(BasePyEnv):
         super().__init__(
             action_spec=array_spec.BoundedArraySpec(
                 shape=(),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=0,
                 maximum=num_actions,
                 name="action",
             ),
             observation_spec=array_spec.BoundedArraySpec(
                 shape=(),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=0,
                 maximum=0,
                 name="observation",
@@ -237,7 +237,7 @@ class SingleStateEnv(BasePyEnv):
 
         See `reset(self)` docstring for more details
         """
-        self._observation = np.array(0, np.int32)
+        self._observation = np.array(0, np.int64)
         return ts.restart(observation=self._observation)
 
 
@@ -276,7 +276,7 @@ class RoundRobinActionsPolicy(py_policy.PyPolicy):
             self._iterator = iter(self._actions)
             action = next(self._iterator)
 
-        return policy_step.PolicyStep(np.array(action, dtype=np.int32), state, info)
+        return policy_step.PolicyStep(np.array(action, dtype=np.int64), state, info)
 
 
 def identity(value: Any) -> Any:
@@ -306,7 +306,7 @@ def batch(*args: Any):
     if isinstance(sample, float):
         return np.array(args, dtype=np.float32)
     if isinstance(sample, int):
-        return np.array(args, dtype=np.int32)
+        return np.array(args, dtype=np.int64)
     return np.array(args)
 
 

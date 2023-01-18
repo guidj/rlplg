@@ -53,26 +53,26 @@ class GridWorld(py_environment.PyEnvironment):
 
         # left, right, up, down
         self._action_spec = array_spec.BoundedArraySpec(
-            shape=(), dtype=np.int32, minimum=0, maximum=3, name="action"
+            shape=(), dtype=np.int64, minimum=0, maximum=3, name="action"
         )
         self._observation_spec = {
             "start": array_spec.BoundedArraySpec(
                 shape=(2,),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=np.array(start),
                 maximum=np.array(start),
                 name="start",
             ),
             "player": array_spec.BoundedArraySpec(
                 shape=(2,),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=np.zeros(shape=(2,)),
                 maximum=np.array([dim - 1 for dim in size]),
                 name="player",
             ),
             "cliffs": array_spec.BoundedArraySpec(
                 shape=(len(cliffs), 2),
-                dtype=np.int32,
+                dtype=np.int64,
                 # these aren't exact, just theoretical
                 # for the dims of the grid
                 minimum=np.zeros(shape=(2,)),
@@ -81,7 +81,7 @@ class GridWorld(py_environment.PyEnvironment):
             ),
             "exits": array_spec.BoundedArraySpec(
                 shape=(len(exits), 2),
-                dtype=np.int32,
+                dtype=np.int64,
                 # these aren't exact, just theoretical
                 # for the dims of the grid
                 minimum=np.zeros(shape=(2,)),
@@ -90,7 +90,7 @@ class GridWorld(py_environment.PyEnvironment):
             ),
             "size": array_spec.BoundedArraySpec(
                 shape=(2,),
-                dtype=np.int32,
+                dtype=np.int64,
                 minimum=np.array(size),
                 maximum=np.array(size),
                 name="exits",
@@ -448,9 +448,9 @@ def as_grid(observation: Mapping[str, Any]) -> NestedArray:
         A stack of 2D grids, with binary flags to indicate the presence layer elements.
     """
 
-    player = np.zeros(shape=observation[constants.Strings.size], dtype=np.int32)
-    cliff = np.zeros(shape=observation[constants.Strings.size], dtype=np.int32)
-    exit_ = np.zeros(shape=observation[constants.Strings.size], dtype=np.int32)
+    player = np.zeros(shape=observation[constants.Strings.size], dtype=np.int64)
+    cliff = np.zeros(shape=observation[constants.Strings.size], dtype=np.int64)
+    exit_ = np.zeros(shape=observation[constants.Strings.size], dtype=np.int64)
     # place agent at the start
     player[observation[constants.Strings.player]] = 1
     for pos_x, pos_y in observation[constants.Strings.cliffs]:
