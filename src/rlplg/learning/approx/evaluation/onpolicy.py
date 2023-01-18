@@ -10,7 +10,6 @@ import numpy as np
 from tf_agents.environments import py_environment
 from tf_agents.policies import py_policy
 from tf_agents.trajectories import trajectory
-from tf_agents.typing.types import NestedArray
 
 from rlplg import envplay
 from rlplg.learning.approx import modelspec
@@ -31,19 +30,19 @@ def gradient_monte_carlo_state_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, NestedArray, float], None, None]:
+) -> Generator[Tuple[int, modelspec.ApproxFn, float], None, None]:
     """
     Gradient monte-carlo based uses returns to
     approximate the value function of a policy.
     """
-    step = 0
+    steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, num_episodes=1))
         episode_return = np.sum([experience.reward for experience in experiences])
         # while step isn't last
         for experience in experiences:
-            alpha = lrs(episode=episode, step=step)
+            alpha = lrs(episode=episode, step=steps_counter)
             state_value = estimator.predict(experience.observation)
             gradients = estimator.gradients(experience.observation)
             weights = estimator.weights()
@@ -52,7 +51,7 @@ def gradient_monte_carlo_state_values(
             estimator.assign_weights(new_weights)
             # update returns for the next state
             episode_return -= experience.reward
-            step += 1
-            # TODO: need a way to indicate state is terminal in its repr .e.g just zeros
-        # need to copy values because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(estimator.weights()), delta
+            steps_counter += 1
+        # need to copy values because they can be mutable np.ndarrays or tf.tensors
+        # we use shallow copy because tf doesn't play nicely with deepcopy
+        yield len(experiences), copy.copy(estimator), delta
