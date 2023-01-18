@@ -28,7 +28,6 @@ class MDP(abc.ABC):
         Returns:
             A transition probability.
         """
-        pass
 
     @abc.abstractmethod
     def reward(
@@ -44,7 +43,6 @@ class MDP(abc.ABC):
         Returns
             A transition probability.
         """
-        pass
 
     @abc.abstractmethod
     def env_desc(self) -> envdesc.EnvDesc:
@@ -52,7 +50,6 @@ class MDP(abc.ABC):
         Returns:
             An instance of EnvDesc with properties of the environment.
         """
-        pass
 
 
 class MdpDiscretizer:
@@ -66,11 +63,9 @@ class MdpDiscretizer:
         """
         Maps an observation to a state ID.
         """
-        pass
 
     @abc.abstractmethod
     def action(self, action: Any) -> int:
         """
         Maps an agent action to an action ID.
         """
-        pass

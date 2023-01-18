@@ -12,6 +12,7 @@ import pytest
 from tf_agents.environments import py_environment
 from tf_agents.policies import py_policy
 
+from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 from rlplg.learning.tabular.evaluation import onpolicy
 from tests import defaults
@@ -112,7 +113,9 @@ def test_sarsa_action_values_with_one_episode(
         policy=policy,
         environment=environment,
         num_episodes=1,
-        alpha=0.1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
         gamma=0.95,
         state_id_fn=defaults.item,
         action_id_fn=defaults.item,
@@ -152,7 +155,9 @@ def test_sarsa_action_values_with_one_episode_convering_every_action(
         policy=stochastic_policy,
         environment=environment,
         num_episodes=1,
-        alpha=0.1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
         gamma=0.95,
         state_id_fn=defaults.identity,
         action_id_fn=defaults.identity,
@@ -251,7 +256,9 @@ def test_one_step_td_state_values_with_one_episode(
         policy=policy,
         environment=environment,
         num_episodes=1,
-        alpha=0.1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
         gamma=1.0,
         state_id_fn=defaults.item,
         initial_values=np.zeros(shape=[4], dtype=np.float32),
@@ -304,7 +311,9 @@ def test_one_step_td_state_values_with_two_episodes(
         policy=policy,
         environment=environment,
         num_episodes=2,
-        alpha=0.1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
         gamma=1.0,
         state_id_fn=defaults.item,
         initial_values=np.zeros(shape=[4], dtype=np.float32),
@@ -319,6 +328,12 @@ def test_one_step_td_state_values_with_two_episodes(
     steps, values = next(output_iter)
     assert steps == 4
     np.testing.assert_allclose(values, [-0.2, -0.2, -0.19, 0])
+
+
+def constant_learning_rate(initial_lr: float, episode: int, step: int):
+    del episode
+    del step
+    return initial_lr
 
 
 @pytest.fixture(scope="function")

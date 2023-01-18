@@ -19,10 +19,10 @@ class EpisodeStats:
     """
 
     def __init__(self):
-        self._episode_count = 0
-        self._episode_reward = 0.0
-        self._total_reward = 0.0
-        self._successful_episodes = 0
+        self._episode_count: int = 0
+        self._episode_reward: float = 0.0
+        self._total_reward: float = 0.0
+        self._successful_episodes: int = 0
 
     def new_reward(self, reward: float) -> None:
         """
@@ -94,7 +94,7 @@ class ExperimentLogger(contextlib.AbstractContextManager):
         with tf.io.gfile.GFile(self.param_file, "w") as writer:
             writer.write(json.dumps(dict(params, name=name)))
 
-        self._writer: Optional[Any] = None
+        self._writer: Optional[tf.io.gfile.GFile] = None
 
     def open(self) -> None:
         """
@@ -106,6 +106,8 @@ class ExperimentLogger(contextlib.AbstractContextManager):
         """
         Closes the log file.
         """
+        if self._writer is None:
+            raise RuntimeError("File is not opened")
         self._writer.close()
 
     def __enter__(self) -> "ExperimentLogger":
@@ -117,16 +119,16 @@ class ExperimentLogger(contextlib.AbstractContextManager):
         exc_type: Optional[Type[BaseException]],
         exc_value: Optional[BaseException],
         traceback: Optional[types.TracebackType],
-    ) -> bool:
+    ) -> None:
         self.close()
-        return super().__exit__(exc_type, exc_value, traceback)
+        super().__exit__(exc_type, exc_value, traceback)
 
     def log(
         self,
         episode: int,
         steps: int,
         returns: float,
-        metadata: Mapping[str, Any] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
     ):
         """
         Logs an experiment entry for an episode.
@@ -135,9 +137,9 @@ class ExperimentLogger(contextlib.AbstractContextManager):
             "episode": episode,
             "steps": steps,
             "returns": returns,
-            "metadata": metadata if metadata else {},
+            "metadata": metadata if metadata is not None else {},
         }
-        try:
-            self._writer.write(f"{json.dumps(entry)}\n")
-        except AttributeError as err:
-            raise RuntimeError("ExperimentLogger is unitialized") from err
+
+        if self._writer is None:
+            raise RuntimeError("File is not opened")
+        self._writer.write(f"{json.dumps(entry)}\n")

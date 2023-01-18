@@ -3,7 +3,7 @@ Policy evaluation methods.
 """
 import collections
 import copy
-from typing import Any, Callable, Generator, Tuple
+from typing import Any, Callable, DefaultDict, Generator, Tuple
 
 import numpy as np
 from tf_agents.environments import py_environment
@@ -12,6 +12,7 @@ from tf_agents.trajectories import trajectory
 from tf_agents.typing.types import Array
 
 from rlplg import envplay
+from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 
 
@@ -31,7 +32,7 @@ def first_visit_monte_carlo_action_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     First-Visit Monte Carlo Prediction.
     Estimates Q(s, a) for a fixed policy pi.
@@ -65,12 +66,16 @@ def first_visit_monte_carlo_action_values(
 
     # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
-    state_action_updates = collections.defaultdict(int)
-    state_action_visits_remaining = collections.defaultdict(int)
+    state_action_updates: DefaultDict[Tuple[int, int], int] = collections.defaultdict(
+        int
+    )
+    state_action_visits_remaining: DefaultDict[
+        Tuple[int, int], int
+    ] = collections.defaultdict(int)
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        _experiences = list(generate_episodes(environment, policy, num_episodes=1))
+        _experiences = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
         experiences = []
         while len(_experiences) > 0:
@@ -105,7 +110,7 @@ def sarsa_action_values(
     policy: policies.PyQGreedyPolicy,
     environment: py_environment.PyEnvironment,
     num_episodes: int,
-    alpha: float,
+    lrs: schedules.LearningRateSchedule,
     gamma: float,
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
@@ -118,7 +123,7 @@ def sarsa_action_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     On-policy Sarsa Prediction.
     Estimates Q(s, a) for a fixed policy pi.
@@ -132,7 +137,7 @@ def sarsa_action_values(
         policy: A target policy, pi, whose value function we wish to evaluate.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate.
+        lrs: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
             the Q(S, A) table.
@@ -152,23 +157,24 @@ def sarsa_action_values(
     """
     # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
-
-    for _ in range(num_episodes):
+    steps_counter = 0
+    for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, policy, num_episodes=1))
-        for step in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[step].observation)
-            action_id = action_id_fn(experiences[step].action)
-            reward = experiences[step].reward
+        experiences = list(generate_episodes(environment, policy, 1))
+        for steps_counter in range(len(experiences) - 1):
+            state_id = state_id_fn(experiences[steps_counter].observation)
+            action_id = action_id_fn(experiences[steps_counter].action)
+            reward = experiences[steps_counter].reward
 
-            next_state_id = state_id_fn(experiences[step + 1].observation)
-            next_action_id = action_id_fn(experiences[step + 1].action)
-
+            next_state_id = state_id_fn(experiences[steps_counter + 1].observation)
+            next_action_id = action_id_fn(experiences[steps_counter + 1].action)
+            alpha = lrs(episode=episode, step=steps_counter)
             qtable[state_id, action_id] += alpha * (
                 reward
                 + gamma * qtable[next_state_id, next_action_id]
                 - qtable[state_id, action_id]
             )
+            steps_counter += 1
 
         # need to copy qtable because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(qtable)
@@ -189,7 +195,7 @@ def first_visit_monte_carlo_state_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     First-Visit Monte Carlo Prediction.
     Estimates V(s) for a fixed policy pi.
@@ -199,7 +205,6 @@ def first_visit_monte_carlo_state_values(
         policy: A target policy, pi, whose value function we wish to evaluate.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
             the Q(S, A) table.
@@ -219,17 +224,17 @@ def first_visit_monte_carlo_state_values(
     """
     # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
-    state_updates = collections.defaultdict(int)
-    state_visits_remaining = collections.defaultdict(int)
+    state_updates: DefaultDict[int, int] = collections.defaultdict(int)
+    state_visits: DefaultDict[int, int] = collections.defaultdict(int)
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        _experiences = list(generate_episodes(environment, policy, num_episodes=1))
+        _experiences = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
         experiences = []
         while len(_experiences) > 0:
             experience = _experiences.pop()
-            state_visits_remaining[state_id_fn(experience.observation)] += 1
+            state_visits[state_id_fn(experience.observation)] += 1
             experiences.append(experience)
 
         episode_return = 0
@@ -237,17 +242,17 @@ def first_visit_monte_carlo_state_values(
             state_id = state_id_fn(experience.observation)
             reward = experience.reward
             episode_return = gamma * episode_return + reward
-            state_visits_remaining[state_id] -= 1
+            state_visits[state_id] -= 1
 
-            if state_visits_remaining[state_id] == 0:
-                state_updates[state_id] += 1
-                if state_updates[state_id] == 1:
+            if state_visits[state_id] == 0:
+                if state_updates[state_id] == 0:
                     # first value
                     values[state_id] = episode_return
                 else:
                     values[state_id] = values[state_id] + (
                         (episode_return - values[state_id]) / state_updates[state_id]
                     )
+                state_updates[state_id] += 1
 
         # need to copy values because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(values)
@@ -257,7 +262,7 @@ def one_step_td_state_values(
     policy: policies.PyQGreedyPolicy,
     environment: py_environment.PyEnvironment,
     num_episodes: int,
-    alpha: float,
+    lrs: schedules.LearningRateSchedule,
     gamma: float,
     state_id_fn: Callable[[Any], int],
     initial_values: np.ndarray,
@@ -269,7 +274,7 @@ def one_step_td_state_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     TD(0) or one-step TD.
     Estimates V(s) for a fixed policy pi.
@@ -279,7 +284,7 @@ def one_step_td_state_values(
         policy: A target policy, pi, whose value function we wish to evaluate.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate.
+        lrs: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
             the Q(S, A) table.
@@ -299,18 +304,20 @@ def one_step_td_state_values(
     """
     # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
-
-    for _ in range(num_episodes):
+    steps_counter = 0
+    for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, policy, num_episodes=1))
-        for step in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[step].observation)
-            next_state_id = state_id_fn(experiences[step + 1].observation)
+        experiences = list(generate_episodes(environment, policy, 1))
+        for steps_counter in range(len(experiences) - 1):
+            state_id = state_id_fn(experiences[steps_counter].observation)
+            next_state_id = state_id_fn(experiences[steps_counter + 1].observation)
+            alpha = lrs(episode=episode, step=steps_counter)
             values[state_id] += alpha * (
-                experiences[step].reward
+                experiences[steps_counter].reward
                 + gamma * values[next_state_id]
                 - values[state_id]
             )
+            steps_counter += 1
 
         # need to copy values because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(values)

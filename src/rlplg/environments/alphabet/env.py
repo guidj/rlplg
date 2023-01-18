@@ -166,7 +166,8 @@ class ABCSeqMdpDiscretizer(markovdp.MdpDiscretizer):
         Maps an agent action to an action ID.
         """
         del self
-        return npsci.item(action)
+        action_: int = npsci.item(action)
+        return action_
 
 
 def apply_action(observation: np.ndarray, action: NestedArray) -> np.ndarray:
@@ -240,7 +241,10 @@ def is_finished(observation: np.ndarray, action: NestedArray) -> bool:
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
     """
-    return np.sum(observation) == observation.size and action == observation.size - 2
+    is_finished_: bool = (
+        np.sum(observation) == observation.size and action == observation.size - 2
+    )
+    return is_finished_
 
 
 def create_env_spec(length: int) -> envspec.EnvSpec:
@@ -269,7 +273,8 @@ def get_state_id(observation: np.ndarray) -> int:
         [1, 1, 0] = 1
         [1, 1, 1] = 2 (terminal state)
     """
-    return np.sum(observation) - 1
+    state_id: int = np.sum(observation) - 1
+    return state_id
 
 
 def state_observation(state_id: int, length: int) -> np.ndarray:

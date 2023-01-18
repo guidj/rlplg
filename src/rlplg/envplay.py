@@ -1,3 +1,9 @@
+"""
+This module contains utilities for rollouts, and
+trajectory data.
+"""
+
+
 from typing import Generator
 
 import numpy as np
@@ -13,6 +19,18 @@ def generate_episodes(
     policy: py_policy.PyPolicy,
     num_episodes: int,
 ) -> Generator[trajectory.Trajectory, None, None]:
+    """
+    Generates `num_episodes` episodes using the environment
+    and policy provided for rollout.
+
+    Args:
+        enviroment: environment to use.
+        policy: for rollout.
+        num_episodes: number of rollout episodes.
+
+    Yields:
+        Trajectory instances from episodic rollouts, one step at a time.
+    """
     for _ in range(num_episodes):
         environment.reset()
         while True:
@@ -63,6 +81,17 @@ def unroll_trajectory(
 def slice_trajectory(
     traj: trajectory.Trajectory, start: int, size: int
 ) -> trajectory.Trajectory:
+    """
+    Slices a batched trajectory.
+
+    Args
+        traj: a possibly batched trajectory.
+        start: start index for slice.
+        size: number of elements to slice from `start`.
+
+    Returns:
+        A slice of the possibly batch trajectory input.
+    """
     if traj.policy_info not in ((), None):
         policy_info = policy_step.PolicyInfo(
             log_probability=_slice_nd_array(
@@ -83,6 +112,17 @@ def slice_trajectory(
 
 
 def fold_trajectories(*trajs: trajectory.Trajectory) -> trajectory.Trajectory:
+    """
+    Folds a sequence of trajectory instance into a single
+    batched trajectory.
+
+    Note: this class assume each input trajectory corresponds to a single step.
+
+    Args:
+        trajs: A sequence of trajectory instances.
+    Returns:
+        A batched trajectory instance, with the inputs in order.
+    """
     sample = next(iter(trajs))
     step_type = []
     observation = []

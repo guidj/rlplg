@@ -13,6 +13,7 @@ from tf_agents.trajectories import trajectory
 from tf_agents.typing.types import Array
 
 from rlplg import envplay
+from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 
 MCUpdate = collections.namedtuple("MCUpdate", ["returns", "cu_sum", "value", "weight"])
@@ -43,7 +44,7 @@ def monte_carlo_action_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """Off-policy MC Prediction.
     Estimates Q (table) for a fixed policy pi.
 
@@ -82,9 +83,7 @@ def monte_carlo_action_values(
     cu_sum = np.zeros_like(initial_qtable)
 
     for _ in range(num_episodes):
-        experiences = list(
-            generate_episodes(environment, collect_policy, num_episodes=1)
-        )
+        experiences = list(generate_episodes(environment, collect_policy, 1))
         num_steps = len(experiences)
         returns, weight = 0.0, 1.0
         # process from the ending
@@ -152,7 +151,7 @@ def nstep_sarsa_action_values(
     collect_policy: py_policy.PyPolicy,
     environment: py_environment.PyEnvironment,
     num_episodes: int,
-    alpha: float,
+    lrs: schedules.LearningRateSchedule,
     gamma: float,
     nstep: int,
     policy_probability_fn: Callable[
@@ -174,7 +173,7 @@ def nstep_sarsa_action_values(
         ],
         Generator[trajectory.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array, float], None, None]:
+) -> Generator[Tuple[int, Array], None, None]:
     """
     Off-policy n-step Sarsa Prediction.
     Estimates Q (table) for a fixed policy pi.
@@ -184,7 +183,7 @@ def nstep_sarsa_action_values(
         collect_policy: A behavior policy, used to generate episodes.
         environment: The environment used to generate episodes for evaluation.
         num_episodes: The number of episodes to generate for evaluation.
-        alpha: The learning rate.
+        lrs: The learning rate schedule.
         gamma: The discount rate.
         nstep: The number of steps before value updates in the MDP sequence.
         policy_probability_fn: returns action propensity for the target policy,
@@ -211,13 +210,11 @@ def nstep_sarsa_action_values(
         raise ValueError(f"nstep must be > 1: {nstep}")
     # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
-
-    for _ in range(num_episodes):
+    steps_counter = 0
+    for episode in range(num_episodes):
         final_step = np.inf
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(
-            generate_episodes(environment, collect_policy, num_episodes=1)
-        )
+        experiences = list(generate_episodes(environment, collect_policy, 1))
         for step, _ in enumerate(experiences):
             if step < final_step:
                 # we don't need to transition because we already collected the experience
@@ -245,9 +242,11 @@ def nstep_sarsa_action_values(
 
                 state_id = state_id_fn(experiences[tau].observation)
                 action_id = action_id_fn(experiences[tau].action)
+                alpha = lrs(episode=episode, step=steps_counter)
                 qtable[state_id, action_id] += (
                     alpha * rho * (returns - qtable[state_id, action_id])
                 )
+            steps_counter += 1
             if tau == final_step - 1:
                 break
 

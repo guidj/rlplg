@@ -11,6 +11,7 @@ from tf_agents.policies import py_policy
 from tf_agents.trajectories import time_step as ts
 from tf_agents.trajectories import trajectory
 
+from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 from rlplg.learning.tabular.evaluation import offpolicy
 from tests import defaults
@@ -153,7 +154,9 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
         collect_policy=policy,
         environment=environment,
         num_episodes=1,
-        alpha=0.1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
         gamma=0.95,
         nstep=1,
         policy_probability_fn=policy_prob_fn,
@@ -184,7 +187,9 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
         collect_policy=policy,
         environment=environment,
         num_episodes=2,
-        alpha=0.1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
         gamma=0.95,
         nstep=2,
         policy_probability_fn=policy_prob_fn,
@@ -228,7 +233,9 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every
         collect_policy=collect_policy,
         environment=environment,
         num_episodes=1,
-        alpha=0.1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
         gamma=0.95,
         nstep=1,
         policy_probability_fn=policy_prob_fn,
@@ -263,7 +270,9 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_ever
         collect_policy=collect_policy,
         environment=environment,
         num_episodes=1,
-        alpha=0.1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
         gamma=0.95,
         nstep=2,
         policy_probability_fn=policy_prob_fn,
@@ -294,7 +303,8 @@ def policy_prob_fn(policy: py_policy.PyPolicy, traj: trajectory.Trajectory) -> f
         observation=traj.observation,
     )
     policy_step = policy.action(time_step)
-    return np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
+    prob: float = np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
+    return prob
 
 
 def collect_policy_prob_fn(
@@ -306,7 +316,14 @@ def collect_policy_prob_fn(
     We just have to return exp(log_prob).
     """
     del policy
-    return np.math.exp(traj.policy_info.log_probability)
+    prob: float = np.math.exp(traj.policy_info.log_probability)
+    return prob
+
+
+def constant_learning_rate(initial_lr: float, episode: int, step: int):
+    del episode
+    del step
+    return initial_lr
 
 
 @pytest.fixture(scope="function")

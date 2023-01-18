@@ -4,7 +4,7 @@ import logging
 import os.path
 import queue
 import time
-from typing import Any, Generator, Mapping, Optional, Sequence, Text
+from typing import Any, Generator, Iterator, Mapping, Sequence, Text
 
 import numpy as np
 import tensorflow as tf
@@ -59,7 +59,7 @@ class TrajectoryWriter(abc.ABC):
         Returns:
             An instance of TrajectoryExporter
         """
-        self._queue = queue.Queue(maxsize=partition_size)
+        self._queue: queue.Queue = queue.Queue(maxsize=partition_size)
         self._partition_count = 0
         self._save_dir = os.path.join(output_dir, str(int(time.time())))
         self._types = infer_trajectory_field_types(time_step_spec, action_spec)
@@ -212,7 +212,11 @@ class TrajectoryTFRecordReader(TrajectoryReader):
         return dataset.map(parse_example).map(deserialize_traj)
 
     def _as_iterator(self) -> Generator[trajectory.Trajectory, None, None]:
-        return self._as_dataset().as_numpy_iterator()
+        iterator: Iterator[
+            trajectory.Trajectory
+        ] = self._as_dataset().as_numpy_iterator()
+        for value in iterator:
+            yield value
 
 
 class TrajectoryJsonReader(TrajectoryReader):
@@ -248,7 +252,11 @@ class TrajectoryJsonReader(TrajectoryReader):
         ).map(parse_trajectory)
 
     def _as_iterator(self) -> Generator[trajectory.Trajectory, None, None]:
-        return self._as_dataset().as_numpy_iterator()
+        iterator: Iterator[
+            trajectory.Trajectory
+        ] = self._as_dataset().as_numpy_iterator()
+        for value in iterator:
+            yield value
 
     def _create_generator(self) -> Generator[Mapping[Text, Any], None, None]:
         for file_path in self._files:
@@ -325,7 +333,7 @@ def resolve_files(dirs: Sequence[Text], pattern: Text) -> Sequence[Text]:
     return files
 
 
-def load_schema(path: Text) -> Optional[Mapping[Text, np.dtype]]:
+def load_schema(path: Text) -> Mapping[Text, np.dtype]:
     try:
         with tf.io.gfile.GFile(path, "r") as reader:
             serialized_schema = json.load(reader)

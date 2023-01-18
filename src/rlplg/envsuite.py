@@ -1,3 +1,9 @@
+"""
+This module has utilities to load environments,
+defined in either `rlplg` or gym.
+"""
+
+
 import functools
 from typing import Any, Callable, Mapping
 
@@ -19,7 +25,7 @@ SUPPORTED_RLPLG_ENVS = frozenset((ABC, GRID_WORLD, RED_GREEN))
 SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE))
 
 
-def load(name: str, **args: Mapping[str, Any]) -> envspec.EnvSpec:
+def load(name: str, **args) -> envspec.EnvSpec:
     """
     Creates an environment with the given arguments.
 
@@ -48,7 +54,7 @@ def __environment_spec_constructors() -> Mapping[str, Callable[..., envspec.EnvS
         A mapping from a unique string identifier to a constructor.
 
     """
-    rlplg_envs = {
+    rlplg_envs: Mapping[str, Callable[..., envspec.EnvSpec]] = {
         ABC: alphabet_env.create_env_spec,
         GRID_WORLD: gridworld_utils.create_envspec_from_grid,
         RED_GREEN: redgreen_env.create_env_spec,
