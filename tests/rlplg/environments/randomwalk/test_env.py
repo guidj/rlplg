@@ -192,6 +192,7 @@ def test_state_randomwalk_render():
 def test_state_randomwalk_render_with_invalid_modes(steps: int):
     modes = ("human",)
     environment = env.StateRandomWalk(steps=steps)
+    environment.reset()
     for mode in modes:
         with pytest.raises(NotImplementedError):
             environment.render(mode)
