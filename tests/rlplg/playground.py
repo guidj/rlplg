@@ -1,7 +1,7 @@
 import copy
 import logging
 import math
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Callable, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -9,7 +9,9 @@ from tf_agents.policies import random_py_policy
 from tf_agents.typing.types import NestedArray
 
 from rlplg import metrics, npsci
-from rlplg.environments.randomwalk import constants, env
+from rlplg.environments.gridworld import constants, env
+
+# from rlplg.environments.randomwalk import constants, env
 from rlplg.learning.approx import modelspec
 from rlplg.learning.approx.evaluation import onpolicy as approx_onpolicy
 from rlplg.learning.opt import schedules
@@ -192,9 +194,15 @@ def create_simple_model_fn(input_shape: Sequence[int]):
 
 def main():
     # environment = suite_gym.load("CliffWalking-v0")
-    steps = 3
+    # steps = 3
     # environment = env.StateRandomWalk(steps=steps)
-    env_spec = env.create_env_spec(steps=steps)
+    # env_spec = env.create_env_spec(steps=steps)
+    # o o o g
+    # x o o x
+    # s o o o
+    size, cliffs, exits, start = (3, 4), [(1, 0), (1, 3)], [(0, 3)], (2, 0)
+    env_spec = env.create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)
+    states_mapping = env.states_mapping(size=size, cliffs=cliffs)
     environment = env_spec.environment
     environment.reset()
     policy = random_py_policy.RandomPyPolicy(
@@ -208,17 +216,21 @@ def main():
         We add another value for the intercept.
         And another to indicate if the state is terminal.
         """
-        is_terminal = env.is_finished(observation)
-        # TODO: distance to the right and left
-        pos = np.array([observation[constants.OBS_KEY_POSITION]])
+        is_terminal = (
+            observation[constants.Strings.player]
+            in observation[constants.Strings.exits]
+        )
+        flat_grid = env.as_grid(observation).flatten()
 
         # enrich: e.g. how far to the left, how far to the right is the state
-        return modelspec.ValueFnInputs(features=pos, is_terminal_state=is_terminal)
+        return modelspec.ValueFnInputs(
+            features=flat_grid, is_terminal_state=is_terminal
+        )
 
     approx_fn = modelspec.ApproxFn(
         # model=LinearValueFn(initial_weights=np.zeros(shape=(1,), dtype=np.float32)),
         model=TfDeepLearningModel(
-            create_model=create_simple_model_fn(input_shape=(1,))
+            create_model=create_simple_model_fn(input_shape=(3 * 4 * 3,))
         ),
         pre_proc=prepoc,
     )
@@ -241,10 +253,16 @@ def main():
         initial_values=np.zeros(
             shape=(env_spec.env_desc.num_states,), dtype=np.float32
         ),
-        state_id_fn=lambda x: npsci.item(x[constants.OBS_KEY_POSITION]),
+        state_id_fn=env.create_state_id_fn(states=states_mapping),
     )
 
-    value_table_fn = create_value_table_from_linear_fn(steps)
+    value_table_fn = create_value_table_from_linear_fn(
+        size=size,
+        cliffs=cliffs,
+        exits=exits,
+        start=start,
+        states_mapping=states_mapping,
+    )
     for episode, ((_, tabular_vtable), (steps, estimator, delta)) in enumerate(
         zip(tabular_results, approx_results)
     ):
@@ -263,14 +281,28 @@ def main():
     logging.info("Approx vtable: %s", approx_vtable)
 
 
-def create_value_table_from_linear_fn(steps: int):
-    states = [
-        {
-            constants.OBS_KEY_POSITION: np.array(step, dtype=np.int64),
-            constants.OBS_KEY_STEPS: np.array(steps, dtype=np.int64),
-        }
-        for step in range(steps)
-    ]
+def create_value_table_from_linear_fn(
+    size: Tuple[int, int],
+    cliffs: Sequence[Tuple[int, int]],
+    exits: Sequence[Tuple[int, int]],
+    start: Tuple[int, int],
+    states_mapping: Mapping[Tuple[int, int], int],
+):
+    states = [None] * len(states_mapping)
+    num_rows, num_cols = size
+    for pos_x in range(num_rows):
+        for pos_y in range(num_cols):
+            state = (pos_x, pos_y)
+            # cannot be at cliff (is always sent to the start)
+            if (pos_x, pos_y) not in cliffs:
+                obs = env.create_observation(
+                    size=size,
+                    start=start,
+                    player=state,
+                    cliffs=cliffs,
+                    exits=exits,
+                )
+                states[states_mapping[state]] = obs
 
     def value_table_fn(estimator: modelspec.ApproxFn) -> NestedArray:
         return np.array(
