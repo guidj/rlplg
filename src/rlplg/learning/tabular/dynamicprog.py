@@ -12,7 +12,6 @@ def iterative_policy_evaluation(
     gamma: float = 1.0,
     accuracy: float = 1e-8,
 ):
-
     """
     Implementation of dynamic programming for state value function computation.
     V(s)_{pi}.
