@@ -139,7 +139,10 @@ class GridWorld(py_environment.PyEnvironment):
         next_observation, reward = apply_action(self._observation, action)
 
         self._observation = next_observation
-        if self._observation[constants.Strings.player] in self._exits:
+        if (
+            _coord_from_array(self._observation[constants.Strings.player])
+            in self._exits
+        ):
             return ts.termination(
                 observation=copy.deepcopy(self._observation), reward=reward
             )
@@ -281,17 +284,19 @@ def apply_action(
     reward = _step_reward(observation, next_position=next_position)
     if next_position in observation[constants.Strings.cliffs]:
         # send back to the beginning
-        next_position = observation[constants.Strings.start]
+        next_position = _coord_from_array(observation[constants.Strings.start])
     next_observation = copy.deepcopy(observation)
-    next_observation[constants.Strings.player] = next_position
+    next_observation[constants.Strings.player] = np.array(next_position, dtype=np.int64)
     return next_observation, reward
 
 
 def _step(observation: NestedArray, action: NestedArray) -> Tuple[int, int]:
     # If in exit, stay
-    if observation[constants.Strings.player] in observation[constants.Strings.exits]:
-        pos: Tuple[int, int] = copy.deepcopy(observation[constants.Strings.player])
-        return pos
+    if _coord_from_array(
+        observation[constants.Strings.player]
+    ) in _coords_from_sequence(observation[constants.Strings.exits]):
+        pos: np.ndarray = copy.deepcopy(observation[constants.Strings.player])
+        return _coord_from_array(pos)
     pos_x, pos_y = observation[constants.Strings.player]
     height, width = observation[constants.Strings.size]
     if action == constants.LEFT:
@@ -307,9 +312,11 @@ def _step(observation: NestedArray, action: NestedArray) -> Tuple[int, int]:
 
 def _step_reward(observation: NestedArray, next_position: Tuple[int, int]) -> float:
     # terminal state (current pos)
-    if observation[constants.Strings.player] in observation[constants.Strings.exits]:
+    if _coord_from_array(
+        observation[constants.Strings.player]
+    ) in _coords_from_sequence(observation[constants.Strings.exits]):
         return constants.TERMINAL_REWARD
-    if next_position in observation[constants.Strings.cliffs]:
+    if next_position in _coords_from_sequence(observation[constants.Strings.cliffs]):
         return constants.CLIFF_PENALTY
     return constants.MOVE_PENALTY
 
@@ -326,11 +333,11 @@ def create_observation(
     and other information.
     """
     return {
-        constants.Strings.start: start,
-        constants.Strings.player: player,
-        constants.Strings.cliffs: set(cliffs),
-        constants.Strings.exits: set(exits),
-        constants.Strings.size: size,
+        constants.Strings.start: np.array(start, dtype=np.int64),
+        constants.Strings.player: np.array(player, dtype=np.int64),
+        constants.Strings.cliffs: np.array(cliffs, dtype=np.int64),
+        constants.Strings.exits: np.array(exits, dtype=np.int64),
+        constants.Strings.size: np.array(size, dtype=np.int64),
     }
 
 
@@ -408,7 +415,7 @@ def create_state_id_fn(
         Returns:
             An integer state ID.
         """
-        return states[observation[constants.Strings.player]]
+        return states[tuple(observation[constants.Strings.player].tolist())]
 
     return state_id
 
@@ -451,10 +458,25 @@ def as_grid(observation: Mapping[str, Any]) -> NestedArray:
     player = np.zeros(shape=observation[constants.Strings.size], dtype=np.int64)
     cliff = np.zeros(shape=observation[constants.Strings.size], dtype=np.int64)
     exit_ = np.zeros(shape=observation[constants.Strings.size], dtype=np.int64)
-    # place agent at the start
-    player[observation[constants.Strings.player]] = 1
+    # Place agent at the start.
+    # There is only one (x, y) pair.
+    player[_coord_from_array(observation[constants.Strings.player])] = 1
     for pos_x, pos_y in observation[constants.Strings.cliffs]:
         cliff[pos_x, pos_y] = 1
     for pos_x, pos_y in observation[constants.Strings.exits]:
         exit_[pos_x, pos_y] = 1
     return np.stack([player, cliff, exit_])
+
+
+def _coord_from_array(xs: np.ndarray) -> Tuple[int, int]:
+    """
+    Converts a coordinate from an arry to a 2-tuple.
+    """
+    return tuple(xs.tolist())
+
+
+def _coords_from_sequence(xs: np.ndarray) -> Sequence[Tuple[int, int]]:
+    """
+    Converts a sequence of coordinates from an 2-D array to a sequence of 2-tuples.
+    """
+    return [_coord_from_array(element) for element in xs]
