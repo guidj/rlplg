@@ -51,8 +51,12 @@ from tf_agents.trajectories import time_step as ts
 from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
 from rlplg import envdesc, envspec, npsci
-from rlplg.environments.alphabet import constants
 from rlplg.learning.tabular import markovdp
+
+ENV_NAME = "ABCSeq"
+MIN_SEQ_LENGTH = 1
+LETTERS = [chr(value) for value in range(ord("A"), ord("Z") + 1)]
+NUM_LETTERS = len(LETTERS)
 
 
 class ABCSeq(py_environment.PyEnvironment):
@@ -61,9 +65,9 @@ class ABCSeq(py_environment.PyEnvironment):
     def __init__(self, length: int):
         super().__init__()
         self.length = length
-        if constants.NUM_LETTERS < length < constants.MIN_SEQ_LENGTH:
+        if NUM_LETTERS < length < MIN_SEQ_LENGTH:
             raise ValueError(
-                f"Length must be between {constants.MIN_SEQ_LENGTH} and {constants.NUM_LETTERS}: {length}"
+                f"Length must be between {MIN_SEQ_LENGTH} and {NUM_LETTERS}: {length}"
             )
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(),
@@ -257,7 +261,7 @@ def create_env_spec(length: int) -> envspec.EnvSpec:
     discretizer = ABCSeqMdpDiscretizer()
     env_desc = envdesc.EnvDesc(num_states=length + 1, num_actions=length)
     return envspec.EnvSpec(
-        name=constants.ENV_NAME,
+        name=ENV_NAME,
         level=str(length),
         environment=environment,
         discretizer=discretizer,

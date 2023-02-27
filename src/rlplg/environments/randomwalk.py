@@ -24,8 +24,20 @@ from tf_agents.trajectories import time_step as ts
 from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
 from rlplg import envdesc, envspec, npsci
-from rlplg.environments.randomwalk import constants
 from rlplg.learning.tabular import markovdp
+
+ENV_NAME = "StateRandomWalk"
+GO_LEFT = 0
+GO_RIGHT = 1
+ACTIONS = [GO_LEFT, GO_RIGHT]
+RIGHT_REWARD = 1
+LEFT_REWARD = 0
+STEP_REWARD = 0
+OBS_KEY_POSITION = "position"
+OBS_KEY_STEPS = "steps"
+OBS_KEY_LEFT_END_REWARD = "left_end_reward"
+OBS_KEY_RIGHT_END_REWARD = "right_end_reward"
+OBS_KEY_STEP_REWARD = "step_reward"
 
 
 class StateRandomWalk(py_environment.PyEnvironment):
@@ -46,9 +58,9 @@ class StateRandomWalk(py_environment.PyEnvironment):
     def __init__(
         self,
         steps: int,
-        left_end_reward: float = constants.LEFT_REWARD,
-        right_end_reward: float = constants.RIGHT_REWARD,
-        step_reward: float = constants.STEP_REWARD,
+        left_end_reward: float = LEFT_REWARD,
+        right_end_reward: float = RIGHT_REWARD,
+        step_reward: float = STEP_REWARD,
     ):
         """
         Args:
@@ -68,44 +80,44 @@ class StateRandomWalk(py_environment.PyEnvironment):
             shape=(),
             dtype=np.int64,
             minimum=0,
-            maximum=len(constants.ACTIONS) - 1,
+            maximum=len(ACTIONS) - 1,
             name="action",
         )
         self._observation_spec = {
-            constants.OBS_KEY_POSITION: array_spec.BoundedArraySpec(
+            OBS_KEY_POSITION: array_spec.BoundedArraySpec(
                 shape=(),
                 dtype=np.int64,
                 minimum=0,
                 maximum=steps - 1,
-                name=constants.OBS_KEY_POSITION,
+                name=OBS_KEY_POSITION,
             ),
-            constants.OBS_KEY_STEPS: array_spec.BoundedArraySpec(
+            OBS_KEY_STEPS: array_spec.BoundedArraySpec(
                 shape=(),
                 dtype=np.int64,
                 minimum=steps,
                 maximum=steps,
-                name=constants.OBS_KEY_STEPS,
+                name=OBS_KEY_STEPS,
             ),
-            constants.OBS_KEY_RIGHT_END_REWARD: array_spec.BoundedArraySpec(
+            OBS_KEY_RIGHT_END_REWARD: array_spec.BoundedArraySpec(
                 shape=(),
                 dtype=np.float32,
                 minimum=np.finfo(np.float32).min,
                 maximum=np.finfo(np.float32).max,
-                name=constants.OBS_KEY_RIGHT_END_REWARD,
+                name=OBS_KEY_RIGHT_END_REWARD,
             ),
-            constants.OBS_KEY_LEFT_END_REWARD: array_spec.BoundedArraySpec(
+            OBS_KEY_LEFT_END_REWARD: array_spec.BoundedArraySpec(
                 shape=(),
                 dtype=np.float32,
                 minimum=np.finfo(np.float32).min,
                 maximum=np.finfo(np.float32).max,
-                name=constants.OBS_KEY_LEFT_END_REWARD,
+                name=OBS_KEY_LEFT_END_REWARD,
             ),
-            constants.OBS_KEY_STEP_REWARD: array_spec.BoundedArraySpec(
+            OBS_KEY_STEP_REWARD: array_spec.BoundedArraySpec(
                 shape=(),
                 dtype=np.float32,
                 minimum=np.finfo(np.float32).min,
                 maximum=np.finfo(np.float32).max,
-                name=constants.OBS_KEY_STEP_REWARD,
+                name=OBS_KEY_STEP_REWARD,
             ),
         }
 
@@ -221,25 +233,25 @@ def apply_action(
         possible_states: [0, 4]
         (0 is terminal, 1 is a left step, 3 is a right steps, 6 is a terminal state)
     """
-    right_terminal_state = observation[constants.OBS_KEY_STEPS] - 1
+    right_terminal_state = observation[OBS_KEY_STEPS] - 1
     terminal_states = set((0, right_terminal_state))
     new_observation = copy.deepcopy(observation)
     # default reward + for terminal states
     reward = 0.0
-    if npsci.item(observation[constants.OBS_KEY_POSITION]) in terminal_states:
+    if npsci.item(observation[OBS_KEY_POSITION]) in terminal_states:
         # override step reward in terminal states
         step_reward = 0.0
     else:
-        if action == constants.GO_LEFT:
-            new_observation[constants.OBS_KEY_POSITION] -= 1
-        elif action == constants.GO_RIGHT:
-            new_observation[constants.OBS_KEY_POSITION] += 1
+        if action == GO_LEFT:
+            new_observation[OBS_KEY_POSITION] -= 1
+        elif action == GO_RIGHT:
+            new_observation[OBS_KEY_POSITION] += 1
 
-        step_reward = new_observation[constants.OBS_KEY_STEP_REWARD]
-        if new_observation[constants.OBS_KEY_POSITION] == right_terminal_state:
-            reward = new_observation[constants.OBS_KEY_RIGHT_END_REWARD]
-        elif new_observation[constants.OBS_KEY_POSITION] == 0:  # left end
-            reward = new_observation[constants.OBS_KEY_LEFT_END_REWARD]
+        step_reward = new_observation[OBS_KEY_STEP_REWARD]
+        if new_observation[OBS_KEY_POSITION] == right_terminal_state:
+            reward = new_observation[OBS_KEY_RIGHT_END_REWARD]
+        elif new_observation[OBS_KEY_POSITION] == 0:  # left end
+            reward = new_observation[OBS_KEY_LEFT_END_REWARD]
     return new_observation, reward + step_reward
 
 
@@ -250,13 +262,11 @@ def beginning_state(
     Generates the starting state.
     """
     return {
-        constants.OBS_KEY_POSITION: np.array(math.floor(steps / 2), dtype=np.int64),
-        constants.OBS_KEY_STEPS: np.array(steps, dtype=np.int64),
-        constants.OBS_KEY_RIGHT_END_REWARD: np.array(
-            right_end_reward, dtype=np.float32
-        ),
-        constants.OBS_KEY_LEFT_END_REWARD: np.array(left_end_reward, dtype=np.float32),
-        constants.OBS_KEY_STEP_REWARD: np.array(step_reward, dtype=np.float32),
+        OBS_KEY_POSITION: np.array(math.floor(steps / 2), dtype=np.int64),
+        OBS_KEY_STEPS: np.array(steps, dtype=np.int64),
+        OBS_KEY_RIGHT_END_REWARD: np.array(right_end_reward, dtype=np.float32),
+        OBS_KEY_LEFT_END_REWARD: np.array(left_end_reward, dtype=np.float32),
+        OBS_KEY_STEP_REWARD: np.array(step_reward, dtype=np.float32),
     }
 
 
@@ -265,16 +275,16 @@ def is_finished(observation: Mapping[str, Any]) -> bool:
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
     """
-    return npsci.item(observation[constants.OBS_KEY_POSITION]) in set(
-        (0, observation[constants.OBS_KEY_STEPS] - 1)
+    return npsci.item(observation[OBS_KEY_POSITION]) in set(
+        (0, observation[OBS_KEY_STEPS] - 1)
     )
 
 
 def create_env_spec(
     steps: int,
-    left_end_reward: float = constants.LEFT_REWARD,
-    right_end_reward: float = constants.RIGHT_REWARD,
-    step_reward: float = constants.STEP_REWARD,
+    left_end_reward: float = LEFT_REWARD,
+    right_end_reward: float = RIGHT_REWARD,
+    step_reward: float = STEP_REWARD,
 ) -> envspec.EnvSpec:
     """
     Creates an env spec from a config.
@@ -287,10 +297,10 @@ def create_env_spec(
     )
     discretizer = StateRandomWalkMdpDiscretizer()
     num_states = steps
-    num_actions = len(constants.ACTIONS)
+    num_actions = len(ACTIONS)
     env_desc = envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
     return envspec.EnvSpec(
-        name=constants.ENV_NAME,
+        name=ENV_NAME,
         level=__encode_env(
             steps=steps,
             left_end_reward=left_end_reward,
@@ -318,7 +328,7 @@ def get_state_id(observation: Mapping[str, Any]) -> int:
     """
     Computes an integer ID that represents that state.
     """
-    state_id: int = observation[constants.OBS_KEY_POSITION]
+    state_id: int = observation[OBS_KEY_POSITION]
     return state_id
 
 
@@ -336,6 +346,6 @@ def state_representation(observation: Mapping[str, Any]) -> NestedArray:
 
     output = [0, 0, 1, 0, 0]
     """
-    array = np.zeros(shape=(observation[constants.OBS_KEY_STEPS],), dtype=np.int64)
-    array[npsci.item(observation[constants.OBS_KEY_POSITION])] = 1
+    array = np.zeros(shape=(observation[OBS_KEY_STEPS],), dtype=np.int64)
+    array[npsci.item(observation[OBS_KEY_POSITION])] = 1
     return array

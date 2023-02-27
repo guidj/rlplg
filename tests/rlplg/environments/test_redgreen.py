@@ -8,15 +8,15 @@ import pytest
 from tf_agents.specs import array_spec
 from tf_agents.trajectories import time_step as ts
 
-from rlplg.environments.redgreen import constants, env
+from rlplg.environments import redgreen
 
 VALID_ACTIONS = ["red", "green", "wait"]
 
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
 def test_redgreen_init(cure: Sequence[str]):
-    cure_sequence = [constants.ACTION_NAME_MAPPING[step] for step in cure]
-    environment = env.RedGreenSeq(cure)
+    cure_sequence = [redgreen.ACTION_NAME_MAPPING[step] for step in cure]
+    environment = redgreen.RedGreenSeq(cure)
     assert environment.cure_sequence == cure_sequence
     assert environment.action_spec() == action_spec()
     assert environment.observation_spec() == observation_spec(cure_sequence)
@@ -24,7 +24,7 @@ def test_redgreen_init(cure: Sequence[str]):
 
 def test_redgreen_simple_sequence():
     cure = ["red", "green", "wait"]
-    environment = env.RedGreenSeq(cure)
+    environment = redgreen.RedGreenSeq(cure)
     assert_time_step(
         environment.reset(),
         ts.TimeStep(
@@ -120,7 +120,7 @@ def test_redgreen_simple_sequence():
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
 def test_redgreen_render(cure: Sequence[str]):
-    environment = env.RedGreenSeq(cure)
+    environment = redgreen.RedGreenSeq(cure)
     environment.reset()
     # starting point
     np.testing.assert_array_equal(
@@ -128,7 +128,7 @@ def test_redgreen_render(cure: Sequence[str]):
         [0] * len(cure),
     )
     # one move
-    environment.step(constants.ACTION_NAME_MAPPING[cure[0]])
+    environment.step(redgreen.ACTION_NAME_MAPPING[cure[0]])
     np.testing.assert_array_equal(
         environment.render("rgb_array"), [1] + [0] * (len(cure) - 1)
     )
@@ -137,7 +137,7 @@ def test_redgreen_render(cure: Sequence[str]):
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
 def test_redgreen_render_with_invalid_modes(cure: Sequence[str]):
     modes = ("human",)
-    environment = env.RedGreenSeq(cure)
+    environment = redgreen.RedGreenSeq(cure)
     environment.reset()
     for mode in modes:
         with pytest.raises(NotImplementedError):
@@ -146,7 +146,7 @@ def test_redgreen_render_with_invalid_modes(cure: Sequence[str]):
 
 @hypothesis.given(
     cure_sequence=st.lists(
-        st.sampled_from(elements=list(range(len(constants.ACTIONS)))), min_size=2
+        st.sampled_from(elements=list(range(len(redgreen.ACTIONS)))), min_size=2
     )
 )
 def test_apply_action_with_correct_next_action(cure_sequence: Sequence[int]):
@@ -154,7 +154,7 @@ def test_apply_action_with_correct_next_action(cure_sequence: Sequence[int]):
         "cure_sequence": cure_sequence,
         "position": 0,
     }
-    output_obs, output_reward = env.apply_action(obs, cure_sequence[0])
+    output_obs, output_reward = redgreen.apply_action(obs, cure_sequence[0])
     assert output_obs == {
         "cure_sequence": cure_sequence,
         "position": 1,
@@ -164,7 +164,7 @@ def test_apply_action_with_correct_next_action(cure_sequence: Sequence[int]):
 
 @hypothesis.given(
     cure_sequence=st.lists(
-        st.sampled_from(elements=list(range(len(constants.ACTIONS)))), min_size=2
+        st.sampled_from(elements=list(range(len(redgreen.ACTIONS)))), min_size=2
     )
 )
 def test_apply_action_with_wrong_next_action(cure_sequence: Sequence[int]):
@@ -173,10 +173,10 @@ def test_apply_action_with_wrong_next_action(cure_sequence: Sequence[int]):
         "position": 0,
     }
     wrong_actions = [
-        action for action in constants.ACTIONS if action != cure_sequence[0]
+        action for action in redgreen.ACTIONS if action != cure_sequence[0]
     ]
     wrong_action = random.sample(population=wrong_actions, k=1)[0]
-    output_obs, output_reward = env.apply_action(obs, wrong_action)
+    output_obs, output_reward = redgreen.apply_action(obs, wrong_action)
     assert output_obs == {
         "cure_sequence": cure_sequence,
         "position": 0,
@@ -186,7 +186,7 @@ def test_apply_action_with_wrong_next_action(cure_sequence: Sequence[int]):
 
 @hypothesis.given(
     cure_sequence=st.lists(
-        st.sampled_from(elements=list(range(len(constants.ACTIONS)))), min_size=2
+        st.sampled_from(elements=list(range(len(redgreen.ACTIONS)))), min_size=2
     )
 )
 def test_apply_action_with_action_going_into_terminal_state(
@@ -196,7 +196,7 @@ def test_apply_action_with_action_going_into_terminal_state(
         "cure_sequence": cure_sequence,
         "position": len(cure_sequence) - 1,
     }
-    output_obs, output_reward = env.apply_action(obs, cure_sequence[-1])
+    output_obs, output_reward = redgreen.apply_action(obs, cure_sequence[-1])
     assert output_obs == {
         "cure_sequence": cure_sequence,
         "position": len(cure_sequence),
@@ -206,9 +206,9 @@ def test_apply_action_with_action_going_into_terminal_state(
 
 @hypothesis.given(
     cure_sequence=st.lists(
-        st.sampled_from(elements=list(range(len(constants.ACTIONS)))), min_size=2
+        st.sampled_from(elements=list(range(len(redgreen.ACTIONS)))), min_size=2
     ),
-    action=st.integers(min_value=0, max_value=len(constants.ACTIONS)),
+    action=st.integers(min_value=0, max_value=len(redgreen.ACTIONS)),
 )
 def test_apply_action_with_env_in_terminal_state(
     cure_sequence: Sequence[int], action: int
@@ -217,7 +217,7 @@ def test_apply_action_with_env_in_terminal_state(
         "cure_sequence": cure_sequence,
         "position": len(cure_sequence),
     }
-    output_obs, output_reward = env.apply_action(obs, action)
+    output_obs, output_reward = redgreen.apply_action(obs, action)
     assert output_obs == {
         "cure_sequence": cure_sequence,
         "position": len(cure_sequence),
@@ -227,55 +227,63 @@ def test_apply_action_with_env_in_terminal_state(
 
 @hypothesis.given(
     cure_sequence=st.lists(
-        st.sampled_from(elements=list(range(len(constants.ACTIONS)))), min_size=2
+        st.sampled_from(elements=list(range(len(redgreen.ACTIONS)))), min_size=2
     )
 )
 def test_beginning_state(cure_sequence: Sequence[int]):
-    output = env.beginning_state(cure_sequence)
+    output = redgreen.beginning_state(cure_sequence)
     assert output == {"cure_sequence": cure_sequence, "position": 0}
 
 
 def test_is_finished():
-    assert not env.is_finished({"cure_sequence": [0], "position": 0})
-    assert env.is_finished({"cure_sequence": [0], "position": 1})
-    assert not env.is_finished({"cure_sequence": [0, 1, 0], "position": 0})
-    assert not env.is_finished({"cure_sequence": [0, 1, 0], "position": 1})
-    assert env.is_finished({"cure_sequence": [0, 1, 0], "position": 3})
+    assert not redgreen.is_finished({"cure_sequence": [0], "position": 0})
+    assert redgreen.is_finished({"cure_sequence": [0], "position": 1})
+    assert not redgreen.is_finished({"cure_sequence": [0, 1, 0], "position": 0})
+    assert not redgreen.is_finished({"cure_sequence": [0, 1, 0], "position": 1})
+    assert redgreen.is_finished({"cure_sequence": [0, 1, 0], "position": 3})
 
 
 def test_get_state_id():
-    assert env.get_state_id({"position": 0}) == 0
-    assert env.get_state_id({"position": 1}) == 1
-    assert env.get_state_id({"position": 2}) == 2
+    assert redgreen.get_state_id({"position": 0}) == 0
+    assert redgreen.get_state_id({"position": 1}) == 1
+    assert redgreen.get_state_id({"position": 2}) == 2
 
 
 @hypothesis.given(
     cure_sequence=st.lists(
-        st.sampled_from(elements=list(range(len(constants.ACTIONS))))
+        st.sampled_from(elements=list(range(len(redgreen.ACTIONS))))
     ),
     pos=st.integers(),
 )
 def test_state_observation(cure_sequence: Sequence[int], pos: int):
-    assert env.state_observation(state_id=pos, cure_sequence=cure_sequence)
+    assert redgreen.state_observation(state_id=pos, cure_sequence=cure_sequence)
 
 
 def test_state_representation():
-    assert env.state_representation({"cure_sequence": [0, 1, 0], "position": 0}) == [
+    assert redgreen.state_representation(
+        {"cure_sequence": [0, 1, 0], "position": 0}
+    ) == [
         0,
         0,
         0,
     ]
-    assert env.state_representation({"cure_sequence": [0, 1, 0], "position": 1}) == [
+    assert redgreen.state_representation(
+        {"cure_sequence": [0, 1, 0], "position": 1}
+    ) == [
         1,
         0,
         0,
     ]
-    assert env.state_representation({"cure_sequence": [0, 1, 0], "position": 2}) == [
+    assert redgreen.state_representation(
+        {"cure_sequence": [0, 1, 0], "position": 2}
+    ) == [
         1,
         1,
         0,
     ]
-    assert env.state_representation({"cure_sequence": [0, 1, 0], "position": 3}) == [
+    assert redgreen.state_representation(
+        {"cure_sequence": [0, 1, 0], "position": 3}
+    ) == [
         1,
         1,
         1,

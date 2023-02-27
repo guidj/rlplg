@@ -45,8 +45,17 @@ from tf_agents.trajectories import time_step as ts
 from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
 from rlplg import envdesc, envspec, npsci
-from rlplg.environments.redgreen import constants
 from rlplg.learning.tabular import markovdp
+
+ENV_NAME = "RedGreenSeq"
+RED_PILL = 0
+GREEN_PILL = 1
+WAIT = 2
+ACTIONS = [RED_PILL, GREEN_PILL, WAIT]
+
+ACTION_NAME_MAPPING = {"red": RED_PILL, "green": GREEN_PILL, "wait": WAIT}
+OBS_KEY_CURE_SEQUENCE = "cure_sequence"
+OBS_KEY_POSITION = "position"
 
 
 class RedGreenSeq(py_environment.PyEnvironment):
@@ -61,35 +70,35 @@ class RedGreenSeq(py_environment.PyEnvironment):
         """
         Args:
             cure_sequence: sequence of actions to take to cure a patient.
-                Each value is a string, one of `constants.ACTION_NAME_MAPPING`.
+                Each value is a string, one of `ACTION_NAME_MAPPING`.
         """
         super().__init__()
 
         if len(cure) < 1:
             raise ValueError(f"Cure sequence should be longer than one: {len(cure)}")
 
-        self.cure_sequence = [constants.ACTION_NAME_MAPPING[action] for action in cure]
+        self.cure_sequence = [ACTION_NAME_MAPPING[action] for action in cure]
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(),
             dtype=np.int64,
             minimum=0,
-            maximum=len(constants.ACTIONS) - 1,
+            maximum=len(ACTIONS) - 1,
             name="action",
         )
         self._observation_spec = {
-            constants.OBS_KEY_CURE_SEQUENCE: array_spec.BoundedArraySpec(
+            OBS_KEY_CURE_SEQUENCE: array_spec.BoundedArraySpec(
                 shape=(len(self.cure_sequence),),
                 dtype=np.int64,
-                minimum=np.array([min(constants.ACTIONS)] * len(cure)),
-                maximum=np.array([max(constants.ACTIONS)] * len(cure)),
-                name=constants.OBS_KEY_CURE_SEQUENCE,
+                minimum=np.array([min(ACTIONS)] * len(cure)),
+                maximum=np.array([max(ACTIONS)] * len(cure)),
+                name=OBS_KEY_CURE_SEQUENCE,
             ),
-            constants.OBS_KEY_POSITION: array_spec.BoundedArraySpec(
+            OBS_KEY_POSITION: array_spec.BoundedArraySpec(
                 shape=(),
                 dtype=np.int64,
                 minimum=0,
                 maximum=len(cure),
-                name=constants.OBS_KEY_POSITION,
+                name=OBS_KEY_POSITION,
             ),
         }
 
@@ -222,16 +231,16 @@ def apply_action(
             reward = -1 + 0 = -1 (one penalty for acting)
 
     """
-    pos = observation[constants.OBS_KEY_POSITION]
-    terminal_state = len(observation[constants.OBS_KEY_CURE_SEQUENCE])
+    pos = observation[OBS_KEY_POSITION]
+    terminal_state = len(observation[OBS_KEY_CURE_SEQUENCE])
     new_observation = copy.deepcopy(observation)
-    if observation[constants.OBS_KEY_POSITION] == terminal_state:
+    if observation[OBS_KEY_POSITION] == terminal_state:
         move_penalty = 0.0
         reward = 0.0
     else:
         move_penalty = -1.0
-        if action == observation[constants.OBS_KEY_CURE_SEQUENCE][pos]:
-            new_observation[constants.OBS_KEY_POSITION] += 1
+        if action == observation[OBS_KEY_CURE_SEQUENCE][pos]:
+            new_observation[OBS_KEY_POSITION] += 1
             reward = 0.0
         else:
             # wrong move
@@ -245,8 +254,8 @@ def beginning_state(cure_sequence: Sequence[int]):
     Generates the starting state.
     """
     return {
-        constants.OBS_KEY_CURE_SEQUENCE: cure_sequence,
-        constants.OBS_KEY_POSITION: 0,
+        OBS_KEY_CURE_SEQUENCE: cure_sequence,
+        OBS_KEY_POSITION: 0,
     }
 
 
@@ -257,8 +266,8 @@ def is_finished(observation: NestedArray) -> bool:
     """
     # does that fact that we just went into the
     # terminal state matter? No
-    terminal_state = len(observation[constants.OBS_KEY_CURE_SEQUENCE])
-    is_finished_: bool = observation[constants.OBS_KEY_POSITION] == terminal_state
+    terminal_state = len(observation[OBS_KEY_CURE_SEQUENCE])
+    is_finished_: bool = observation[OBS_KEY_POSITION] == terminal_state
     return is_finished_
 
 
@@ -269,10 +278,10 @@ def create_env_spec(cure: Sequence[str]) -> envspec.EnvSpec:
     environment = RedGreenSeq(cure=cure)
     discretizer = RedGreenMdpDiscretizer()
     num_states = len(cure) + 1
-    num_actions = len(constants.ACTIONS)
+    num_actions = len(ACTIONS)
     env_desc = envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
     return envspec.EnvSpec(
-        name=constants.ENV_NAME,
+        name=ENV_NAME,
         level=__encode_env(cure),
         environment=environment,
         discretizer=discretizer,
@@ -290,7 +299,7 @@ def get_state_id(observation: NestedArray) -> int:
     """
     Computes an integer ID that represents that state.
     """
-    state_id: int = observation[constants.OBS_KEY_POSITION]
+    state_id: int = observation[OBS_KEY_POSITION]
     return state_id
 
 
@@ -306,8 +315,8 @@ def state_observation(cure_sequence: Sequence[int], state_id: int) -> NestedArra
         A mapping with the cure sequence and the current state.
     """
     return {
-        constants.OBS_KEY_CURE_SEQUENCE: cure_sequence,
-        constants.OBS_KEY_POSITION: state_id,
+        OBS_KEY_CURE_SEQUENCE: cure_sequence,
+        OBS_KEY_POSITION: state_id,
     }
 
 
@@ -324,8 +333,7 @@ def state_representation(observation: NestedArray) -> Sequence[int]:
 
     output = [1, 1, 1, 0, 0]
     """
-    pos = observation[constants.OBS_KEY_POSITION]
+    pos = observation[OBS_KEY_POSITION]
     return [
-        1 if idx < pos else 0
-        for idx in range(len(observation[constants.OBS_KEY_CURE_SEQUENCE]))
+        1 if idx < pos else 0 for idx in range(len(observation[OBS_KEY_CURE_SEQUENCE]))
     ]
