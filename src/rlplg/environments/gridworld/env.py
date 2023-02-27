@@ -282,7 +282,7 @@ def apply_action(
 
     next_position = _step(observation, action)
     reward = _step_reward(observation, next_position=next_position)
-    if next_position in observation[constants.Strings.cliffs]:
+    if next_position in _coords_from_sequence(observation[constants.Strings.cliffs]):
         # send back to the beginning
         next_position = _coord_from_array(observation[constants.Strings.start])
     next_observation = copy.deepcopy(observation)
