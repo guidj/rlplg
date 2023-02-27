@@ -5,12 +5,12 @@ import pytest
 from tf_agents.specs import array_spec
 from tf_agents.trajectories import time_step as ts
 
-from rlplg.environments.randomwalk import env
+from rlplg.environments import randomwalk
 
 
 @hypothesis.given(steps=st.integers(min_value=3, max_value=100))
 def test_state_randomwalk_init(steps: int):
-    environment = env.StateRandomWalk(steps=steps)
+    environment = randomwalk.StateRandomWalk(steps=steps)
     assert environment.steps == steps
     assert environment.left_end_reward == 0
     assert environment.right_end_reward == 1
@@ -23,11 +23,11 @@ def test_state_randomwalk_init(steps: int):
 @hypothesis.given(steps=st.integers(max_value=2))
 def test_state_randomwalk_with_invalid_steps(steps: int):
     with pytest.raises(AssertionError):
-        env.StateRandomWalk(steps=steps)
+        randomwalk.StateRandomWalk(steps=steps)
 
 
 def test_state_randomwalk_end_left_sequence():
-    environment = env.StateRandomWalk(5)
+    environment = randomwalk.StateRandomWalk(5)
     assert_time_step(
         environment.reset(),
         ts.TimeStep(
@@ -94,7 +94,7 @@ def test_state_randomwalk_end_left_sequence():
 
 
 def test_state_randomwalk_end_right_sequence():
-    environment = env.StateRandomWalk(5)
+    environment = randomwalk.StateRandomWalk(5)
     assert_time_step(
         environment.reset(),
         ts.TimeStep(
@@ -177,7 +177,7 @@ def test_state_randomwalk_end_right_sequence():
 
 
 def test_state_randomwalk_render():
-    environment = env.StateRandomWalk(steps=3)
+    environment = randomwalk.StateRandomWalk(steps=3)
     environment.reset()
     # starting point
     np.testing.assert_array_equal(environment.render("rgb_array"), np.array([0, 1, 0]))
@@ -191,7 +191,7 @@ def test_state_randomwalk_render():
 )
 def test_state_randomwalk_render_with_invalid_modes(steps: int):
     modes = ("human",)
-    environment = env.StateRandomWalk(steps=steps)
+    environment = randomwalk.StateRandomWalk(steps=steps)
     environment.reset()
     for mode in modes:
         with pytest.raises(NotImplementedError):
@@ -203,7 +203,7 @@ def test_state_randomwalk_render_with_invalid_modes(steps: int):
     action=st.integers(min_value=0, max_value=100),
 )
 def test_state_randomwalk_discretizer(state: int, action: int):
-    discretizer = env.StateRandomWalkMdpDiscretizer()
+    discretizer = randomwalk.StateRandomWalkMdpDiscretizer()
     assert (
         discretizer.state(
             {
@@ -217,20 +217,20 @@ def test_state_randomwalk_discretizer(state: int, action: int):
 
 @hypothesis.given(steps=st.integers(min_value=3, max_value=100))
 def test_is_finished(steps: int):
-    assert env.is_finished(
+    assert randomwalk.is_finished(
         {
             "position": np.array(0, dtype=np.int64),
             "steps": np.array(steps, dtype=np.int64),
         }
     )
-    assert env.is_finished(
+    assert randomwalk.is_finished(
         {
             "position": np.array(steps - 1, dtype=np.int64),
             "steps": np.array(steps, dtype=np.int64),
         }
     )
     for step in range(0 + 1, steps - 1):
-        assert not env.is_finished(
+        assert not randomwalk.is_finished(
             {
                 "position": np.array(step, dtype=np.int64),
                 "steps": np.array(steps, dtype=np.int64),
@@ -240,24 +240,24 @@ def test_is_finished(steps: int):
 
 @hypothesis.given(steps=st.integers(min_value=3, max_value=100))
 def test_create_env_spec(steps: int):
-    env_spec = env.create_env_spec(steps=steps)
+    env_spec = randomwalk.create_env_spec(steps=steps)
 
     assert env_spec.name == "StateRandomWalk"
     assert isinstance(env_spec.level, str)
     assert len(env_spec.level) > 0
     assert env_spec.env_desc.num_states == steps
     assert env_spec.env_desc.num_actions == 2
-    assert isinstance(env_spec.environment, env.StateRandomWalk)
+    assert isinstance(env_spec.environment, randomwalk.StateRandomWalk)
     assert env_spec.environment.action_spec() == action_spec()
     assert env_spec.environment.observation_spec() == observation_spec(steps=steps)
-    assert isinstance(env_spec.discretizer, env.StateRandomWalkMdpDiscretizer)
+    assert isinstance(env_spec.discretizer, randomwalk.StateRandomWalkMdpDiscretizer)
 
 
 @hypothesis.given(pos=st.integers(min_value=3, max_value=100))
 def test_get_state_id(pos: int):
     # other fields are unucessary
     assert (
-        env.get_state_id(
+        randomwalk.get_state_id(
             {
                 "position": np.array(pos, dtype=np.int64),
             }
@@ -268,10 +268,12 @@ def test_get_state_id(pos: int):
 
 def test_state_representation():
     np.testing.assert_array_equal(
-        env.state_representation({"position": 1, "steps": 3}), np.array([0, 1, 0])
+        randomwalk.state_representation({"position": 1, "steps": 3}),
+        np.array([0, 1, 0]),
     )
     np.testing.assert_array_equal(
-        env.state_representation({"position": 0, "steps": 3}), np.array([1, 0, 0])
+        randomwalk.state_representation({"position": 0, "steps": 3}),
+        np.array([1, 0, 0]),
     )
 
 

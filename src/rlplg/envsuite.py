@@ -8,20 +8,14 @@ import functools
 from typing import Any, Callable, Mapping
 
 from rlplg import envspec, gymenv
-from rlplg.environments.alphabet import constants as alphabet_constants
-from rlplg.environments.alphabet import env as alphabet_env
-from rlplg.environments.gridworld import constants as gridworld_constants
-from rlplg.environments.gridworld import utils as gridworld_utils
-from rlplg.environments.redgreen import constants as redgreen_constants
-from rlplg.environments.redgreen import env as redgreen_env
+from rlplg.environments import abcseq, gridworld, randomwalk, redgreen
 
-ABC = alphabet_constants.ENV_NAME
-GRID_WORLD = gridworld_constants.ENV_NAME
-RED_GREEN = redgreen_constants.ENV_NAME
 TAXI = "Taxi-v3"
 FROZEN_LAKE = "FrozenLake-v1"
 
-SUPPORTED_RLPLG_ENVS = frozenset((ABC, GRID_WORLD, RED_GREEN))
+SUPPORTED_RLPLG_ENVS = frozenset(
+    (abcseq.ENV_NAME, gridworld.ENV_NAME, randomwalk.ENV_NAME, redgreen.ENV_NAME)
+)
 SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE))
 
 
@@ -55,9 +49,10 @@ def __environment_spec_constructors() -> Mapping[str, Callable[..., envspec.EnvS
 
     """
     rlplg_envs: Mapping[str, Callable[..., envspec.EnvSpec]] = {
-        ABC: alphabet_env.create_env_spec,
-        GRID_WORLD: gridworld_utils.create_envspec_from_grid,
-        RED_GREEN: redgreen_env.create_env_spec,
+        abcseq.ENV_NAME: abcseq.create_env_spec,
+        gridworld.ENV_NAME: gridworld.create_envspec_from_grid,
+        randomwalk.ENV_NAME: randomwalk.create_env_spec,
+        redgreen.ENV_NAME: redgreen.create_env_spec,
     }
     gym_envs = {
         name: __gym_environment_spec_constructor(name) for name in SUPPORTED_GYM_ENVS

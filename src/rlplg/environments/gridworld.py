@@ -11,20 +11,66 @@ cliffs, the starting point, or exit.
 So an agent needs to learn the value of every state from scratch.
 """
 
+import abc
 import base64
+import contextlib
 import copy
 import hashlib
+import io
+import logging
+import os
+import os.path
+import sys
+import time
 from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
+import tensorflow as tf
+from PIL import Image as image
 from tf_agents.environments import py_environment
 from tf_agents.specs import array_spec
 from tf_agents.trajectories import time_step as ts
 from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
 from rlplg import envdesc, envspec, npsci
-from rlplg.environments.gridworld import constants
 from rlplg.learning.tabular import markovdp
+
+ENV_NAME = "GridWorld"
+CLIFF_PENALTY = -100.0
+MOVE_PENALTY = -1.0
+TERMINAL_REWARD = 0.0
+LEFT = 0
+RIGHT = 1
+UP = 2
+DOWN = 3
+MOVES = ["L", "R", "U", "D"]
+MOVE_SYMBOLS = ["←", "→", "↑", "↓"]
+COLOR_SILVER = (192, 192, 192)
+PATH_BG = "path-bg.png"
+CLIFF_BG = "cliff-bg.png"
+ACTOR = "actor.png"
+
+
+class Layers:
+    """
+    Layers spec.
+    """
+
+    player = 0
+    cliff = 1
+    exit = 2
+
+
+class Strings:
+    """
+    Env keys.
+    """
+
+    size = "size"
+    player = "player"
+    cliffs = "cliffs"
+    exits = "exits"
+    start = "start"
 
 
 class GridWorld(py_environment.PyEnvironment):
@@ -139,7 +185,7 @@ class GridWorld(py_environment.PyEnvironment):
         next_observation, reward = apply_action(self._observation, action)
 
         self._observation = next_observation
-        if self._observation[constants.Strings.player] in self._exits:
+        if _coord_from_array(self._observation[Strings.player]) in self._exits:
             return ts.termination(
                 observation=copy.deepcopy(self._observation), reward=reward
             )
@@ -206,6 +252,142 @@ class GridWorldMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
+class GridWorldRenderer:
+    """
+    Class for handling rendering of the environment
+    """
+
+    metadata = {"render.modes": ["raw", "rgb_array", "human", "ansi"]}
+
+    def __init__(self, sprites_dir: Optional[str]):
+        self.sprites: Optional[Sprites] = (
+            BlueMoonSprites(sprites_dir) if sprites_dir is not None else None
+        )
+        self.viewer: Optional[Any] = None
+        try:
+            from gym.envs.classic_control import rendering
+
+            self.viewer = rendering.SimpleImageViewer()
+        except ImportError as err:
+            logging.error(err)
+            logging.info("Proceeding without rendering")
+
+    def render(
+        self,
+        mode: str,
+        observation: np.ndarray,
+        last_move: Optional[NestedArray],
+        caption: Optional[str],
+        sleep: Optional[float] = 0.05,
+    ):
+        """
+        Args:
+            mode: the rendering mode
+            observation: the grid, as a numpy array of shape (W, H, 3)
+            last_move: index of the last move, [0, 4)
+            caption: string write on rendered Window
+            sleep: time between rendering frames
+        """
+        assert mode in self.metadata["render.modes"]
+
+        if mode == "raw":
+            output = observation
+        elif mode == "rgb_array":
+            if self.sprites is None:
+                raise RuntimeError(f"No sprites fo reder in {mode} mode.")
+            output = observation_as_image(self.sprites, observation, last_move)
+        elif mode == "human":
+            if self.viewer is None:
+                raise RuntimeError(
+                    "ImageViewer is undefined. Likely cause: pyglget import failure."
+                )
+            if self.sprites is None:
+                raise RuntimeError(f"No sprites fo reder in {mode} mode.")
+
+            self.viewer.imshow(
+                observation_as_image(self.sprites, observation, last_move)
+            )
+            if isinstance(caption, str):
+                self.viewer.window.set_caption(caption)
+            output = self.viewer.isopen
+        elif mode == "ansi":
+            output = observation_as_string(observation, last_move)
+        else:
+            raise RuntimeError(
+                f"Unknown mode: {mode}. Exepcted of one: {self.metadata['render.modes']}"
+            )
+        if sleep is not None and sleep > 0:
+            time.sleep(sleep)
+        return output
+
+    def close(self):
+        """
+        Closes the viewer if initialized.
+        """
+        if self.viewer:
+            self.viewer.close()
+
+
+class Sprites(abc.ABC):
+    """
+    Interface for sprites.
+    """
+
+    @property
+    @abc.abstractmethod
+    def cliff_sprite(self):
+        """
+        Returns sprite for cliff.
+        """
+        del self
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def path_sprite(self):
+        """
+        Returns sprite for clear path.
+        """
+        del self
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def actor_sprite(self):
+        """
+        Returns sprites for actor.
+        """
+        del self
+        raise NotImplementedError
+
+
+class BlueMoonSprites(Sprites):
+    """
+    Implements strips with blue moon as main character.
+    """
+
+    def __init__(self, assets_dir: str):
+        self._cliff_sprite = image_as_array(
+            image.open(os.path.join(assets_dir, CLIFF_BG))
+        )
+        self._path_sprite = image_as_array(
+            image.open(os.path.join(assets_dir, PATH_BG))
+        )
+        self._actor_sprite = image_as_array(image.open(os.path.join(assets_dir, ACTOR)))
+
+    @property
+    def cliff_sprite(self):
+        return self._cliff_sprite
+
+    @property
+    def path_sprite(self):
+        return self._path_sprite
+
+    @property
+    def actor_sprite(self):
+        return self._actor_sprite
+
+
 def create_env_spec(
     size: Tuple[int, int],
     cliffs: Sequence[Tuple[int, int]],
@@ -219,10 +401,10 @@ def create_env_spec(
     discretizer = GridWorldMdpDiscretizer(size=size, cliffs=cliffs)
     height, width = size
     num_states = height * width - len(cliffs)
-    num_actions = len(constants.MOVES)
+    num_actions = len(MOVES)
     env_desc = envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
     return envspec.EnvSpec(
-        name=constants.ENV_NAME,
+        name=ENV_NAME,
         level=__encode_env(size=size, cliffs=cliffs, exits=exits, start=start),
         environment=environment,
         discretizer=discretizer,
@@ -279,39 +461,43 @@ def apply_action(
 
     next_position = _step(observation, action)
     reward = _step_reward(observation, next_position=next_position)
-    if next_position in observation[constants.Strings.cliffs]:
+    if next_position in _coords_from_sequence(observation[Strings.cliffs]):
         # send back to the beginning
-        next_position = observation[constants.Strings.start]
+        next_position = _coord_from_array(observation[Strings.start])
     next_observation = copy.deepcopy(observation)
-    next_observation[constants.Strings.player] = next_position
+    next_observation[Strings.player] = np.array(next_position, dtype=np.int64)
     return next_observation, reward
 
 
 def _step(observation: NestedArray, action: NestedArray) -> Tuple[int, int]:
     # If in exit, stay
-    if observation[constants.Strings.player] in observation[constants.Strings.exits]:
-        pos: Tuple[int, int] = copy.deepcopy(observation[constants.Strings.player])
-        return pos
-    pos_x, pos_y = observation[constants.Strings.player]
-    height, width = observation[constants.Strings.size]
-    if action == constants.LEFT:
+    if _coord_from_array(observation[Strings.player]) in _coords_from_sequence(
+        observation[Strings.exits]
+    ):
+        pos: np.ndarray = copy.deepcopy(observation[Strings.player])
+        return _coord_from_array(pos)
+    pos_x, pos_y = observation[Strings.player]
+    height, width = observation[Strings.size]
+    if action == LEFT:
         pos_y = max(pos_y - 1, 0)
-    elif action == constants.RIGHT:
+    elif action == RIGHT:
         pos_y = min(pos_y + 1, width - 1)
-    elif action == constants.UP:
+    elif action == UP:
         pos_x = max(pos_x - 1, 0)
-    elif action == constants.DOWN:
+    elif action == DOWN:
         pos_x = min(pos_x + 1, height - 1)
     return (pos_x, pos_y)
 
 
 def _step_reward(observation: NestedArray, next_position: Tuple[int, int]) -> float:
     # terminal state (current pos)
-    if observation[constants.Strings.player] in observation[constants.Strings.exits]:
-        return constants.TERMINAL_REWARD
-    if next_position in observation[constants.Strings.cliffs]:
-        return constants.CLIFF_PENALTY
-    return constants.MOVE_PENALTY
+    if _coord_from_array(observation[Strings.player]) in _coords_from_sequence(
+        observation[Strings.exits]
+    ):
+        return TERMINAL_REWARD
+    if next_position in _coords_from_sequence(observation[Strings.cliffs]):
+        return CLIFF_PENALTY
+    return MOVE_PENALTY
 
 
 def create_observation(
@@ -326,11 +512,11 @@ def create_observation(
     and other information.
     """
     return {
-        constants.Strings.start: start,
-        constants.Strings.player: player,
-        constants.Strings.cliffs: set(cliffs),
-        constants.Strings.exits: set(exits),
-        constants.Strings.size: size,
+        Strings.start: np.array(start, dtype=np.int64),
+        Strings.player: np.array(player, dtype=np.int64),
+        Strings.cliffs: np.array(cliffs, dtype=np.int64),
+        Strings.exits: np.array(exits, dtype=np.int64),
+        Strings.size: np.array(size, dtype=np.int64),
     }
 
 
@@ -408,7 +594,7 @@ def create_state_id_fn(
         Returns:
             An integer state ID.
         """
-        return states[observation[constants.Strings.player]]
+        return states[_coord_from_array(observation[Strings.player])]
 
     return state_id
 
@@ -448,13 +634,167 @@ def as_grid(observation: Mapping[str, Any]) -> NestedArray:
         A stack of 2D grids, with binary flags to indicate the presence layer elements.
     """
 
-    player = np.zeros(shape=observation[constants.Strings.size], dtype=np.int64)
-    cliff = np.zeros(shape=observation[constants.Strings.size], dtype=np.int64)
-    exit_ = np.zeros(shape=observation[constants.Strings.size], dtype=np.int64)
-    # place agent at the start
-    player[observation[constants.Strings.player]] = 1
-    for pos_x, pos_y in observation[constants.Strings.cliffs]:
+    player = np.zeros(shape=observation[Strings.size], dtype=np.int64)
+    cliff = np.zeros(shape=observation[Strings.size], dtype=np.int64)
+    exit_ = np.zeros(shape=observation[Strings.size], dtype=np.int64)
+    # Place agent at the start.
+    # There is only one (x, y) pair.
+    player[_coord_from_array(observation[Strings.player])] = 1
+    for pos_x, pos_y in observation[Strings.cliffs]:
         cliff[pos_x, pos_y] = 1
-    for pos_x, pos_y in observation[constants.Strings.exits]:
+    for pos_x, pos_y in observation[Strings.exits]:
         exit_[pos_x, pos_y] = 1
     return np.stack([player, cliff, exit_])
+
+
+def _coord_from_array(xs: np.ndarray) -> Tuple[int, int]:
+    """
+    Converts a coordinate from an arry to a 2-tuple.
+    """
+    coord_x, coord_y = xs.tolist()
+    return coord_x, coord_y
+
+
+def _coords_from_sequence(xs: np.ndarray) -> Sequence[Tuple[int, int]]:
+    """
+    Converts a sequence of coordinates from an 2-D array to a sequence of 2-tuples.
+    """
+    return [_coord_from_array(element) for element in xs]
+
+
+def image_as_array(img: image.Image) -> np.ndarray:
+    """
+    Creates an array to represent the image.
+    """
+    array = np.array(img)
+    if len(array.shape) == 3 and array.shape[2] == 4:
+        return array[:, :, :3]
+    return array
+
+
+def observation_as_image(
+    sprites: Sprites,
+    observation: np.ndarray,
+    last_move: Optional[NestedArray],
+) -> np.ndarray:
+    _, height, width = observation.shape
+    rows = []
+    for x in range(height):
+        row = []
+        for y in range(width):
+            pos = position_as_string(observation, x, y, last_move)
+            if pos in set(["[X]", "[x̄]"]):
+                row.append(sprites.cliff_sprite)
+            elif pos in set(["[S]"] + [f"[{move}]" for move in MOVES]):
+                row.append(sprites.actor_sprite)
+            # TODO: add sprite for exits
+            else:
+                row.append(sprites.path_sprite)
+            # vertical border; same size as sprite
+            if y < width - 1:
+                row.append(_vborder(size=row[-1].shape[0]))
+        rows.append(np.hstack(row))
+        # horizontal border
+        rows.append(_hborder(size=sum([sprite.shape[1] for sprite in row])))
+    return np.vstack(rows)
+
+
+def _vborder(size: int) -> np.ndarray:
+    assert size > 0, "vertical border size must be positve"
+    return np.array([[COLOR_SILVER]] * size, dtype=np.uint8)
+
+
+def _hborder(size: int) -> np.ndarray:
+    assert size > 0, "horizontal border size must be positive"
+    return np.array([[COLOR_SILVER] * size], dtype=np.uint8)
+
+
+def observation_as_string(
+    observation: np.ndarray, last_move: Optional[NestedArray]
+) -> str:
+    _, height, width = observation.shape
+    out = io.StringIO()
+    for x in range(height):
+        for y in range(width):
+            out.write(position_as_string(observation, x, y, last_move))
+        out.write("\n")
+
+    out.write("\n\n")
+
+    with contextlib.closing(out):
+        sys.stdout.write(out.getvalue())
+        return out.getvalue()
+
+
+def position_as_string(
+    observation: np.ndarray, x: int, y: int, last_move: Optional[NestedArray]
+) -> str:
+    """
+    Given a position:
+
+     - If the player is in a starting position -
+        returns the representation for starting position - S
+     - If the player is on the position and they made a move to get there,
+        returns the representation of the move they made: L, R, U, D
+     - If there is no player, and it's a cliff, returns the X
+     - If the player is on the cliff returns x̄ (x-bar)
+     - If there is no player and it's a safe zone, returns " "
+     - If there is no player on an exit, returns E
+     - If the player is on an exit, returns Ē
+
+    """
+    if observation[Layers.player, x, y] and observation[Layers.cliff, x, y]:
+        return "[x̄]"
+    elif observation[Layers.player, x, y] and observation[Layers.exit, x, y]:
+        return "[Ē]"
+    elif observation[Layers.cliff, x, y] == 1:
+        return "[X]"
+    elif observation[Layers.exit, x, y] == 1:
+        return "[E]"
+    elif observation[Layers.player, x, y] == 1:
+        if last_move is not None:
+            return f"[{MOVES[last_move]}]"
+        return "[S]"
+    return "[ ]"
+
+
+def parse_grid(path: str):
+    """
+    Parses grid from text files.
+    """
+
+    cliffs = []
+    exits = []
+    start = None
+    height, width = 0, 0
+    with tf.io.gfile.GFile(path, "r") as reader:
+        for x, line in enumerate(reader):
+            row = line.strip()
+            width = max(width, len(row))
+            for y, elem in enumerate(row):
+                if elem.lower() == "x":
+                    cliffs.append((x, y))
+                elif elem.lower() == "g":
+                    exits.append((x, y))
+                elif elem.lower() == "s":
+                    start = (x, y)
+            height += 1
+    return (height, width), cliffs, exits, start
+
+
+def create_environment_from_grid(path: str) -> GridWorld:
+    """
+    Parses a grid file and create an environment from
+    the parameters.
+    """
+    size, cliffs, exits, start = parse_grid(path)
+    return GridWorld(size=size, cliffs=cliffs, exits=exits, start=start)
+
+
+def create_envspec_from_grid(grid_path: str) -> envspec.EnvSpec:
+    """
+    Parses a grid file and create an environment from
+    the parameters.
+    """
+    size, cliffs, exits, start = parse_grid(grid_path)
+    return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)
