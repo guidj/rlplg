@@ -594,7 +594,7 @@ def create_state_id_fn(
         Returns:
             An integer state ID.
         """
-        return states[tuple(observation[Strings.player].tolist())]
+        return states[_coord_from_array(observation[Strings.player])]
 
     return state_id
 
@@ -651,7 +651,8 @@ def _coord_from_array(xs: np.ndarray) -> Tuple[int, int]:
     """
     Converts a coordinate from an arry to a 2-tuple.
     """
-    return tuple(xs.tolist())
+    coord_x, coord_y = xs.tolist()
+    return coord_x, coord_y
 
 
 def _coords_from_sequence(xs: np.ndarray) -> Sequence[Tuple[int, int]]:
