@@ -188,7 +188,9 @@ def apply_action(observation: np.ndarray, action: NestedArray) -> np.ndarray:
     # Check action in within bounds
     if action < observation.size - 1:
         new_observation[action + 1] = (
-            1 if observation[action] == 1 else observation[action + 1]
+            np.array(1, dtype=np.int64)
+            if observation[action] == 1
+            else observation[action + 1]
         )
     return new_observation
 
