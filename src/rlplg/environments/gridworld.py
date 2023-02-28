@@ -647,19 +647,19 @@ def as_grid(observation: Mapping[str, Any]) -> NestedArray:
     return np.stack([player, cliff, exit_])
 
 
-def _coord_from_array(xs: np.ndarray) -> Tuple[int, int]:
+def _coord_from_array(array: np.ndarray) -> Tuple[int, int]:
     """
     Converts a coordinate from an arry to a 2-tuple.
     """
-    coord_x, coord_y = xs.tolist()
+    coord_x, coord_y = array.tolist()
     return coord_x, coord_y
 
 
-def _coords_from_sequence(xs: np.ndarray) -> Sequence[Tuple[int, int]]:
+def _coords_from_sequence(array: np.ndarray) -> Sequence[Tuple[int, int]]:
     """
     Converts a sequence of coordinates from an 2-D array to a sequence of 2-tuples.
     """
-    return [_coord_from_array(element) for element in xs]
+    return [_coord_from_array(element) for element in array]
 
 
 def image_as_array(img: image.Image) -> np.ndarray:

@@ -217,7 +217,7 @@ def first_visit_monte_carlo_state_values(
             Defautls to `envplay.identity_replay`.
 
     Yields:
-        A tuple of steps (count) and q-table.
+        A tuple of steps (count) and v-table.
 
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
@@ -297,7 +297,7 @@ def one_step_td_state_values(
             Defautls to `envplay.identity_replay`.
 
     Yields:
-        A tuple of steps (count) and q-table.
+        A tuple of steps (count) and v-table.
 
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
