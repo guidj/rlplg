@@ -47,6 +47,9 @@ def gradient_monte_carlo_state_values(
             gradients = estimator.gradients(experience.observation)
             weights = estimator.weights()
             new_weights = weights + alpha * (episode_return - state_value) * gradients
+
+            assert nan_check(state_value), "Value estimate is NaN or Inf"
+            assert nan_check(gradients), "Gradients are NaN or Inf"
             estimator.assign_weights(new_weights)
             # update returns for the next state
             episode_return -= experience.reward
@@ -54,3 +57,10 @@ def gradient_monte_carlo_state_values(
         # need to copy values because they can be mutable np.ndarrays or tf.tensors
         # we use shallow copy because tf doesn't play nicely with deepcopy
         yield len(experiences), copy.copy(estimator)
+
+
+def nan_check(array: np.ndarray):
+    """
+    Verifies array has valid values.
+    """
+    return not np.any(np.isnan(array)) and not np.any(np.isinf(array))
