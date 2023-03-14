@@ -8,7 +8,7 @@ as well as algorithms for policy evaluation and control.
 Create a new virtual environment with for your supported Python version. Within that virtualenv:
 
 ```shell
-$ pip install -r dev-requirements.txt
+$ pip install -r dev-requirements.txt -e .
 ```
 
 This will install development dependencies, followed by installing this package itself as ["editable"](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs).
