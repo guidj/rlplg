@@ -8,7 +8,7 @@ as well as algorithms for policy evaluation and control.
 Create a new virtual environment with for your supported Python version. Within that virtualenv:
 
 ```shell
-$ pip install -r dev-requirements.txt
+$ pip install -r dev-requirements.txt -e .
 ```
 
 This will install development dependencies, followed by installing this package itself as ["editable"](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs).
@@ -66,6 +66,19 @@ $ tox -e py36
 ```
 
 See [tox's documentation](https://tox.readthedocs.io/en/latest/) for more information.
+
+
+## Managing dependencies
+
+This repository uses `pip-tools` to manage dependencies.
+Requirements are specified in input files, e.g. [requirements.in](requirements.in).
+To compile them, install `pip-tools` (`pip install pip-tools`) and run
+
+```
+pip-compile requirements.in
+```
+
+It will produce a `requirements.txt` file.
 
 ## Generate Documentation
 

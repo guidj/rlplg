@@ -12,6 +12,7 @@ from tf_agents.policies import py_policy
 from tf_agents.trajectories import trajectory
 
 from rlplg import envplay
+from rlplg.learning import utils
 from rlplg.learning.approx import modelspec
 from rlplg.learning.opt import schedules
 
@@ -47,6 +48,9 @@ def gradient_monte_carlo_state_values(
             gradients = estimator.gradients(experience.observation)
             weights = estimator.weights()
             new_weights = weights + alpha * (episode_return - state_value) * gradients
+
+            assert not utils.nan_or_inf(state_value), "Value estimate is NaN or Inf"
+            assert not utils.nan_or_inf(gradients), "Gradients are NaN or Inf"
             estimator.assign_weights(new_weights)
             # update returns for the next state
             episode_return -= experience.reward
