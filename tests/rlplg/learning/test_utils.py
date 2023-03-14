@@ -1,6 +1,7 @@
 from typing import Sequence
 
 import hypothesis
+import numpy as np
 from hypothesis import strategies as st
 
 from rlplg.learning import utils
@@ -28,3 +29,13 @@ def test_chain_map_strings(element: str):
 
     assert utils.chain_map(element, [func0, func1]) == func1(func0(element))
     assert utils.chain_map(element, [func1, func0]) == func0(func1(element))
+
+
+def test_nan_or_inf():
+    assert utils.nan_or_inf(np.array([np.nan]))
+    assert utils.nan_or_inf(np.array([np.inf]))
+    assert utils.nan_or_inf(np.array([-np.inf]))
+    assert utils.nan_or_inf(np.array([0, np.nan]))
+    assert utils.nan_or_inf(np.array([0, np.inf]))
+    assert utils.nan_or_inf(np.array([0, -np.inf]))
+    assert not utils.nan_or_inf(np.array([0, 1]))
