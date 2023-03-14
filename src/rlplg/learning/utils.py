@@ -78,6 +78,6 @@ def nan_or_inf(array: np.ndarray) -> bool:
     """
     Checks if an array has `nan` or `inf` values.
     """
-    is_nan = np.any(np.isnan(array))
-    is_inf = np.any(np.isinf(array))
+    is_nan: bool = np.any(np.isnan(array))
+    is_inf: bool = np.any(np.isinf(array))
     return is_nan or is_inf
