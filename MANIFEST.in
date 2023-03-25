@@ -17,6 +17,7 @@ recursive-include assets *.h5
 # config
 include .isort.cfg
 include .bumpversion.cfg
+include Makefile
 include mypy.ini
 recursive-include src *.typed
 
