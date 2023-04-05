@@ -3,16 +3,13 @@ import logging
 from typing import Callable, Sequence, Tuple
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import time_step as ts
-from tf_agents.trajectories import trajectory
 
+from rlplg import core
 from rlplg.learning.tabular import policies
 
 
 def control(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     num_episodes: int,
     state_id_fn: Callable[[np.ndarray], int],
     initial_qtable: np.ndarray,
@@ -20,7 +17,7 @@ def control(
     gamma: float,
     alpha: float,
     log_step: int = 100,
-) -> Tuple[py_policy.PyPolicy, np.ndarray]:
+) -> Tuple[core.PyPolicy, np.ndarray]:
     """
     Implements Q-learning, using epsilon-greedy as a collection (behavior) policy.
     """
@@ -37,7 +34,9 @@ def control(
             time_step = environment.current_time_step()
             policy_step = collect_policy.action(time_step)
             next_time_step = environment.step(policy_step.action)
-            traj = trajectory.from_transition(time_step, policy_step, next_time_step)
+            traj = core.Trajectory.from_transition(
+                time_step, policy_step, next_time_step
+            )
             transitions.append(traj)
             step += 1
 
@@ -61,7 +60,7 @@ def control(
                 # remove earliest step
                 transitions.pop(0)
 
-            if time_step.step_type == ts.StepType.LAST:
+            if time_step.step_type == core.StepType.LAST:
                 break
 
         episode += 1
@@ -80,7 +79,7 @@ def _qlearing_step(
     state_id_fn: Callable[[np.ndarray], int],
     gamma: float,
     alpha: float,
-    experiences: Sequence[trajectory.Trajectory],
+    experiences: Sequence[core.Trajectory],
 ) -> None:
     steps = len(experiences)
 
@@ -105,11 +104,11 @@ def _qlearing_step(
 
 
 def _target_and_collect_policies(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     state_id_fn: Callable[[np.ndarray], int],
     qtable: np.ndarray,
     epsilon: float,
-) -> Tuple[py_policy.PyPolicy, py_policy.PyPolicy]:
+) -> Tuple[core.PyPolicy, core.PyPolicy]:
     _, num_actions = qtable.shape
     policy = policies.PyQGreedyPolicy(
         time_step_spec=environment.time_step_spec(),

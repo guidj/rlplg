@@ -7,18 +7,15 @@ trajectory data.
 from typing import Generator
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import policy_step
-from tf_agents.trajectories import time_step as ts
-from tf_agents.trajectories import trajectory
+
+from rlplg import core
 
 
 def generate_episodes(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
     num_episodes: int,
-) -> Generator[trajectory.Trajectory, None, None]:
+) -> Generator[core.Trajectory, None, None]:
     """
     Generates `num_episodes` episodes using the environment
     and policy provided for rollout.
@@ -32,20 +29,21 @@ def generate_episodes(
         Trajectory instances from episodic rollouts, one step at a time.
     """
     for _ in range(num_episodes):
-        environment.reset()
+        time_step = environment.reset()
         while True:
-            time_step = environment.current_time_step()
             policy_step = policy.action(time_step)
             next_time_step = environment.step(policy_step.action)
-            yield trajectory.from_transition(time_step, policy_step, next_time_step)
-
-            if time_step.step_type == ts.StepType.LAST:
+            yield core.Trajectory.from_transition(
+                time_step, policy_step, next_time_step
+            )
+            if time_step.step_type == core.StepType.LAST:
                 break
+            time_step = next_time_step
 
 
 def unroll_trajectory(
-    traj: trajectory.Trajectory,
-) -> Generator[trajectory.Trajectory, None, None]:
+    traj: core.Trajectory,
+) -> Generator[core.Trajectory, None, None]:
     """
     Unrolls a (batched) trajectory of N transitions into
     individual ones.
@@ -62,12 +60,12 @@ def unroll_trajectory(
         steps = traj.step_type.shape[0]
         for step in range(steps):
             if traj.policy_info not in ((), None):
-                policy_info = policy_step.PolicyInfo(
-                    log_probability=traj.policy_info.log_probability[step]
-                )
+                policy_info = {
+                    "log_probability": traj.policy_info["log_probability"][step]
+                }
             else:
                 policy_info = traj.policy_info
-            yield trajectory.Trajectory(
+            yield core.Trajectory(
                 step_type=traj.step_type[step],
                 observation=traj.observation[step],
                 action=traj.action[step],
@@ -78,9 +76,7 @@ def unroll_trajectory(
             )
 
 
-def slice_trajectory(
-    traj: trajectory.Trajectory, start: int, size: int
-) -> trajectory.Trajectory:
+def slice_trajectory(traj: core.Trajectory, start: int, size: int) -> core.Trajectory:
     """
     Slices a batched trajectory.
 
@@ -93,14 +89,14 @@ def slice_trajectory(
         A slice of the possibly batch trajectory input.
     """
     if traj.policy_info not in ((), None):
-        policy_info = policy_step.PolicyInfo(
-            log_probability=_slice_nd_array(
-                traj.policy_info.log_probability, begin=start, size=size
+        policy_info = {
+            "log_probability": _slice_nd_array(
+                traj.policy_info["log_probability"], begin=start, size=size
             )
-        )
+        }
     else:
         policy_info = traj.policy_info
-    return trajectory.Trajectory(
+    return core.Trajectory(
         step_type=_slice_nd_array(traj.step_type, begin=start, size=size),
         observation=_slice_nd_array(traj.observation, begin=start, size=size),
         action=_slice_nd_array(traj.action, begin=start, size=size),
@@ -111,7 +107,7 @@ def slice_trajectory(
     )
 
 
-def fold_trajectories(*trajs: trajectory.Trajectory) -> trajectory.Trajectory:
+def fold_trajectories(*trajs: core.Trajectory) -> core.Trajectory:
     """
     Folds a sequence of trajectory instance into a single
     batched trajectory.
@@ -139,18 +135,18 @@ def fold_trajectories(*trajs: trajectory.Trajectory) -> trajectory.Trajectory:
         reward.append(traj.reward)
         discount.append(traj.discount)
         if traj.policy_info not in ((), None):
-            log_prob.append(traj.policy_info.log_probability)
+            log_prob.append(traj.policy_info["log_probability"])
 
     if len(log_prob) > 0:
-        policy_info = policy_step.PolicyInfo(
-            log_probability=np.array(
-                log_prob, dtype=sample.policy_info.log_probability.dtype
+        policy_info = {
+            "log_probability": np.array(
+                log_prob, dtype=sample.policy_info["log_probability"].dtype
             )
-        )
+        }
     else:
         policy_info = traj.policy_info
 
-    return trajectory.Trajectory(
+    return core.Trajectory(
         step_type=np.array(step_type, sample.step_type.dtype),
         observation=np.array(observation, sample.observation.dtype),
         action=np.array(action, sample.action.dtype),
@@ -172,8 +168,8 @@ def _slice_nd_array(array: np.ndarray, begin: int, size: int):
 
 
 def identity_replay(
-    event: trajectory.Trajectory,
-) -> Generator[trajectory.Trajectory, None, None]:
+    event: core.Trajectory,
+) -> Generator[core.Trajectory, None, None]:
     """
     Yields:
         The given trajectory, as is.

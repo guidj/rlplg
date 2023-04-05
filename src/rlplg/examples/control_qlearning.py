@@ -7,9 +7,7 @@ import dataclasses
 import logging
 from typing import Any, Mapping
 
-from tf_agents.trajectories import time_step as ts
-
-from rlplg import envsuite, tracking
+from rlplg import core, envsuite, tracking
 from rlplg.examples import factories, qlearning, rendering
 
 
@@ -91,7 +89,7 @@ def main(args: Args):
 
             stats.new_reward(time_step.reward)
 
-            if time_step.step_type == ts.StepType.LAST:
+            if time_step.step_type == core.StepType.LAST:
                 stats.end_episode(success=True)
                 logging.info("Episode %d stats: %s", episode + 1, stats)
                 break

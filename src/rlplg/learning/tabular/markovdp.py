@@ -4,8 +4,6 @@ This module has classes that pertain to markov decision processes.
 import abc
 from typing import Any
 
-from tf_agents.typing.types import NestedArray
-
 from rlplg import envdesc
 
 
@@ -15,9 +13,7 @@ class MDP(abc.ABC):
     """
 
     @abc.abstractmethod
-    def transition_probability(
-        self, state: NestedArray, action: NestedArray, next_state: NestedArray
-    ) -> float:
+    def transition_probability(self, state: Any, action: Any, next_state: Any) -> float:
         """
         Given a state s, action a, and next state s' returns a transition probability.
         Args:
@@ -30,9 +26,7 @@ class MDP(abc.ABC):
         """
 
     @abc.abstractmethod
-    def reward(
-        self, state: NestedArray, action: NestedArray, next_state: NestedArray
-    ) -> float:
+    def reward(self, state: Any, action: Any, next_state: Any) -> float:
         """
         Given a state s, action a, and next state s' returns the expected reward.
 

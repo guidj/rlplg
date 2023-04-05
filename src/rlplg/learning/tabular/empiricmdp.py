@@ -12,12 +12,8 @@ from typing import Any, Callable, DefaultDict, Mapping, Sequence, Tuple, TypeVar
 import h5py
 import numpy as np
 import tensorflow as tf
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray
 
-from rlplg import envdesc
+from rlplg import core, envdesc
 from rlplg.learning.tabular import markovdp
 
 KREF_TRANSITIONS = "transitions"
@@ -64,9 +60,7 @@ class InferredMdp(markovdp.MDP):
         self._mdp_functions = mdp_functions
         self._env_desc = env_desc
 
-    def transition_probability(
-        self, state: NestedArray, action: NestedArray, next_state: NestedArray
-    ) -> float:
+    def transition_probability(self, state: Any, action: Any, next_state: Any) -> float:
         """
         Given a state s, action a, and next state s' returns a transition probability.
         Args:
@@ -80,9 +74,7 @@ class InferredMdp(markovdp.MDP):
         key = (state, action, next_state)
         return self._mdp_functions.transition.get(key, 0)
 
-    def reward(
-        self, state: NestedArray, action: NestedArray, next_state: NestedArray
-    ) -> float:
+    def reward(self, state: Any, action: Any, next_state: Any) -> float:
         """
         Given a state s, action a, and next state s' returns the expected reward.
 
@@ -105,8 +97,8 @@ class InferredMdp(markovdp.MDP):
 
 
 def collect_mdp_stats(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     num_episodes: int,
@@ -124,9 +116,8 @@ def collect_mdp_stats(
     ] = collections.defaultdict(_rewards_defaultdict)
     logging_enabled = logging_frequency_episodes > 0
     for episode in range(1, num_episodes + 1):
-        environment.reset()
+        time_step = environment.reset()
         while True:
-            time_step = environment.current_time_step()
             policy_step = policy.action(time_step)
             next_time_step = environment.step(policy_step.action)
 
@@ -136,8 +127,9 @@ def collect_mdp_stats(
             transitions[(state, action)][next_state] += 1
             rewards[(state, action)][next_state] += next_time_step.reward
 
-            if time_step.step_type == ts.StepType.LAST:
+            if time_step.step_type == core.StepType.LAST:
                 break
+            time_step = next_time_step
 
         # non-positive logging frequency disables logging
         if logging_enabled and episode % logging_frequency_episodes == 0:

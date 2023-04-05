@@ -1,10 +1,11 @@
+from typing import Any
+
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
 
+from rlplg import core
 from rlplg.environments import randomwalk
 
 
@@ -30,8 +31,8 @@ def test_state_randomwalk_end_left_sequence():
     environment = randomwalk.StateRandomWalk(5)
     assert_time_step(
         environment.reset(),
-        ts.TimeStep(
-            step_type=ts.StepType.FIRST,
+        core.TimeStep(
+            step_type=core.StepType.FIRST,
             reward=0.0,
             discount=1.0,
             observation={
@@ -46,8 +47,8 @@ def test_state_randomwalk_end_left_sequence():
     # go left
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=0.0,
             discount=1.0,
             observation={
@@ -62,8 +63,8 @@ def test_state_randomwalk_end_left_sequence():
     # go left
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
+        core.TimeStep(
+            step_type=core.StepType.LAST,
             reward=0.0,
             discount=0.0,
             observation={
@@ -78,8 +79,8 @@ def test_state_randomwalk_end_left_sequence():
     # go right - no change (terminal state)
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
+        core.TimeStep(
+            step_type=core.StepType.LAST,
             reward=0.0,
             discount=0.0,
             observation={
@@ -97,8 +98,8 @@ def test_state_randomwalk_end_right_sequence():
     environment = randomwalk.StateRandomWalk(5)
     assert_time_step(
         environment.reset(),
-        ts.TimeStep(
-            step_type=ts.StepType.FIRST,
+        core.TimeStep(
+            step_type=core.StepType.FIRST,
             reward=0.0,
             discount=1.0,
             observation={
@@ -113,8 +114,8 @@ def test_state_randomwalk_end_right_sequence():
     # go left
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=0.0,
             discount=1.0,
             observation={
@@ -129,8 +130,8 @@ def test_state_randomwalk_end_right_sequence():
     # go right
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=0.0,
             discount=1.0,
             observation={
@@ -145,8 +146,8 @@ def test_state_randomwalk_end_right_sequence():
     # go right
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=0.0,
             discount=1.0,
             observation={
@@ -161,8 +162,8 @@ def test_state_randomwalk_end_right_sequence():
     # go right - terminal state
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
+        core.TimeStep(
+            step_type=core.StepType.LAST,
             reward=1.0,
             discount=0.0,
             observation={
@@ -277,57 +278,21 @@ def test_state_representation():
     )
 
 
-def action_spec() -> array_spec.BoundedArraySpec:
-    return array_spec.BoundedArraySpec(
-        shape=(),
-        dtype=np.int64,
-        minimum=0,
-        maximum=1,
-        name="action",
-    )
+def action_spec() -> Any:
+    return ()
 
 
-def observation_spec(steps: int) -> array_spec.BoundedArraySpec:
+def observation_spec(steps: int) -> Any:
     return {
-        "position": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=0,
-            maximum=steps - 1,
-            name="position",
-        ),
-        "steps": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=steps,
-            maximum=steps,
-            name="steps",
-        ),
-        "right_end_reward": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.float32,
-            minimum=np.finfo(np.float32).min,
-            maximum=np.finfo(np.float32).max,
-            name="right_end_reward",
-        ),
-        "left_end_reward": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.float32,
-            minimum=np.finfo(np.float32).min,
-            maximum=np.finfo(np.float32).max,
-            name="left_end_reward",
-        ),
-        "step_reward": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.float32,
-            minimum=np.finfo(np.float32).min,
-            maximum=np.finfo(np.float32).max,
-            name="step_reward",
-        ),
+        "position": (),
+        "steps": (),
+        "right_end_reward": (),
+        "left_end_reward": (),
+        "step_reward": (),
     }
 
 
-def assert_time_step(output: ts.TimeStep, expected: ts.TimeStep) -> None:
+def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:
     assert output.step_type == expected.step_type
     assert output.reward == expected.reward
     assert output.discount == expected.discount

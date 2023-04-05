@@ -18,12 +18,8 @@ import math
 from typing import Any, Mapping, Optional, Tuple
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "StateRandomWalk"
@@ -40,7 +36,7 @@ OBS_KEY_RIGHT_END_REWARD = "right_end_reward"
 OBS_KEY_STEP_REWARD = "step_reward"
 
 
-class StateRandomWalk(py_environment.PyEnvironment):
+class StateRandomWalk(core.PyEnvironment):
     """
     An environment where an agent is meant to right, until the end.
     The environment can terminate on the last left or right states.
@@ -76,56 +72,20 @@ class StateRandomWalk(py_environment.PyEnvironment):
         self.left_end_reward = left_end_reward
         self.right_end_reward = right_end_reward
         self.step_reward = step_reward
-        self._action_spec = array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=0,
-            maximum=len(ACTIONS) - 1,
-            name="action",
-        )
+        self._action_spec = ()
         self._observation_spec = {
-            OBS_KEY_POSITION: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=0,
-                maximum=steps - 1,
-                name=OBS_KEY_POSITION,
-            ),
-            OBS_KEY_STEPS: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=steps,
-                maximum=steps,
-                name=OBS_KEY_STEPS,
-            ),
-            OBS_KEY_RIGHT_END_REWARD: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.float32,
-                minimum=np.finfo(np.float32).min,
-                maximum=np.finfo(np.float32).max,
-                name=OBS_KEY_RIGHT_END_REWARD,
-            ),
-            OBS_KEY_LEFT_END_REWARD: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.float32,
-                minimum=np.finfo(np.float32).min,
-                maximum=np.finfo(np.float32).max,
-                name=OBS_KEY_LEFT_END_REWARD,
-            ),
-            OBS_KEY_STEP_REWARD: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.float32,
-                minimum=np.finfo(np.float32).min,
-                maximum=np.finfo(np.float32).max,
-                name=OBS_KEY_STEP_REWARD,
-            ),
+            OBS_KEY_POSITION: (),
+            OBS_KEY_STEPS: (),
+            OBS_KEY_RIGHT_END_REWARD: (),
+            OBS_KEY_LEFT_END_REWARD: (),
+            OBS_KEY_STEP_REWARD: (),
         }
 
         # env specific
-        self._observation: Optional[NestedArray] = None
+        self._observation: Optional[Any] = None
         self._seed = None
 
-    def observation_spec(self) -> NestedArraySpec:
+    def observation_spec(self) -> Any:
         """Defines the observations provided by the environment.
 
         May use a subclass of `ArraySpec` that specifies additional properties such
@@ -136,7 +96,7 @@ class StateRandomWalk(py_environment.PyEnvironment):
         """
         return self._observation_spec
 
-    def action_spec(self) -> NestedArraySpec:
+    def action_spec(self) -> Any:
         """Defines the actions that should be provided to `step()`.
 
         May use a subclass of `ArraySpec` that specifies additional properties such
@@ -147,7 +107,7 @@ class StateRandomWalk(py_environment.PyEnvironment):
         """
         return self._action_spec
 
-    def _step(self, action: NestedArray) -> ts.TimeStep:
+    def _step(self, action: Any) -> core.TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -164,14 +124,14 @@ class StateRandomWalk(py_environment.PyEnvironment):
         finished = is_finished(new_observation)
         self._observation = new_observation
         if finished:
-            return ts.termination(
+            return core.TimeStep.termination(
                 observation=copy.deepcopy(self._observation), reward=reward
             )
-        return ts.transition(
+        return core.TimeStep.transition(
             observation=copy.deepcopy(self._observation), reward=reward
         )
 
-    def _reset(self) -> ts.TimeStep:
+    def _reset(self) -> core.TimeStep:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
@@ -182,9 +142,9 @@ class StateRandomWalk(py_environment.PyEnvironment):
             right_end_reward=self.right_end_reward,
             step_reward=self.step_reward,
         )
-        return ts.restart(observation=copy.deepcopy(self._observation))
+        return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
-    def render(self, mode="rgb_array") -> Optional[NestedArray]:
+    def render(self, mode="rgb_array") -> Optional[Any]:
         if self._observation is None:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
@@ -193,7 +153,7 @@ class StateRandomWalk(py_environment.PyEnvironment):
             return state_representation(self._observation)
         return super().render(mode)
 
-    def seed(self, seed: Seed = None) -> Any:
+    def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -221,9 +181,7 @@ class StateRandomWalkMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-def apply_action(
-    observation: NestedArray, action: NestedArray
-) -> Tuple[NestedArray, float]:
+def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
     """
     Computes a new observation and reward given the current state and action.
 
@@ -332,7 +290,7 @@ def get_state_id(observation: Mapping[str, Any]) -> int:
     return state_id
 
 
-def state_representation(observation: Mapping[str, Any]) -> NestedArray:
+def state_representation(observation: Mapping[str, Any]) -> np.ndarray:
     """
     An array view of the state, where the position of the
     agent is marked with an 1.

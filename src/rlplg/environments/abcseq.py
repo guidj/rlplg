@@ -45,12 +45,8 @@ import copy
 from typing import Any, Optional
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "ABCSeq"
@@ -59,7 +55,7 @@ LETTERS = [chr(value) for value in range(ord("A"), ord("Z") + 1)]
 NUM_LETTERS = len(LETTERS)
 
 
-class ABCSeq(py_environment.PyEnvironment):
+class ABCSeq(core.PyEnvironment):
     metadata = {"render.modes": ["raw"]}
 
     def __init__(self, length: int):
@@ -69,26 +65,14 @@ class ABCSeq(py_environment.PyEnvironment):
             raise ValueError(
                 f"Length must be between {MIN_SEQ_LENGTH} and {NUM_LETTERS}: {length}"
             )
-        self._action_spec = array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=0,
-            maximum=length - 1,
-            name="action",
-        )
-        self._observation_spec = array_spec.BoundedArraySpec(
-            shape=(length + 1,),
-            dtype=np.int64,
-            minimum=np.array([1] + [0] * length),
-            maximum=np.ones(shape=(length + 1,)),
-            name="observation",
-        )
+        self._action_spec = ()
+        self._observation_spec = ()
 
         # env specific
         self._observation: Optional[np.ndarray] = None
         self._seed = None
 
-    def observation_spec(self) -> NestedArraySpec:
+    def observation_spec(self) -> Any:
         """Defines the observations provided by the environment.
 
         May use a subclass of `ArraySpec` that specifies additional properties such
@@ -99,7 +83,7 @@ class ABCSeq(py_environment.PyEnvironment):
         """
         return self._observation_spec
 
-    def action_spec(self) -> NestedArraySpec:
+    def action_spec(self) -> Any:
         """Defines the actions that should be provided to `step()`.
 
         May use a subclass of `ArraySpec` that specifies additional properties such
@@ -110,7 +94,7 @@ class ABCSeq(py_environment.PyEnvironment):
         """
         return self._action_spec
 
-    def _step(self, action: NestedArray) -> ts.TimeStep:
+    def _step(self, action: Any) -> core.TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -126,27 +110,27 @@ class ABCSeq(py_environment.PyEnvironment):
 
         self._observation = new_observation
         if finished:
-            return ts.termination(
+            return core.TimeStep.termination(
                 observation=copy.deepcopy(self._observation), reward=reward
             )
-        return ts.transition(
+        return core.TimeStep.transition(
             observation=copy.deepcopy(self._observation), reward=reward
         )
 
-    def _reset(self) -> ts.TimeStep:
+    def _reset(self) -> core.TimeStep:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
         self._observation = beginning_state(length=self.length)
-        return ts.restart(observation=copy.deepcopy(self._observation))
+        return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
-    def render(self, mode="rgb_array") -> Optional[NestedArray]:
+    def render(self, mode="rgb_array") -> Optional[Any]:
         if mode == "rgb_array":
             return copy.deepcopy(self._observation)
         return super().render(mode)
 
-    def seed(self, seed: Seed = None) -> Any:
+    def seed(self, seed: int = None) -> Any:
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -174,7 +158,7 @@ class ABCSeqMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-def apply_action(observation: np.ndarray, action: NestedArray) -> np.ndarray:
+def apply_action(observation: np.ndarray, action: Any) -> np.ndarray:
     """
     Transitions:
         - The agent can only say to have learned a letter if they go to it after
@@ -199,7 +183,7 @@ def apply_action(observation: np.ndarray, action: NestedArray) -> np.ndarray:
     return new_observation
 
 
-def action_reward(observation: np.ndarray, action: NestedArray) -> float:
+def action_reward(observation: np.ndarray, action: Any) -> float:
     """
     One penalty per turn and one for the distance - except
     in the terminal state.
@@ -242,7 +226,7 @@ def beginning_state(length: int):
     return observation
 
 
-def is_finished(observation: np.ndarray, action: NestedArray) -> bool:
+def is_finished(observation: np.ndarray, action: Any) -> bool:
     """
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.

@@ -6,13 +6,8 @@ import copy
 from typing import Any, Callable, Generator, Tuple
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import time_step as ts
-from tf_agents.trajectories import trajectory
-from tf_agents.typing.types import Array
 
-from rlplg import envplay
+from rlplg import core, envplay
 from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 
@@ -21,16 +16,16 @@ MCUpdate = collections.namedtuple("MCUpdate", ["returns", "cu_sum", "value", "we
 
 def monte_carlo_action_values(
     policy: policies.PyQGreedyPolicy,
-    collect_policy: py_policy.PyPolicy,
-    environment: py_environment.PyEnvironment,
+    collect_policy: core.PyPolicy,
+    environment: core.PyEnvironment,
     num_episodes: int,
     gamma: float,
     policy_probability_fn: Callable[
-        [py_policy.PyPolicy, trajectory.Trajectory],
+        [core.PyPolicy, core.Trajectory],
         float,
     ],
     collect_policy_probability_fn: Callable[
-        [py_policy.PyPolicy, trajectory.Trajectory],
+        [core.PyPolicy, core.Trajectory],
         float,
     ],
     state_id_fn: Callable[[Any], int],
@@ -38,13 +33,13 @@ def monte_carlo_action_values(
     initial_qtable: np.ndarray,
     generate_episodes: Callable[
         [
-            py_environment.PyEnvironment,
-            py_policy.PyPolicy,
+            core.PyEnvironment,
+            core.PyPolicy,
             int,
         ],
-        Generator[trajectory.Trajectory, None, None],
+        Generator[core.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array], None, None]:
+) -> Generator[Tuple[int, np.ndarray], None, None]:
     """Off-policy MC Prediction.
     Estimates Q (table) for a fixed policy pi.
 
@@ -148,18 +143,18 @@ def monte_carlo_action_values_step(
 
 def nstep_sarsa_action_values(
     policy: policies.PyQGreedyPolicy,
-    collect_policy: py_policy.PyPolicy,
-    environment: py_environment.PyEnvironment,
+    collect_policy: core.PyPolicy,
+    environment: core.PyEnvironment,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     gamma: float,
     nstep: int,
     policy_probability_fn: Callable[
-        [py_policy.PyPolicy, trajectory.Trajectory],
+        [core.PyPolicy, core.Trajectory],
         float,
     ],
     collect_policy_probability_fn: Callable[
-        [py_policy.PyPolicy, trajectory.Trajectory],
+        [core.PyPolicy, core.Trajectory],
         float,
     ],
     state_id_fn: Callable[[Any], int],
@@ -167,13 +162,13 @@ def nstep_sarsa_action_values(
     initial_qtable: np.ndarray,
     generate_episodes: Callable[
         [
-            py_environment.PyEnvironment,
-            py_policy.PyPolicy,
+            core.PyEnvironment,
+            core.PyPolicy,
             int,
         ],
-        Generator[trajectory.Trajectory, None, None],
+        Generator[core.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array], None, None]:
+) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
     Off-policy n-step Sarsa Prediction.
     Estimates Q (table) for a fixed policy pi.
@@ -219,7 +214,7 @@ def nstep_sarsa_action_values(
             if step < final_step:
                 # we don't need to transition because we already collected the experience
                 # a better way to determine the next state is terminal one
-                if np.array_equal(experiences[step].step_type, ts.StepType.LAST):
+                if np.array_equal(experiences[step].step_type, core.StepType.LAST):
                     final_step = step + 1
 
             tau = step - nstep + 1

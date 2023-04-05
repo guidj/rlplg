@@ -4,8 +4,8 @@ import hypothesis
 import numpy as np
 from hypothesis import strategies as st
 from scipy.spatial import distance
-from tf_agents.environments import py_environment
 
+from rlplg import core
 from rlplg.learning.tabular import policies
 from tests import defaults
 
@@ -19,7 +19,6 @@ def test_random_policy_init():
     assert policy.time_step_spec == environment.time_step_spec()
     assert policy._num_actions == num_actions
     assert policy.emit_log_probability is False
-    assert policy.info_spec == ()
 
 
 def test_random_policy_init_with_emit_log_probability():
@@ -33,7 +32,6 @@ def test_random_policy_init_with_emit_log_probability():
     assert policy.time_step_spec == environment.time_step_spec()
     assert policy._num_actions == num_actions
     assert policy.emit_log_probability is True
-    assert policy.info_spec == defaults.log_prob_policy_info_spec()
 
 
 @hypothesis.given(num_actions=st.integers(min_value=1, max_value=100))
@@ -47,7 +45,7 @@ def test_random_policy_action(num_actions: int):
     _policy_step = policy.action(environment.time_step_spec())
 
     np.testing.assert_allclose(
-        _policy_step.info.log_probability, np.math.log(1.0 / num_actions)
+        _policy_step.info["log_probability"], np.math.log(1.0 / num_actions)
     )
 
 
@@ -56,11 +54,11 @@ def test_random_policy_validity():
     environment = defaults.SingleStateEnv(num_actions=num_actions)
     policy = create_random_policy(environment, num_actions=num_actions)
 
-    environment.reset()
+    time_step = environment.reset()
     expected = np.array([1.0 / num_actions] * num_actions, np.float32)
     output = np.zeros(shape=(num_actions), dtype=np.int64)
     for _ in range(10_000):
-        _policy_step = policy.action(environment.current_time_step())
+        _policy_step = policy.action(time_step)
         output[_policy_step.action] += 1
     output = output / np.sum(output, dtype=np.float32)
 
@@ -78,7 +76,6 @@ def test_qgreedy_policy_init():
     assert qgreedy_policy.time_step_spec == environment.time_step_spec()
     assert qgreedy_policy.action_spec == environment.action_spec()
     assert qgreedy_policy.emit_log_probability is False
-    assert qgreedy_policy.info_spec == ()
     np.testing.assert_array_equal(
         qgreedy_policy._state_action_value_table, np.array([[1, 2, 3, 4]], np.float32)
     )
@@ -95,7 +92,6 @@ def test_qgreedy_policy_init_with_emit_log_probability():
     assert qgreedy_policy.time_step_spec == environment.time_step_spec()
     assert qgreedy_policy.action_spec == environment.action_spec()
     assert qgreedy_policy.emit_log_probability is True
-    assert qgreedy_policy.info_spec == defaults.log_prob_policy_info_spec()
     np.testing.assert_array_equal(
         qgreedy_policy._state_action_value_table, np.array([[1, 2, 3, 4]], np.float32)
     )
@@ -108,9 +104,9 @@ def test_qgreedy_policy_action():
         qtable=[[0, 0, 1, 0]],
     )
 
-    environment.reset()
+    time_step = environment.reset()
     _policy_step = qgreedy_policy.action(
-        environment.current_time_step(),
+        time_step,
         policy_state=qgreedy_policy.get_initial_state(None),
     )
 
@@ -127,9 +123,9 @@ def test_qgreedy_policy_action_with_emit_log_probability():
         emit_log_probability=True,
     )
 
-    environment.reset()
+    time_step = environment.reset()
     _policy_step = qgreedy_policy.action(
-        environment.current_time_step(),
+        time_step,
         policy_state=qgreedy_policy.get_initial_state(None),
     )
 
@@ -147,7 +143,7 @@ def test_qgreedy_policy_validity():
         emit_log_probability=True,
     )
 
-    environment.reset()
+    time_step = environment.reset()
     # Avery action is chosen at least 1/explore times
     expected = np.array(
         [0, 0, 1.0, 0],
@@ -155,7 +151,7 @@ def test_qgreedy_policy_validity():
     )
     output = np.zeros(shape=(num_actions), dtype=np.int64)
     for _ in range(10_000):
-        _policy_step = qgreedy_policy.action(environment.current_time_step())
+        _policy_step = qgreedy_policy.action(time_step)
         output[_policy_step.action] += 1
     output = output / np.sum(output, dtype=np.float32)
 
@@ -174,7 +170,6 @@ def test_egreedy_policy_init():
     assert epsilon_greedy_policy.time_step_spec == environment.time_step_spec()
     assert epsilon_greedy_policy.action_spec == environment.action_spec()
     assert epsilon_greedy_policy.emit_log_probability is False
-    assert epsilon_greedy_policy.info_spec == ()
     assert epsilon_greedy_policy._num_actions == 4
     assert epsilon_greedy_policy.epsilon == 0.1
     assert isinstance(epsilon_greedy_policy.explore_policy, policies.PyRandomPolicy)
@@ -193,7 +188,6 @@ def test_egreedy_policy_init_with_emit_log_probability():
     assert epsilon_greedy_policy.time_step_spec == environment.time_step_spec()
     assert epsilon_greedy_policy.action_spec == environment.action_spec()
     assert epsilon_greedy_policy.emit_log_probability is True
-    assert epsilon_greedy_policy.info_spec == defaults.log_prob_policy_info_spec()
     assert epsilon_greedy_policy._num_actions == 4
     assert epsilon_greedy_policy.epsilon == 0.1
     assert isinstance(epsilon_greedy_policy.explore_policy, policies.PyRandomPolicy)
@@ -209,9 +203,9 @@ def test_egreedy_policy_action():
         epsilon=0.1,
     )
 
-    environment.reset()
+    time_step = environment.reset()
     _policy_step = epsilon_greedy_policy.action(
-        environment.current_time_step(),
+        time_step,
         policy_state=epsilon_greedy_policy.get_initial_state(None),
     )
 
@@ -230,18 +224,18 @@ def test_egreedy_policy_action_with_emit_log_probability():
         emit_log_probability=True,
     )
 
-    environment.reset()
+    time_step = environment.reset()
     _policy_step = epsilon_greedy_policy.action(
-        environment.current_time_step(),
+        time_step,
         policy_state=epsilon_greedy_policy.get_initial_state(None),
     )
 
     assert _policy_step.action in list(range(num_actions))
     assert np.allclose(
-        _policy_step.info.log_probability,
+        _policy_step.info["log_probability"],
         np.math.log((0.1 / num_actions) + 0.9),
     ) or np.allclose(
-        _policy_step.info.log_probability, np.math.log((0.1 / num_actions))
+        _policy_step.info["log_probability"], np.math.log((0.1 / num_actions))
     )
     assert _policy_step.state == ()
 
@@ -257,7 +251,7 @@ def test_egreedy_policy_validity():
         emit_log_probability=True,
     )
 
-    environment.reset()
+    time_step = environment.reset()
     # Avery action is chosen at least 1/explore times
     expected = np.array(
         [epsilon / num_actions] * num_actions,
@@ -267,7 +261,7 @@ def test_egreedy_policy_validity():
     expected[2] += 1.0 - epsilon
     output = np.zeros(shape=(num_actions), dtype=np.int64)
     for _ in range(10_000):
-        _policy_step = epsilon_greedy_policy.action(environment.current_time_step())
+        _policy_step = epsilon_greedy_policy.action(time_step)
         output[_policy_step.action] += 1
     output = output / np.sum(output, dtype=np.float32)
 
@@ -276,7 +270,7 @@ def test_egreedy_policy_validity():
 
 
 def create_random_policy(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     num_actions: int,
     emit_log_probability: bool = False,
 ):
@@ -289,7 +283,7 @@ def create_random_policy(
 
 
 def create_qgreedy_policy(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     qtable: Sequence[Sequence[float]],
     emit_log_probability: bool = False,
 ):
@@ -303,7 +297,7 @@ def create_qgreedy_policy(
 
 
 def create_epsilon_greedy_policy(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     qtable: Sequence[Sequence[float]],
     epsilon: float,
     emit_log_probability: bool = False,

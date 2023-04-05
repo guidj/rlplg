@@ -6,19 +6,15 @@ import copy
 from typing import Any, Callable, DefaultDict, Generator, Tuple
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import trajectory
-from tf_agents.typing.types import Array
 
-from rlplg import envplay
+from rlplg import core, envplay
 from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 
 
 def first_visit_monte_carlo_action_values(
     policy: policies.PyQGreedyPolicy,
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     num_episodes: int,
     gamma: float,
     state_id_fn: Callable[[Any], int],
@@ -26,13 +22,13 @@ def first_visit_monte_carlo_action_values(
     initial_qtable: np.ndarray,
     generate_episodes: Callable[
         [
-            py_environment.PyEnvironment,
-            py_policy.PyPolicy,
+            core.PyEnvironment,
+            core.PyPolicy,
             int,
         ],
-        Generator[trajectory.Trajectory, None, None],
+        Generator[core.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array], None, None]:
+) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
     First-Visit Monte Carlo Prediction.
     Estimates Q(s, a) for a fixed policy pi.
@@ -108,7 +104,7 @@ def first_visit_monte_carlo_action_values(
 
 def sarsa_action_values(
     policy: policies.PyQGreedyPolicy,
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     gamma: float,
@@ -117,13 +113,13 @@ def sarsa_action_values(
     initial_qtable: np.ndarray,
     generate_episodes: Callable[
         [
-            py_environment.PyEnvironment,
-            py_policy.PyPolicy,
+            core.PyEnvironment,
+            core.PyPolicy,
             int,
         ],
-        Generator[trajectory.Trajectory, None, None],
+        Generator[core.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array], None, None]:
+) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
     On-policy Sarsa Prediction.
     Estimates Q(s, a) for a fixed policy pi.
@@ -182,20 +178,20 @@ def sarsa_action_values(
 
 def first_visit_monte_carlo_state_values(
     policy: policies.PyQGreedyPolicy,
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     num_episodes: int,
     gamma: float,
     state_id_fn: Callable[[Any], int],
     initial_values: np.ndarray,
     generate_episodes: Callable[
         [
-            py_environment.PyEnvironment,
-            py_policy.PyPolicy,
+            core.PyEnvironment,
+            core.PyPolicy,
             int,
         ],
-        Generator[trajectory.Trajectory, None, None],
+        Generator[core.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array], None, None]:
+) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
     First-Visit Monte Carlo Prediction.
     Estimates V(s) for a fixed policy pi.
@@ -260,7 +256,7 @@ def first_visit_monte_carlo_state_values(
 
 def one_step_td_state_values(
     policy: policies.PyQGreedyPolicy,
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     gamma: float,
@@ -268,13 +264,13 @@ def one_step_td_state_values(
     initial_values: np.ndarray,
     generate_episodes: Callable[
         [
-            py_environment.PyEnvironment,
-            py_policy.PyPolicy,
+            core.PyEnvironment,
+            core.PyPolicy,
             int,
         ],
-        Generator[trajectory.Trajectory, None, None],
+        Generator[core.Trajectory, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, Array], None, None]:
+) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
     TD(0) or one-step TD.
     Estimates V(s) for a fixed policy pi.

@@ -1,13 +1,12 @@
 import random
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
 
+from rlplg import core
 from rlplg.environments import redgreen
 
 VALID_ACTIONS = ["red", "green", "wait"]
@@ -27,8 +26,8 @@ def test_redgreen_simple_sequence():
     environment = redgreen.RedGreenSeq(cure)
     assert_time_step(
         environment.reset(),
-        ts.TimeStep(
-            step_type=ts.StepType.FIRST,
+        core.TimeStep(
+            step_type=core.StepType.FIRST,
             reward=0.0,
             discount=1.0,
             observation={
@@ -40,8 +39,8 @@ def test_redgreen_simple_sequence():
     # final treatment step, prematurely
     assert_time_step(
         environment.step(2),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-2.0,
             discount=1.0,
             observation={
@@ -53,8 +52,8 @@ def test_redgreen_simple_sequence():
     # first treatment step
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-1.0,
             discount=1.0,
             observation={
@@ -66,8 +65,8 @@ def test_redgreen_simple_sequence():
     # second treatment step
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-1.0,
             discount=1.0,
             observation={
@@ -79,8 +78,8 @@ def test_redgreen_simple_sequence():
     # wrong treatment step
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-2.0,
             discount=1.0,
             observation={
@@ -92,8 +91,8 @@ def test_redgreen_simple_sequence():
     # third and final treatment step
     assert_time_step(
         environment.step(2),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
+        core.TimeStep(
+            step_type=core.StepType.LAST,
             reward=-1.0,
             discount=0.0,
             observation={
@@ -106,8 +105,8 @@ def test_redgreen_simple_sequence():
     # another treatment step in the terminal state
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
+        core.TimeStep(
+            step_type=core.StepType.LAST,
             reward=0.0,
             discount=0.0,
             observation={
@@ -290,38 +289,20 @@ def test_state_representation():
     ]
 
 
-def action_spec() -> array_spec.BoundedArraySpec:
-    return array_spec.BoundedArraySpec(
-        shape=(),
-        dtype=np.int64,
-        minimum=0,
-        maximum=2,
-        name="action",
-    )
+def action_spec() -> Any:
+    return ()
 
 
 def observation_spec(
     cure_actions: Sequence[int],
-) -> Mapping[str, array_spec.BoundedArraySpec]:
+) -> Mapping[str, Any]:
     return {
-        "cure_sequence": array_spec.BoundedArraySpec(
-            shape=(len(cure_actions),),
-            dtype=np.int64,
-            minimum=[0] * len(cure_actions),
-            maximum=[2] * len(cure_actions),
-            name="cure_sequence",
-        ),
-        "position": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=0,
-            maximum=len(cure_actions),
-            name="position",
-        ),
+        "cure_sequence": (),
+        "position": (),
     }
 
 
-def assert_time_step(output: ts.TimeStep, expected: ts.TimeStep) -> None:
+def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:
     assert output.step_type == expected.step_type
     assert output.reward == expected.reward
     assert output.discount == expected.discount

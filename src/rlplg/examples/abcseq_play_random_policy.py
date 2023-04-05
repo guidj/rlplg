@@ -7,9 +7,7 @@ import argparse
 import dataclasses
 import logging
 
-from tf_agents.trajectories import time_step as ts
-
-from rlplg import envsuite, tracking
+from rlplg import core, envsuite, tracking
 from rlplg.learning.tabular import policies
 
 
@@ -71,7 +69,7 @@ def main(args: Args):
             policy_state = policy_step.state
             time_step = env_spec.environment.step(policy_step.action)
             stats.new_reward(time_step.reward)
-            if time_step.step_type == ts.StepType.LAST:
+            if time_step.step_type == core.StepType.LAST:
                 stats.end_episode(success=True)
                 logging.info("Stats: %s, from episode %d", stats, episode + 1)
                 break

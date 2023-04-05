@@ -1,10 +1,11 @@
+from typing import Any
+
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
 
+from rlplg import core
 from rlplg.environments import abcseq
 
 
@@ -21,8 +22,8 @@ def test_abcseq_simple_sequence():
     environment = abcseq.ABCSeq(length)
     assert_time_step(
         environment.reset(),
-        ts.TimeStep(
-            step_type=ts.StepType.FIRST,
+        core.TimeStep(
+            step_type=core.StepType.FIRST,
             reward=0.0,
             discount=1.0,
             observation=np.array([1, 0, 0, 0, 0]),
@@ -31,8 +32,8 @@ def test_abcseq_simple_sequence():
     # final step, prematurely
     assert_time_step(
         environment.step(3),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-4.0,
             discount=1.0,
             observation=np.array([1, 0, 0, 0, 0]),
@@ -41,8 +42,8 @@ def test_abcseq_simple_sequence():
     # first letter
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-1.0,
             discount=1.0,
             observation=np.array([1, 1, 0, 0, 0]),
@@ -51,8 +52,8 @@ def test_abcseq_simple_sequence():
     # second letter
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-1.0,
             discount=1.0,
             observation=np.array([1, 1, 1, 0, 0]),
@@ -61,8 +62,8 @@ def test_abcseq_simple_sequence():
     # skip ahead
     assert_time_step(
         environment.step(3),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-2.0,
             discount=1.0,
             observation=np.array([1, 1, 1, 0, 0]),
@@ -71,8 +72,8 @@ def test_abcseq_simple_sequence():
     # going backwards
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-4.0,
             discount=1.0,
             observation=np.array([1, 1, 1, 0, 0]),
@@ -81,8 +82,8 @@ def test_abcseq_simple_sequence():
     # continue, third letter
     assert_time_step(
         environment.step(2),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=-1.0,
             discount=1.0,
             observation=np.array([1, 1, 1, 1, 0]),
@@ -91,8 +92,8 @@ def test_abcseq_simple_sequence():
     # complete
     assert_time_step(
         environment.step(3),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
+        core.TimeStep(
+            step_type=core.StepType.LAST,
             reward=-1.0,
             discount=0.0,
             observation=np.array([1, 1, 1, 1, 1]),
@@ -101,8 +102,8 @@ def test_abcseq_simple_sequence():
     # move in the terminal state
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=0.0,
             discount=1.0,
             observation=np.array([1, 1, 1, 1, 1]),
@@ -111,8 +112,8 @@ def test_abcseq_simple_sequence():
     # another move in the terminal statethe
     assert_time_step(
         environment.step(4),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
+        core.TimeStep(
+            step_type=core.StepType.MID,
             reward=0.0,
             discount=1.0,
             observation=np.array([1, 1, 1, 1, 1]),
@@ -301,27 +302,15 @@ def test_state_id():
     assert abcseq.get_state_id([1, 1, 1]) == 2
 
 
-def action_spec(length: int) -> array_spec.BoundedArraySpec:
-    return array_spec.BoundedArraySpec(
-        shape=(),
-        dtype=np.int64,
-        minimum=0,
-        maximum=length - 1,
-        name="action",
-    )
+def action_spec(length: int) -> Any:
+    return ()
 
 
-def observation_spec(length: int) -> array_spec.BoundedArraySpec:
-    return array_spec.BoundedArraySpec(
-        shape=(length + 1,),
-        dtype=np.int64,
-        minimum=np.array([1] + [0] * length),
-        maximum=np.array([1] * (length + 1)),
-        name="observation",
-    )
+def observation_spec(length: int) -> Any:
+    return ()
 
 
-def assert_time_step(output: ts.TimeStep, expected: ts.TimeStep) -> None:
+def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:
     assert output.step_type == expected.step_type
     assert output.reward == expected.reward
     assert output.discount == expected.discount

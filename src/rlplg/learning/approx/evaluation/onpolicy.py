@@ -7,9 +7,6 @@ import copy
 from typing import Callable, Generator, Tuple
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import trajectory
 
 from rlplg import envplay
 from rlplg.learning import utils
@@ -18,18 +15,18 @@ from rlplg.learning.opt import schedules
 
 
 def gradient_monte_carlo_state_values(
-    policy: py_policy.PyPolicy,
-    environment: py_environment.PyEnvironment,
+    policy: core.PyPolicy,
+    environment: core.PyEnvironment,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     estimator: modelspec.ApproxFn,
     generate_episodes: Callable[
         [
-            py_environment.PyEnvironment,
-            py_policy.PyPolicy,
+            core.PyEnvironment,
+            core.PyPolicy,
             int,
         ],
-        Generator[trajectory.Trajectory, None, None],
+        Generator[core.Trajectory, None, None],
     ] = envplay.generate_episodes,
 ) -> Generator[Tuple[int, modelspec.ApproxFn], None, None]:
     """

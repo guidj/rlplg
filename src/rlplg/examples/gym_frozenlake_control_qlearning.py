@@ -7,9 +7,7 @@ import argparse
 import dataclasses
 import logging
 
-from tf_agents.trajectories import time_step as ts
-
-from rlplg import envsuite, npsci
+from rlplg import core, envsuite, npsci
 from rlplg.examples import factories, qlearning, rendering
 
 
@@ -71,7 +69,7 @@ def main(args: Args):
             time_step = env_spec.environment.step(policy_step.action)
 
             logging.info(env_spec.environment.render(mode="human"))
-            if time_step.step_type == ts.StepType.LAST:
+            if time_step.step_type == core.StepType.LAST:
                 logging.info("Completed episode %d", episode + 1)
                 break
 

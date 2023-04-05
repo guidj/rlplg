@@ -5,10 +5,8 @@ import numpy as np
 import pytest
 from hypothesis import strategies as st
 from PIL import Image as image
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray
 
+from rlplg import core
 from rlplg.environments import gridworld
 from tests.rlplg.environments import grids
 
@@ -17,45 +15,13 @@ def test_gridworld_init():
     environment = gridworld.GridWorld(size=(4, 12), cliffs=[], exits=[], start=(3, 0))
 
     assert environment.observation_spec() == {
-        "start": array_spec.BoundedArraySpec(
-            shape=(2,),
-            dtype=np.int64,
-            minimum=np.array([3, 0]),
-            maximum=np.array([3, 0]),
-            name="player",
-        ),
-        "player": array_spec.BoundedArraySpec(
-            shape=(2,),
-            dtype=np.int64,
-            minimum=np.array([0, 0]),
-            maximum=np.array([3, 11]),
-            name="player",
-        ),
-        "cliffs": array_spec.BoundedArraySpec(
-            shape=(0, 2),
-            dtype=np.int64,
-            minimum=np.array([0, 0]),
-            maximum=np.array([3, 11]),
-            name="cliffs",
-        ),
-        "exits": array_spec.BoundedArraySpec(
-            shape=(0, 2),
-            dtype=np.int64,
-            minimum=np.array([0, 0]),
-            maximum=np.array([3, 11]),
-            name="exits",
-        ),
-        "size": array_spec.BoundedArraySpec(
-            shape=(2,),
-            dtype=np.int64,
-            minimum=np.array([4, 12]),
-            maximum=np.array([4, 12]),
-            name="size",
-        ),
+        "start": (),
+        "player": (),
+        "cliffs": (),
+        "exits": (),
+        "size": (),
     }
-    assert environment.action_spec() == array_spec.BoundedArraySpec(
-        shape=(), dtype=np.int64, minimum=0, maximum=3, name="action"
-    )
+    assert environment.action_spec() == ()
 
 
 def test_gridworld_reset():
@@ -63,8 +29,8 @@ def test_gridworld_reset():
         size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
     )
     step = environment.reset()
-    expected = ts.TimeStep(
-        step_type=ts.StepType.FIRST,
+    expected = core.TimeStep(
+        step_type=core.StepType.FIRST,
         reward=0.0,
         discount=1.0,
         observation={
@@ -87,8 +53,8 @@ def test_gridworld_transition_step():
     )
     environment.reset()
     step = environment.step(gridworld.UP)
-    expected = ts.TimeStep(
-        step_type=ts.StepType.MID,
+    expected = core.TimeStep(
+        step_type=core.StepType.MID,
         reward=-1.0,
         discount=1.0,
         observation={
@@ -111,8 +77,8 @@ def test_gridworld_transition_into_cliff():
     )
     environment.reset()
     step = environment.step(gridworld.RIGHT)
-    expected = ts.TimeStep(
-        step_type=ts.StepType.MID,
+    expected = core.TimeStep(
+        step_type=core.StepType.MID,
         reward=-100.0,
         discount=1.0,
         observation={
@@ -135,8 +101,8 @@ def test_gridworld_final_step():
     )
     environment.reset()
     step = environment.step(gridworld.RIGHT)
-    expected = ts.TimeStep(
-        step_type=ts.StepType.LAST,
+    expected = core.TimeStep(
+        step_type=core.StepType.LAST,
         reward=-1.0,
         discount=0.0,
         observation={
@@ -385,7 +351,7 @@ def test_as_grid():
     np.testing.assert_array_equal(output, expected)
 
 
-def assert_observation(output: NestedArray, expected: NestedArray) -> None:
+def assert_observation(output: Any, expected: Any) -> None:
     np.testing.assert_array_equal(output["size"], expected["size"])
     np.testing.assert_array_equal(output["player"], expected["player"])
     np.testing.assert_array_equal(output["start"], expected["start"])

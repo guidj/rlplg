@@ -2,8 +2,6 @@ import base64
 import hashlib
 from typing import Any, Mapping
 
-from tf_agents.environments import suite_gym
-
 from rlplg import envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
 

@@ -6,17 +6,16 @@ import logging
 from typing import Any, Callable, Iterable, Optional, Set
 
 import numpy as np
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import time_step as ts
-from tf_agents.trajectories import trajectory
+
+from rlplg import core
 
 
-def policy_prob_fn(policy: py_policy.PyPolicy, traj: trajectory.Trajectory) -> float:
+def policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
     """The policy we're evaluating is assumed to be greedy w.r.t. Q(s, a).
     So the best action has probability 1.0, and all the others 0.0.
     """
 
-    time_step = ts.TimeStep(
+    time_step = core.TimeStep(
         step_type=traj.step_type,
         reward=traj.reward,
         discount=traj.discount,
@@ -27,16 +26,14 @@ def policy_prob_fn(policy: py_policy.PyPolicy, traj: trajectory.Trajectory) -> f
     return prob
 
 
-def collect_policy_prob_fn(
-    policy: py_policy.PyPolicy, traj: trajectory.Trajectory
-) -> float:
+def collect_policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
     """The behavior policy is assumed to be fixed over the evaluation window.
     We log probabilities when choosing actions, so we can just use that information.
     For a random policy on K arms, log_prob = log(1/K).
     We just have to return exp(log_prob).
     """
     del policy
-    prob: float = np.math.exp(traj.policy_info.log_probability)
+    prob: float = np.math.exp(traj.policy_info["log_probability"])
     return prob
 
 

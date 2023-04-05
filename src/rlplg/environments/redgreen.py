@@ -39,12 +39,8 @@ import hashlib
 from typing import Any, Optional, Sequence, Tuple
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "RedGreenSeq"
@@ -58,7 +54,7 @@ OBS_KEY_CURE_SEQUENCE = "cure_sequence"
 OBS_KEY_POSITION = "position"
 
 
-class RedGreenSeq(py_environment.PyEnvironment):
+class RedGreenSeq(core.PyEnvironment):
     """
     An environment where an agent is meant to follow a pre-defined
     sequence of actions.
@@ -78,35 +74,17 @@ class RedGreenSeq(py_environment.PyEnvironment):
             raise ValueError(f"Cure sequence should be longer than one: {len(cure)}")
 
         self.cure_sequence = [ACTION_NAME_MAPPING[action] for action in cure]
-        self._action_spec = array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=0,
-            maximum=len(ACTIONS) - 1,
-            name="action",
-        )
+        self._action_spec = ()
         self._observation_spec = {
-            OBS_KEY_CURE_SEQUENCE: array_spec.BoundedArraySpec(
-                shape=(len(self.cure_sequence),),
-                dtype=np.int64,
-                minimum=np.array([min(ACTIONS)] * len(cure)),
-                maximum=np.array([max(ACTIONS)] * len(cure)),
-                name=OBS_KEY_CURE_SEQUENCE,
-            ),
-            OBS_KEY_POSITION: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=0,
-                maximum=len(cure),
-                name=OBS_KEY_POSITION,
-            ),
+            OBS_KEY_CURE_SEQUENCE: (),
+            OBS_KEY_POSITION: (),
         }
 
         # env specific
-        self._observation: Optional[NestedArray] = None
+        self._observation: Optional[Any] = None
         self._seed = None
 
-    def observation_spec(self) -> NestedArraySpec:
+    def observation_spec(self) -> Any:
         """Defines the observations provided by the environment.
 
         May use a subclass of `ArraySpec` that specifies additional properties such
@@ -117,7 +95,7 @@ class RedGreenSeq(py_environment.PyEnvironment):
         """
         return self._observation_spec
 
-    def action_spec(self) -> NestedArraySpec:
+    def action_spec(self) -> Any:
         """Defines the actions that should be provided to `step()`.
 
         May use a subclass of `ArraySpec` that specifies additional properties such
@@ -128,7 +106,7 @@ class RedGreenSeq(py_environment.PyEnvironment):
         """
         return self._action_spec
 
-    def _step(self, action: NestedArray) -> ts.TimeStep:
+    def _step(self, action: Any) -> core.TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -147,22 +125,22 @@ class RedGreenSeq(py_environment.PyEnvironment):
 
         self._observation = new_observation
         if finished:
-            return ts.termination(
+            return core.TimeStep.termination(
                 observation=copy.deepcopy(self._observation), reward=reward
             )
-        return ts.transition(
+        return core.TimeStep.transition(
             observation=copy.deepcopy(self._observation), reward=reward
         )
 
-    def _reset(self) -> ts.TimeStep:
+    def _reset(self) -> core.TimeStep:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
         self._observation = beginning_state(self.cure_sequence)
-        return ts.restart(observation=copy.deepcopy(self._observation))
+        return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
-    def render(self, mode="rgb_array") -> Optional[NestedArray]:
+    def render(self, mode="rgb_array") -> Optional[Any]:
         if self._observation is None:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
@@ -171,7 +149,7 @@ class RedGreenSeq(py_environment.PyEnvironment):
             return state_representation(self._observation)
         return super().render(mode)
 
-    def seed(self, seed: Seed = None) -> Any:
+    def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -199,9 +177,7 @@ class RedGreenMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-def apply_action(
-    observation: NestedArray, action: NestedArray
-) -> Tuple[NestedArray, float]:
+def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
     """
     Computes a new observation and reward given the current state and action.
 
@@ -259,7 +235,7 @@ def beginning_state(cure_sequence: Sequence[int]):
     }
 
 
-def is_finished(observation: NestedArray) -> bool:
+def is_finished(observation: Any) -> bool:
     """
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
@@ -295,7 +271,7 @@ def __encode_env(cure: Sequence[str]) -> str:
     return base64.b32encode(hashing.digest()).decode("UTF-8")
 
 
-def get_state_id(observation: NestedArray) -> int:
+def get_state_id(observation: Any) -> int:
     """
     Computes an integer ID that represents that state.
     """
@@ -303,7 +279,7 @@ def get_state_id(observation: NestedArray) -> int:
     return state_id
 
 
-def state_observation(cure_sequence: Sequence[int], state_id: int) -> NestedArray:
+def state_observation(cure_sequence: Sequence[int], state_id: int) -> Any:
     """
     Generates a state observation, given an interger ID and the cure sequence.
 
@@ -320,7 +296,7 @@ def state_observation(cure_sequence: Sequence[int], state_id: int) -> NestedArra
     }
 
 
-def state_representation(observation: NestedArray) -> Sequence[int]:
+def state_representation(observation: Any) -> Sequence[int]:
     """
     An array view of the state, where successful steps are marked
     with 1s and missing steps are marked with a 0.
