@@ -2,7 +2,7 @@ import base64
 import hashlib
 from typing import Any, Mapping
 
-import gym
+import gymnasium as gym
 
 from rlplg import envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp

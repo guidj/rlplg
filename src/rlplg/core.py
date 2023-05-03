@@ -5,7 +5,7 @@ import abc
 import dataclasses
 from typing import Any, Mapping, Optional, Union
 
-import gym
+import gymnasium as gym
 import numpy as np
 from numpy.typing import ArrayLike
 

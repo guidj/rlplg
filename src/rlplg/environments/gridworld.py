@@ -17,7 +17,6 @@ import contextlib
 import copy
 import hashlib
 import io
-import logging
 import os
 import os.path
 import sys
@@ -224,13 +223,7 @@ class GridWorldRenderer:
             BlueMoonSprites(sprites_dir) if sprites_dir is not None else None
         )
         self.viewer: Optional[Any] = None
-        try:
-            from gym.envs.classic_control import rendering
-
-            self.viewer = rendering.SimpleImageViewer()
-        except ImportError as err:
-            logging.error(err)
-            logging.info("Proceeding without rendering")
+        raise NotImplementedError("Rendering not supported!")
 
     def render(
         self,
