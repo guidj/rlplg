@@ -28,11 +28,10 @@ def control(
     )
     episode = 0
     while episode < num_episodes:
-        environment.reset()
+        time_step = environment.reset()
         step = 0
         transitions = []
         while True:
-            time_step = environment.current_time_step()
             policy_step = collect_policy.action(time_step)
             next_time_step = environment.step(policy_step.action)
             traj = core.Trajectory.from_transition(
@@ -63,6 +62,7 @@ def control(
 
             if time_step.step_type == core.StepType.LAST:
                 break
+            time_step = next_time_step
 
         episode += 1
         if episode % log_step == 0:
