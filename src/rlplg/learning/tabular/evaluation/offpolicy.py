@@ -9,13 +9,12 @@ import numpy as np
 
 from rlplg import core, envplay
 from rlplg.learning.opt import schedules
-from rlplg.learning.tabular import policies
 
 MCUpdate = collections.namedtuple("MCUpdate", ["returns", "cu_sum", "value", "weight"])
 
 
 def monte_carlo_action_values(
-    policy: policies.PyQGreedyPolicy,
+    policy: core.PyPolicy,
     collect_policy: core.PyPolicy,
     environment: core.PyEnvironment,
     num_episodes: int,
@@ -142,7 +141,7 @@ def monte_carlo_action_values_step(
 
 
 def nstep_sarsa_action_values(
-    policy: policies.PyQGreedyPolicy,
+    policy: core.PyPolicy,
     collect_policy: core.PyPolicy,
     environment: core.PyEnvironment,
     num_episodes: int,
@@ -207,7 +206,7 @@ def nstep_sarsa_action_values(
     qtable = copy.deepcopy(initial_qtable)
     steps_counter = 0
     for episode in range(num_episodes):
-        final_step = np.inf
+        final_step = np.iinfo(np.int64).max
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, collect_policy, 1))
         for step, _ in enumerate(experiences):

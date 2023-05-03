@@ -46,11 +46,11 @@ class PyRandomPolicy(core.PyPolicy):
         if self.emit_log_probability:
             policy_info = {
                 "log_probability": np.array(
-                    np.math.log(self._uniform_chance), dtype=np.float32
+                    np.log(self._uniform_chance), dtype=np.float32
                 )
             }
         else:
-            policy_info = ()
+            policy_info = {}
 
         return core.PolicyStep(
             action=action,
@@ -105,11 +105,9 @@ class PyQGreedyPolicy(core.PyPolicy):
         action = np.argmax(self._state_action_value_table[state_id])
         if self.emit_log_probability:
             # the best arm has 1.0 probability of being chosen
-            policy_info = {
-                "log_probability": np.array(np.math.log(1.0), dtype=np.float32)
-            }
+            policy_info = {"log_probability": np.array(np.log(1.0), dtype=np.float32)}
         else:
-            policy_info = ()
+            policy_info = {}
 
         return core.PolicyStep(
             action=action,
@@ -171,26 +169,25 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
         if seed is not None:
             raise NotImplementedError(f"Seed is not supported; but got seed: {seed}")
         # greedy move, find out the greedy arm
-        if np.random.rand() <= self.epsilon:
-            _policy = self.explore_policy
-            prob = self.epsilon / self._num_actions
-        else:
-            _policy = self.exploit_policy
-            prob = self.epsilon / self._num_actions + (1.0 - self.epsilon)
-
-        _policy_step = _policy.action(time_step, policy_state)
-
+        explore = np.random.rand() <= self.epsilon
+        policy_: core.PyPolicy = self.explore_policy if explore else self.exploit_policy
+        prob = (
+            self.epsilon / self._num_actions
+            if explore
+            else self.epsilon / self._num_actions + (1.0 - self.epsilon)
+        )
+        policy_step_ = policy_.action(time_step, policy_state)
         # Update log-prob in _policy_step
         if self.emit_log_probability:
             policy_info = {
                 "log_probability": np.array(
-                    np.math.log(prob),
+                    np.log(prob),
                     np.float32,
                 )
             }
-            return dataclasses.replace(_policy_step, info=policy_info)
+            return dataclasses.replace(policy_step_, info=policy_info)
 
-        return _policy_step
+        return policy_step_
 
 
 class ObservablePolicy(abc.ABC):

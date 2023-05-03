@@ -36,7 +36,7 @@ Teacher policy: optimize to make as fewer changes on the student policy
 import base64
 import copy
 import hashlib
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -81,8 +81,8 @@ class RedGreenSeq(core.PyEnvironment):
         }
 
         # env specific
-        self._observation: Optional[Any] = None
-        self._seed = None
+        self._observation: Mapping[str, Any] = {}
+        self._seed: Optional[int] = None
 
     def observation_spec(self) -> Any:
         """Defines the observations provided by the environment.
@@ -115,7 +115,7 @@ class RedGreenSeq(core.PyEnvironment):
             action: A NumPy array, or a nested dict, list or tuple of arrays
                 corresponding to `action_spec()`.
         """
-        if self._observation is None:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -140,8 +140,8 @@ class RedGreenSeq(core.PyEnvironment):
         self._observation = beginning_state(self.cure_sequence)
         return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
-    def render(self, mode="rgb_array") -> Optional[Any]:
-        if self._observation is None:
+    def render(self, mode="rgb_array") -> Any:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -279,7 +279,7 @@ def get_state_id(observation: Any) -> int:
     return state_id
 
 
-def state_observation(cure_sequence: Sequence[int], state_id: int) -> Any:
+def state_observation(cure_sequence: Sequence[int], state_id: int) -> Mapping[str, Any]:
     """
     Generates a state observation, given an interger ID and the cure sequence.
 

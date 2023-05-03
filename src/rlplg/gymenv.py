@@ -2,6 +2,8 @@ import base64
 import hashlib
 from typing import Any, Mapping
 
+import gym
+
 from rlplg import envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
 
@@ -32,7 +34,7 @@ def create_env_spec(name: str, **kwargs: Mapping[str, Any]) -> envspec.EnvSpec:
     """
     Creates an env spec from a gridworld config.
     """
-    environment = suite_gym.load(name, **kwargs)
+    environment = gym.make(name, **kwargs)
     discretizer = GymEnvMdpDiscretizer()
     num_states = (
         environment.observation_spec().maximum

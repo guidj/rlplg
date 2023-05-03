@@ -8,7 +8,7 @@ from typing import Callable, Generator, Tuple
 
 import numpy as np
 
-from rlplg import envplay
+from rlplg import core, envplay
 from rlplg.learning import utils
 from rlplg.learning.approx import modelspec
 from rlplg.learning.opt import schedules

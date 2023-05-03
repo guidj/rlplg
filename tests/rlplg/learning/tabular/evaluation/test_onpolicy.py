@@ -46,7 +46,7 @@ def test_first_visit_monte_carlo_action_values_with_one_episode(
     steps, qtable = next(iter(output))
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -2.8525], [0, -1.95], [0, -1], [0, 0]]
+        qtable, np.array([[0, -2.8525], [0, -1.95], [0, -1], [0, 0]])
     )
 
 
@@ -91,7 +91,9 @@ def test_first_visit_monte_carlo_action_values_with_one_episode_convering_every_
     assert steps == 7
     np.testing.assert_array_almost_equal(
         qtable,
-        [[-29.751219, -20.790756], [-20.832375, -11.4025], [-10.95, -1], [0, 0]],
+        np.array(
+            [[-29.751219, -20.790756], [-20.832375, -11.4025], [-10.95, -1], [0, 0]]
+        ),
     )
 
 
@@ -126,7 +128,7 @@ def test_sarsa_action_values_with_one_episode(
     steps, qtable = next(iter(output))
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]]
+        qtable, np.array([[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]])
     )
 
 
@@ -168,7 +170,7 @@ def test_sarsa_action_values_with_one_episode_convering_every_action(
     steps, qtable = next(iter(output))
     assert steps == 7
     np.testing.assert_array_almost_equal(
-        qtable, [[-1, -0.1], [-1, -0.1], [-1, -0.1], [0, 0]]
+        qtable, np.array([[-1, -0.1], [-1, -0.1], [-1, -0.1], [0, 0]])
     )
 
 

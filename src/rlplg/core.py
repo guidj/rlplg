@@ -3,13 +3,16 @@ This module defines core abstractions.
 """
 import abc
 import dataclasses
-import enum
-from typing import Any, Optional
+from typing import Any, Mapping, Optional, Union
 
 import gym
+import numpy as np
+from numpy.typing import ArrayLike
+
+NestedArray = Union[Mapping, np.ndarray]
 
 
-class StepType(enum.Enum):
+class StepType:
     """
     Indicates the type of step.
     """
@@ -27,20 +30,26 @@ class TimeStep:
     from time step t.
     """
 
-    step_type: StepType
+    step_type: ArrayLike
     reward: float
     discount: float
-    observation: Any
+    observation: NestedArray
 
     @classmethod
-    def restart(cls, observation: Any) -> "TimeStep":
+    def restart(cls, observation: NestedArray) -> "TimeStep":
+        """
+        Creates a time step with step type `FIRST`.
+        """
         return cls(
-            step_type=StepType.FIRST, reward=0.0, discount=1.0, observation=observation
+            step_type=StepType.FIRST,
+            reward=0.0,
+            discount=1.0,
+            observation=observation,
         )
 
     @classmethod
     def transition(
-        cls, observation: Any, reward: float, discount: float = 1.0
+        cls, observation: NestedArray, reward: float, discount: float = 1.0
     ) -> "TimeStep":
         return cls(
             step_type=StepType.MID,
@@ -50,7 +59,7 @@ class TimeStep:
         )
 
     @classmethod
-    def termination(cls, observation: Any, reward: float) -> "TimeStep":
+    def termination(cls, observation: NestedArray, reward: float) -> "TimeStep":
         return cls(
             step_type=StepType.LAST,
             reward=reward,
@@ -66,9 +75,9 @@ class PolicyStep:
     Encapsulates the chosen action and policy state.
     """
 
-    action: Any
-    state: Optional[Any]
-    info: Optional[Any]
+    action: ArrayLike
+    state: ArrayLike
+    info: Mapping[str, Any]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -77,11 +86,11 @@ class Trajectory:
     A trajectory an example for training RL agents.
     """
 
-    step_type: StepType
-    observation: Any
-    action: Any
-    policy_info: Optional[Any]
-    next_step_type: StepType
+    step_type: ArrayLike
+    observation: NestedArray
+    action: ArrayLike
+    policy_info: Mapping[str, Any]
+    next_step_type: ArrayLike
     reward: float
     discount: float
 

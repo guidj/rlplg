@@ -82,8 +82,8 @@ class StateRandomWalk(core.PyEnvironment):
         }
 
         # env specific
-        self._observation: Optional[Any] = None
-        self._seed = None
+        self._observation: Mapping[str, Any] = {}
+        self._seed: Optional[int] = None
 
     def observation_spec(self) -> Any:
         """Defines the observations provided by the environment.
@@ -116,7 +116,7 @@ class StateRandomWalk(core.PyEnvironment):
             action: A NumPy array, or a nested dict, list or tuple of arrays
                 corresponding to `action_spec()`.
         """
-        if self._observation is None:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -145,7 +145,7 @@ class StateRandomWalk(core.PyEnvironment):
         return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
     def render(self, mode="rgb_array") -> Optional[Any]:
-        if self._observation is None:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )

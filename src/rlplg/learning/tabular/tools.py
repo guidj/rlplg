@@ -5,7 +5,10 @@ import numpy as np
 
 
 def greedy_actions_mask(qtable: np.ndarray) -> np.ndarray:
-    return np.eye(qtable.shape[0], M=qtable.shape[1])[np.argmax(qtable, axis=-1)]
+    mask: np.ndarray = np.eye(qtable.shape[0], M=qtable.shape[1])[
+        np.argmax(qtable, axis=-1)
+    ]
+    return mask
 
 
 def nsize_permutations(

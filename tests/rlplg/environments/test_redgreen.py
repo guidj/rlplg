@@ -296,6 +296,7 @@ def action_spec() -> Any:
 def observation_spec(
     cure_actions: Sequence[int],
 ) -> Mapping[str, Any]:
+    del cure_actions
     return {
         "cure_sequence": (),
         "position": (),
@@ -306,6 +307,6 @@ def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:
     assert output.step_type == expected.step_type
     assert output.reward == expected.reward
     assert output.discount == expected.discount
-    assert len(output.observation) == len(expected.observation)
+    assert len(output.observation) == 2
     assert output.observation["cure_sequence"] == expected.observation["cure_sequence"]
     assert output.observation["position"] == expected.observation["position"]

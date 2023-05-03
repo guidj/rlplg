@@ -125,7 +125,7 @@ def collect_mdp_stats(
             action = action_id_fn(policy_step.action)
             next_state = state_id_fn(next_time_step.observation)
             transitions[(state, action)][next_state] += 1
-            rewards[(state, action)][next_state] += next_time_step.reward
+            rewards[(state, action)][next_state] += next_time_step.reward  # type: ignore
 
             if time_step.step_type == core.StepType.LAST:
                 break

@@ -63,7 +63,7 @@ class CountEnv(BasePyEnv):
             observation_spec=(),
         )
         # env specific
-        self._observation: Optional[np.ndarray] = None
+        self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
 
     def _step(self, action: Any) -> core.TimeStep:
@@ -76,7 +76,7 @@ class CountEnv(BasePyEnv):
             corresponding to `action_spec()`.
         """
 
-        if self._observation is None:
+        if np.size(self._observation) == 0:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -182,7 +182,7 @@ class SingleStateEnv(BasePyEnv):
         )
 
         # env specific
-        self._observation: Optional[np.ndarray] = None
+        self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
 
     def _step(self, action: Any) -> core.TimeStep:
@@ -242,7 +242,7 @@ class RoundRobinActionsPolicy(core.PyPolicy):
         Takes the current time step (which includes the environment feedback)
         """
         del time_step, policy_state, seed
-        state, info = (), {"log_probability": np.math.log(0.5)}
+        state, info = (), {"log_probability": np.log(0.5)}
 
         try:
             action = next(self._iterator)

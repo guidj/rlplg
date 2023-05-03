@@ -5,13 +5,14 @@ from typing import Callable, Sequence, Tuple
 import numpy as np
 
 from rlplg import core
+from rlplg.core import NestedArray
 from rlplg.learning.tabular import policies
 
 
 def control(
     environment: core.PyEnvironment,
     num_episodes: int,
-    state_id_fn: Callable[[np.ndarray], int],
+    state_id_fn: Callable[[NestedArray], int],
     initial_qtable: np.ndarray,
     epsilon: float,
     gamma: float,
@@ -76,7 +77,7 @@ def control(
 
 def _qlearing_step(
     qtable: np.ndarray,
-    state_id_fn: Callable[[np.ndarray], int],
+    state_id_fn: Callable[[NestedArray], int],
     gamma: float,
     alpha: float,
     experiences: Sequence[core.Trajectory],
@@ -90,7 +91,7 @@ def _qlearing_step(
         state_id = state_id_fn(experiences[step].observation)
         next_state_id = state_id_fn(experiences[step + 1].observation)
 
-        state_action_value = qtable[state_id, experiences[step].action]
+        state_action_value = qtable[state_id, experiences[step].action]  # type: ignore
         next_state_actions_values = qtable[next_state_id]
         next_best_action = np.random.choice(
             np.flatnonzero(next_state_actions_values == next_state_actions_values.max())

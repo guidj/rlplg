@@ -104,8 +104,8 @@ class GridWorld(core.PyEnvironment):
         }
 
         # env specific
-        self._observation: Optional[Any] = None
-        self._seed = None
+        self._observation: Mapping[str, Any] = {}
+        self._seed: Optional[int] = None
 
     def observation_spec(self) -> Any:
         """Defines the observations provided by the environment.
@@ -138,7 +138,7 @@ class GridWorld(core.PyEnvironment):
         action: A NumPy array, or a nested dict, list or tuple of arrays
             corresponding to `action_spec()`.
         """
-        if self._observation is None:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -169,7 +169,7 @@ class GridWorld(core.PyEnvironment):
         return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
     def render(self, mode="rgb_array") -> Optional[Any]:
-        if self._observation is None:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -239,7 +239,7 @@ class GridWorldRenderer:
         last_move: Optional[Any],
         caption: Optional[str],
         sleep: Optional[float] = 0.05,
-    ):
+    ) -> Any:
         """
         Args:
             mode: the rendering mode
@@ -249,13 +249,14 @@ class GridWorldRenderer:
             sleep: time between rendering frames
         """
         assert mode in self.metadata["render.modes"]
-
+        if sleep is not None and sleep > 0:
+            time.sleep(sleep)
         if mode == "raw":
-            output = observation
+            return observation
         elif mode == "rgb_array":
             if self.sprites is None:
                 raise RuntimeError(f"No sprites fo reder in {mode} mode.")
-            output = observation_as_image(self.sprites, observation, last_move)
+            return observation_as_image(self.sprites, observation, last_move)
         elif mode == "human":
             if self.viewer is None:
                 raise RuntimeError(
@@ -269,16 +270,13 @@ class GridWorldRenderer:
             )
             if isinstance(caption, str):
                 self.viewer.window.set_caption(caption)
-            output = self.viewer.isopen
+            return self.viewer.isopen
         elif mode == "ansi":
-            output = observation_as_string(observation, last_move)
+            return observation_as_string(observation, last_move)
         else:
             raise RuntimeError(
                 f"Unknown mode: {mode}. Exepcted of one: {self.metadata['render.modes']}"
             )
-        if sleep is not None and sleep > 0:
-            time.sleep(sleep)
-        return output
 
     def close(self):
         """

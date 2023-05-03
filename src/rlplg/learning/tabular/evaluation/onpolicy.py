@@ -3,17 +3,16 @@ Policy evaluation methods.
 """
 import collections
 import copy
-from typing import Any, Callable, DefaultDict, Generator, Tuple
+from typing import Any, Callable, DefaultDict, Generator, List, Tuple
 
 import numpy as np
 
 from rlplg import core, envplay
 from rlplg.learning.opt import schedules
-from rlplg.learning.tabular import policies
 
 
 def first_visit_monte_carlo_action_values(
-    policy: policies.PyQGreedyPolicy,
+    policy: core.PyPolicy,
     environment: core.PyEnvironment,
     num_episodes: int,
     gamma: float,
@@ -73,13 +72,13 @@ def first_visit_monte_carlo_action_values(
         # This can be memory intensive, for long episodes and large state/action representations.
         _experiences = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
-        experiences = []
+        experiences: List[core.Trajectory] = []
         while len(_experiences) > 0:
             experience = _experiences.pop()
             state_action_visits_remaining[visit_key(experience)] += 1
             experiences.append(experience)
 
-        episode_return = 0
+        episode_return = 0.0
         for experience in experiences:
             key = visit_key(experience)
             state_action_visits_remaining[key] -= 1
@@ -103,7 +102,7 @@ def first_visit_monte_carlo_action_values(
 
 
 def sarsa_action_values(
-    policy: policies.PyQGreedyPolicy,
+    policy: core.PyPolicy,
     environment: core.PyEnvironment,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
@@ -177,7 +176,7 @@ def sarsa_action_values(
 
 
 def first_visit_monte_carlo_state_values(
-    policy: policies.PyQGreedyPolicy,
+    policy: core.PyPolicy,
     environment: core.PyEnvironment,
     num_episodes: int,
     gamma: float,
@@ -227,13 +226,13 @@ def first_visit_monte_carlo_state_values(
         # This can be memory intensive, for long episodes and large state/action representations.
         _experiences = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
-        experiences = []
+        experiences: List[core.Trajectory] = []
         while len(_experiences) > 0:
             experience = _experiences.pop()
             state_visits[state_id_fn(experience.observation)] += 1
             experiences.append(experience)
 
-        episode_return = 0
+        episode_return = 0.0
         for experience in experiences:
             state_id = state_id_fn(experience.observation)
             reward = experience.reward
@@ -255,7 +254,7 @@ def first_visit_monte_carlo_state_values(
 
 
 def one_step_td_state_values(
-    policy: policies.PyQGreedyPolicy,
+    policy: core.PyPolicy,
     environment: core.PyEnvironment,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,

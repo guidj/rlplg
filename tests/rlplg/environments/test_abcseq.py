@@ -314,4 +314,4 @@ def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:
     assert output.step_type == expected.step_type
     assert output.reward == expected.reward
     assert output.discount == expected.discount
-    np.testing.assert_array_equal(output.observation, expected.observation)
+    np.testing.assert_array_equal(output.observation, expected.observation)  # type: ignore

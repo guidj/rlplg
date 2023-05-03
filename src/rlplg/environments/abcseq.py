@@ -69,8 +69,8 @@ class ABCSeq(core.PyEnvironment):
         self._observation_spec = ()
 
         # env specific
-        self._observation: Optional[np.ndarray] = None
-        self._seed = None
+        self._observation: np.ndarray = np.empty(shape=(0,))
+        self._seed: Optional[int] = None
 
     def observation_spec(self) -> Any:
         """Defines the observations provided by the environment.
@@ -125,12 +125,12 @@ class ABCSeq(core.PyEnvironment):
         self._observation = beginning_state(length=self.length)
         return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
-    def render(self, mode="rgb_array") -> Optional[Any]:
+    def render(self, mode="rgb_array") -> Any:
         if mode == "rgb_array":
             return copy.deepcopy(self._observation)
         return super().render(mode)
 
-    def seed(self, seed: int = None) -> Any:
+    def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -214,7 +214,7 @@ def action_reward(observation: np.ndarray, action: Any) -> float:
     return -distance + turn_penalty
 
 
-def beginning_state(length: int):
+def beginning_state(length: int) -> np.ndarray:
     """
     Args:
         lenght: number of tokens in sequence.

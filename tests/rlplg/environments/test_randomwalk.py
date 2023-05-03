@@ -283,6 +283,7 @@ def action_spec() -> Any:
 
 
 def observation_spec(steps: int) -> Any:
+    del steps
     return {
         "position": (),
         "steps": (),
@@ -297,6 +298,6 @@ def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:
     assert output.reward == expected.reward
     assert output.discount == expected.discount
     assert len(output.observation) == 5
-    for key, value in expected.observation.items():
+    for key, value in expected.observation.items():  # type: ignore
         assert key in output.observation
         assert output.observation[key] == value

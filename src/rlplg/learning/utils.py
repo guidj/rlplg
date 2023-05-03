@@ -3,9 +3,10 @@ Policy utility functions.
 """
 
 import logging
-from typing import Any, Callable, Iterable, Optional, Set
+from typing import Any, Callable, Iterable, Optional, Set, Union
 
 import numpy as np
+from numpy.typing import DTypeLike
 
 from rlplg import core
 
@@ -15,6 +16,9 @@ def policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
     So the best action has probability 1.0, and all the others 0.0.
     """
 
+    # step_type: core.StepType = traj.step_type.item()
+    # reward: float = traj.reward.item()
+    # discount: float = traj.discount.item()
     time_step = core.TimeStep(
         step_type=traj.step_type,
         reward=traj.reward,
@@ -22,7 +26,9 @@ def policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
         observation=traj.observation,
     )
     policy_step = policy.action(time_step)
-    prob: float = np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
+    prob: float = np.where(
+        np.array_equal(policy_step.action, traj.action), 1.0, 0.0
+    ).item()
     return prob
 
 
@@ -33,14 +39,14 @@ def collect_policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> floa
     We just have to return exp(log_prob).
     """
     del policy
-    prob: float = np.math.exp(traj.policy_info["log_probability"])
+    prob: float = np.exp(traj.policy_info["log_probability"])
     return prob
 
 
 def initial_table(
     num_states: int,
     num_actions: int,
-    dtype: np.dtype = np.float32,
+    dtype: DTypeLike = np.float32,
     random: bool = False,
     terminal_states: Optional[Set[int]] = None,
 ) -> np.ndarray:
@@ -71,10 +77,10 @@ def chain_map(inputs: Any, funcs: Iterable[Callable[[Any], Any]]):
             return inputs
 
 
-def nan_or_inf(array: np.ndarray) -> bool:
+def nan_or_inf(array: Union[np.ndarray, int, float]) -> bool:
     """
     Checks if an array has `nan` or `inf` values.
     """
-    is_nan: bool = np.any(np.isnan(array))
-    is_inf: bool = np.any(np.isinf(array))
+    is_nan: bool = np.any(np.isnan(array)).item()
+    is_inf: bool = np.any(np.isinf(array)).item()
     return is_nan or is_inf

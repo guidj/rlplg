@@ -45,7 +45,7 @@ def test_random_policy_action(num_actions: int):
     _policy_step = policy.action(environment.time_step_spec())
 
     np.testing.assert_allclose(
-        _policy_step.info["log_probability"], np.math.log(1.0 / num_actions)
+        _policy_step.info["log_probability"], np.log(1.0 / num_actions)
     )
 
 
@@ -111,7 +111,7 @@ def test_qgreedy_policy_action():
     )
 
     np.testing.assert_array_equal(_policy_step.action, 2)
-    assert _policy_step.info == ()
+    assert _policy_step.info == {}
     assert _policy_step.state == ()
 
 
@@ -210,7 +210,7 @@ def test_egreedy_policy_action():
     )
 
     assert _policy_step.action in list(range(4))
-    assert _policy_step.info == ()
+    assert _policy_step.info == {}
     assert _policy_step.state == ()
 
 

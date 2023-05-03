@@ -168,7 +168,7 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
     steps, qtable = next(iter(output))
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]]
+        qtable, np.array([[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]])
     )
 
 
@@ -202,12 +202,12 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
     steps, qtable = next(output_iter)
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -0.195], [0, -0.195], [0, -0.1], [0, 0]]
+        qtable, np.array([[0, -0.195], [0, -0.195], [0, -0.1], [0, 0]])
     )
     steps, qtable = next(output_iter)
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -0.379525], [0, -0.3705], [0, -0.19], [0, 0]]
+        qtable, np.array([[0, -0.379525], [0, -0.3705], [0, -0.19], [0, 0]])
     )
 
 
@@ -246,7 +246,9 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every
     assert len(output) == 1
     steps, qtable = next(iter(output))
     assert steps == 7
-    np.testing.assert_array_almost_equal(qtable, [[-2, 0], [-2, 0], [-2, -0.2], [0, 0]])
+    np.testing.assert_array_almost_equal(
+        qtable, np.array([[-2, 0], [-2, 0], [-2, -0.2], [0, 0]])
+    )
 
 
 def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_every_action(
@@ -284,7 +286,7 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_ever
     steps, qtable = next(iter(output))
     assert steps == 7
     np.testing.assert_array_almost_equal(
-        qtable, [[0, 0], [0, 0], [-4.38, -0.2], [0, 0]]
+        qtable, np.array([[0, 0], [0, 0], [-4.38, -0.2], [0, 0]])
     )
 
 
@@ -300,8 +302,7 @@ def policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
         observation=traj.observation,
     )
     policy_step = policy.action(time_step)
-    prob: float = np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
-    return prob
+    return np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0).item()  # type: ignore
 
 
 def collect_policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
@@ -311,7 +312,7 @@ def collect_policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> floa
     We just have to return exp(log_prob).
     """
     del policy
-    prob: float = np.math.exp(traj.policy_info["log_probability"])
+    prob: float = np.exp(traj.policy_info["log_probability"])
     return prob
 
 

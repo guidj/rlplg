@@ -3,13 +3,15 @@ This module defines metrics functions.
 """
 
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from scipy.stats import mstats
 
 
-def rmse(pred: np.ndarray, actual: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+def rmse(
+    pred: np.ndarray, actual: np.ndarray, mask: Optional[np.ndarray] = None
+) -> np.ndarray:
     """
     Root mean squared error.
     sum((y_pred - y_actual) ** 2) / n
@@ -19,13 +21,14 @@ def rmse(pred: np.ndarray, actual: np.ndarray, mask: np.ndarray = None) -> np.nd
     mask = mask.astype(bool)
     y_pred = pred[mask].astype(np.float32)
     y_actual = actual[mask].astype(np.float32)
-    return np.math.sqrt(np.mean(np.power(y_pred - y_actual, 2.0)))
+    rmse_: np.ndarray = np.sqrt(np.mean(np.power(y_pred - y_actual, 2.0)))
+    return rmse_
 
 
 def rmsle(
     pred: np.ndarray,
     actual: np.ndarray,
-    mask: np.ndarray = None,
+    mask: Optional[np.ndarray] = None,
     translate: bool = False,
 ) -> np.ndarray:
     """
@@ -45,11 +48,14 @@ def rmsle(
         y_pred = y_pred - lower_bound
         y_actual = y_actual - lower_bound
 
-    return np.math.sqrt(np.mean(np.power(np.log1p(y_pred) - np.log1p(y_actual), 2.0)))
+    rmsle_: np.ndarray = np.sqrt(
+        np.mean(np.power(np.log1p(y_pred) - np.log1p(y_actual), 2.0))
+    )
+    return rmsle_
 
 
 def mean_error(
-    pred: np.ndarray, actual: np.ndarray, mask: np.ndarray = None
+    pred: np.ndarray, actual: np.ndarray, mask: Optional[np.ndarray] = None
 ) -> np.ndarray:
     """
     Mean error.
@@ -60,11 +66,12 @@ def mean_error(
     mask = mask.astype(bool)
     y_pred = pred[mask].astype(np.float32)
     y_actual = actual[mask].astype(np.float32)
-    return np.mean(y_pred - y_actual)
+    mean_error_: np.ndarray = np.mean(y_pred - y_actual)
+    return mean_error_
 
 
 def pearson_correlation(
-    pred: np.ndarray, actual: np.ndarray, mask: np.ndarray = None
+    pred: np.ndarray, actual: np.ndarray, mask: Optional[np.ndarray] = None
 ) -> Tuple[float, float]:
     """
     Mean error.
@@ -82,7 +89,7 @@ def pearson_correlation(
 
 
 def spearman_correlation(
-    pred: np.ndarray, actual: np.ndarray, mask: np.ndarray = None
+    pred: np.ndarray, actual: np.ndarray, mask: Optional[np.ndarray] = None
 ) -> Tuple[float, float]:
     """
     Mean error.
