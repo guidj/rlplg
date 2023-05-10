@@ -6,6 +6,7 @@ from typing import Any, Callable, Optional
 import numpy as np
 
 from rlplg import core
+from rlplg.core import ObsType
 
 
 class PyRandomPolicy(core.PyPolicy):
@@ -31,11 +32,11 @@ class PyRandomPolicy(core.PyPolicy):
 
     def _action(
         self,
-        time_step: core.TimeStep,
+        observation: ObsType,
         policy_state: Any = (),
         seed: Optional[int] = None,
     ) -> core.PolicyStep:
-        del time_step
+        del observation
         if seed is not None:
             raise NotImplementedError(f"Seed is not supported; but got seed: {seed}")
         action = np.random.choice(self._arms)
@@ -86,14 +87,14 @@ class PyQGreedyPolicy(core.PyPolicy):
 
     def _action(
         self,
-        time_step: core.TimeStep,
+        observation: ObsType,
         policy_state: Any,
         seed: Optional[int] = None,
     ) -> core.PolicyStep:
         if seed is not None:
             raise NotImplementedError(f"Seed is not supported; but got seed: {seed}")
 
-        state_id = self._state_id_fn(time_step.observation)
+        state_id = self._state_id_fn(observation)
         action = np.argmax(self._state_action_value_table[state_id])
         if self.emit_log_probability:
             # the best arm has 1.0 probability of being chosen
@@ -150,7 +151,7 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
 
     def _action(
         self,
-        time_step: core.TimeStep,
+        observation: ObsType,
         policy_state: Any = (),
         seed: Optional[int] = None,
     ) -> core.PolicyStep:
@@ -164,7 +165,7 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
             if explore
             else self.epsilon / self._num_actions + (1.0 - self.epsilon)
         )
-        policy_step_ = policy_.action(time_step, policy_state)
+        policy_step_ = policy_.action(observation, policy_state)
         # Update log-prob in _policy_step
         if self.emit_log_probability:
             policy_info = {
@@ -210,12 +211,12 @@ class PyObservableRandomPolicy(ObservablePolicy):
 
     def _action(
         self,
-        time_step: core.TimeStep,
+        observation: ObsType,
         policy_state: Any = (),
         seed: Optional[int] = None,
     ) -> core.PolicyStep:
         return self._policy.action(
-            time_step=time_step, policy_state=policy_state, seed=seed
+            observation=observation, policy_state=policy_state, seed=seed
         )
 
     def action_probability(self, state, action):

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
-from rlplg import core
+from rlplg.core import InitState, TimeStep
 from rlplg.environments import abcseq
 
 
@@ -23,104 +23,54 @@ def test_abcseq_init(length: int):
 def test_abcseq_simple_sequence():
     length = 4
     environment = abcseq.ABCSeq(length)
-    assert_time_step(
+    assert_init_state(
         environment.reset(),
-        core.TimeStep(
-            step_type=core.StepType.FIRST,
-            reward=0.0,
-            discount=1.0,
-            observation=np.array([1, 0, 0, 0, 0]),
-        ),
+        (np.array([1, 0, 0, 0, 0]), {}),
     )
     # final step, prematurely
     assert_time_step(
         environment.step(3),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=-4.0,
-            discount=1.0,
-            observation=np.array([1, 0, 0, 0, 0]),
-        ),
+        (np.array([1, 0, 0, 0, 0]), -4.0, False, False, {}),
     )
     # first letter
     assert_time_step(
         environment.step(0),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=-1.0,
-            discount=1.0,
-            observation=np.array([1, 1, 0, 0, 0]),
-        ),
+        (np.array([1, 1, 0, 0, 0]), -1.0, False, False, {}),
     )
     # second letter
     assert_time_step(
         environment.step(1),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=-1.0,
-            discount=1.0,
-            observation=np.array([1, 1, 1, 0, 0]),
-        ),
+        (np.array([1, 1, 1, 0, 0]), -1.0, False, False, {}),
     )
     # skip ahead
     assert_time_step(
         environment.step(3),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=-2.0,
-            discount=1.0,
-            observation=np.array([1, 1, 1, 0, 0]),
-        ),
+        (np.array([1, 1, 1, 0, 0]), -2.0, False, False, {}),
     )
     # going backwards
     assert_time_step(
         environment.step(0),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=-4.0,
-            discount=1.0,
-            observation=np.array([1, 1, 1, 0, 0]),
-        ),
+        (np.array([1, 1, 1, 0, 0]), -4.0, False, False, {}),
     )
     # continue, third letter
     assert_time_step(
         environment.step(2),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=-1.0,
-            discount=1.0,
-            observation=np.array([1, 1, 1, 1, 0]),
-        ),
+        (np.array([1, 1, 1, 1, 0]), -1.0, False, False, {}),
     )
     # complete
     assert_time_step(
         environment.step(3),
-        core.TimeStep(
-            step_type=core.StepType.LAST,
-            reward=-1.0,
-            discount=0.0,
-            observation=np.array([1, 1, 1, 1, 1]),
-        ),
+        (np.array([1, 1, 1, 1, 1]), -1.0, True, False, {}),
     )
     # move in the terminal state
     assert_time_step(
         environment.step(0),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation=np.array([1, 1, 1, 1, 1]),
-        ),
+        (np.array([1, 1, 1, 1, 1]), 0.0, True, False, {}),
     )
-    # another move in the terminal statethe
+    # another move in the terminal state
     assert_time_step(
         environment.step(4),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation=np.array([1, 1, 1, 1, 1]),
-        ),
+        (np.array([1, 1, 1, 1, 1]), 0.0, True, False, {}),
     )
 
 
@@ -131,11 +81,11 @@ def test_abcseq_render(length: int):
     environment = abcseq.ABCSeq(length, render_mode="rgb_array")
     environment.reset(),
     # starting point
-    np.testing.assert_array_equal(environment.render(), np.array([1] + [0] * length))
+    np.testing.assert_array_equal(environment.render(), np.array([1] + [0] * length))  # type: ignore
     # one move
     environment.step(0)
     np.testing.assert_array_equal(
-        environment.render(), np.array([1, 1] + [0] * (length - 1))
+        environment.render(), np.array([1, 1] + [0] * (length - 1))  # type: ignore
     )
 
 
@@ -304,8 +254,14 @@ def test_state_id():
     assert abcseq.get_state_id([1, 1, 1]) == 2
 
 
-def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:
-    assert output.step_type == expected.step_type
-    assert output.reward == expected.reward
-    assert output.discount == expected.discount
-    np.testing.assert_array_equal(output.observation, expected.observation)  # type: ignore
+def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
+    np.testing.assert_array_equal(output[0], expected[0])
+    assert output[1] == expected[1]
+    assert output[2] == expected[2]
+    assert output[3] == expected[3]
+    assert output[4] == expected[4]
+
+
+def assert_init_state(output: InitState, expected: InitState) -> None:
+    np.testing.assert_array_equal(output[0], expected[0])
+    assert output[1] == expected[1]

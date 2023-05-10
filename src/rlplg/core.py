@@ -3,13 +3,17 @@ This module defines core abstractions.
 """
 import abc
 import dataclasses
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Sequence, Tuple, Union
 
 import gymnasium as gym
 import numpy as np
+from gymnasium.core import ActType, ObsType, RenderFrame, SupportsFloat
 from numpy.typing import ArrayLike
 
 NestedArray = Union[Mapping, np.ndarray]
+TimeStep = Tuple[ObsType, SupportsFloat, bool, bool, Mapping[str, Any]]
+InitState = Tuple[ObsType, Mapping[str, Any]]
+RenderType = Optional[Union[RenderFrame, Sequence[RenderFrame]]]
 
 
 class StepType:
@@ -23,52 +27,6 @@ class StepType:
 
 
 @dataclasses.dataclass(frozen=True)
-class TimeStep:
-    """
-    Encapsulates an observation at time t - 1,
-    and the reward, discount and step type
-    from time step t.
-    """
-
-    step_type: ArrayLike
-    reward: float
-    discount: float
-    observation: NestedArray
-
-    @classmethod
-    def restart(cls, observation: NestedArray) -> "TimeStep":
-        """
-        Creates a time step with step type `FIRST`.
-        """
-        return cls(
-            step_type=StepType.FIRST,
-            reward=0.0,
-            discount=1.0,
-            observation=observation,
-        )
-
-    @classmethod
-    def transition(
-        cls, observation: NestedArray, reward: float, discount: float = 1.0
-    ) -> "TimeStep":
-        return cls(
-            step_type=StepType.MID,
-            reward=reward,
-            discount=discount,
-            observation=observation,
-        )
-
-    @classmethod
-    def termination(cls, observation: NestedArray, reward: float) -> "TimeStep":
-        return cls(
-            step_type=StepType.LAST,
-            reward=reward,
-            discount=0.0,
-            observation=observation,
-        )
-
-
-@dataclasses.dataclass(frozen=True)
 class PolicyStep:
     """
     Output of a policy's action function.
@@ -76,7 +34,7 @@ class PolicyStep:
     """
 
     action: ArrayLike
-    state: ArrayLike
+    state: Any
     info: Mapping[str, Any]
 
 
@@ -86,13 +44,12 @@ class Trajectory:
     A trajectory an example for training RL agents.
     """
 
-    step_type: ArrayLike
-    observation: NestedArray
-    action: ArrayLike
+    observation: ObsType
+    action: ActType
     policy_info: Mapping[str, Any]
-    next_step_type: ArrayLike
+    terminated: bool
+    truncated: bool
     reward: float
-    discount: float
 
     @staticmethod
     def from_transition(
@@ -101,17 +58,18 @@ class Trajectory:
         next_time_step: TimeStep,
     ) -> "Trajectory":
         """
-        Builds a trajectory given a state action and transition to new
-        state.
+        Builds a trajectory given a state and action.
         """
+        obs, _, terminated, truncated, _ = time_step
+        _, next_reward, _, _, _ = next_time_step
+
         return Trajectory(
-            step_type=time_step.step_type,
-            observation=time_step.observation,
+            observation=obs,
             action=action_step.action,
             policy_info=action_step.info,
-            next_step_type=next_time_step.step_type,
-            reward=next_time_step.reward,
-            discount=next_time_step.discount,
+            terminated=terminated,
+            truncated=truncated,
+            reward=next_reward,
         )
 
 
@@ -151,7 +109,7 @@ class PyPolicy(abc.ABC):
 
     def action(
         self,
-        time_step: TimeStep,
+        observation: ObsType,
         policy_state: Any = (),
         seed: Optional[int] = None,
     ) -> PolicyStep:
@@ -159,8 +117,8 @@ class PyPolicy(abc.ABC):
 
 
         Args:
-          time_step: A `TimeStep` tuple.
-          policy_state: An optional previous policy_state.
+          observation: An observation.
+          policy_state: An optional previous policy state.
           seed: Seed to use when choosing action. Impl specific.
 
         Returns:
@@ -169,21 +127,21 @@ class PyPolicy(abc.ABC):
             `state`: A policy state to be fed into the next call to action.
             `info`: Optional side information such as action log probabilities.
         """
-        return self._action(time_step, policy_state, seed=seed)
+        return self._action(observation, policy_state, seed=seed)
 
     @abc.abstractmethod
     def _action(
         self,
-        time_step: TimeStep,
+        observation: ObsType,
         policy_state: Any,
         seed: Optional[int] = None,
     ) -> PolicyStep:
         """Implementation of `action`.
 
         Args:
-          time_step: A `TimeStep` tuple corresponding to `time_step_spec()`.
+          observation: An observation.
           policy_state: An Array, or a nested dict, list or tuple of Arrays
-            representing the previous policy_state.
+            representing the previous policy state.
           seed: Seed to use when choosing action. Impl specific.
 
         Returns:
@@ -197,9 +155,11 @@ class PyPolicy(abc.ABC):
 class PyEnvironment(gym.Env):
     """
     A generic environment class.
+    It exists to introduce pattern of overriding
+    using private methods.
     """
 
-    def step(self, action: Any) -> TimeStep:
+    def step(self, action: ActType) -> TimeStep:
         """
         Takes an action and advances the environment
         to the next state.
@@ -207,19 +167,40 @@ class PyEnvironment(gym.Env):
         return self._step(action)
 
     @abc.abstractmethod
-    def _step(self, action: Any) -> TimeStep:
+    def _step(self, action: ActType) -> TimeStep:
         """
         Override this method to define `step`.
         """
+        raise NotImplementedError
 
-    def reset(self) -> TimeStep:
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
+    ) -> InitState:
         """
         Resets the environment to a starting state.
+        TODO: support seed and options.
         """
+        del seed
+        del options
         return self._reset()
 
     @abc.abstractmethod
-    def _reset(self) -> TimeStep:
+    def _reset(self) -> InitState:
         """
         Override this method to define `reset`.
         """
+        raise NotImplementedError
+
+    def render(self) -> RenderType:
+        """
+        Returns frames to render.
+        These can be basic data types, e.g. string.
+        """
+        return self._render()
+
+    @abc.abstractmethod
+    def _render(self) -> RenderType:
+        """
+        Override this method to define `render`.
+        """
+        raise NotImplementedError

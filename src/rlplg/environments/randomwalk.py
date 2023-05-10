@@ -21,6 +21,7 @@ import numpy as np
 from gymnasium import spaces
 
 from rlplg import core, envdesc, envspec, npsci
+from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "StateRandomWalk"
@@ -94,7 +95,7 @@ class StateRandomWalk(core.PyEnvironment):
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
 
-    def _step(self, action: Any) -> core.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -110,15 +111,9 @@ class StateRandomWalk(core.PyEnvironment):
         new_observation, reward = apply_action(self._observation, action)
         finished = is_finished(new_observation)
         self._observation = new_observation
-        if finished:
-            return core.TimeStep.termination(
-                observation=copy.deepcopy(self._observation), reward=reward
-            )
-        return core.TimeStep.transition(
-            observation=copy.deepcopy(self._observation), reward=reward
-        )
+        return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> core.TimeStep:
+    def _reset(self) -> InitState:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
@@ -129,16 +124,16 @@ class StateRandomWalk(core.PyEnvironment):
             right_end_reward=self.right_end_reward,
             step_reward=self.step_reward,
         )
-        return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
+        return copy.deepcopy(self._observation), {}
 
-    def render(self) -> Optional[Any]:
+    def _render(self) -> RenderType:
         if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         if self.render_mode == "rgb_array":
             return state_representation(self._observation)
-        return super().render()
+        return super()._render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:

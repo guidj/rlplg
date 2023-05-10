@@ -48,6 +48,7 @@ import numpy as np
 from gymnasium import spaces
 
 from rlplg import core, envdesc, envspec, npsci
+from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "ABCSeq"
@@ -57,6 +58,12 @@ NUM_LETTERS = len(LETTERS)
 
 
 class ABCSeq(core.PyEnvironment):
+    """
+    A sequence of tokens in order.
+    The goal is to follow then, from left to right, until the end, selecting
+    the current state as an action in the current state.
+    """
+
     metadata = {"render.modes": ["raw"]}
 
     def __init__(self, length: int, render_mode: str = "raw"):
@@ -76,7 +83,7 @@ class ABCSeq(core.PyEnvironment):
         self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed: Optional[int] = None
 
-    def _step(self, action: Any) -> core.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -87,32 +94,27 @@ class ABCSeq(core.PyEnvironment):
         """
         new_observation = apply_action(self._observation, action)
         reward = action_reward(self._observation, action)
-
         finished = is_finished(new_observation, action)
-
         self._observation = new_observation
-        if finished:
-            return core.TimeStep.termination(
-                observation=copy.deepcopy(self._observation), reward=reward
-            )
-        return core.TimeStep.transition(
-            observation=copy.deepcopy(self._observation), reward=reward
-        )
+        return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> core.TimeStep:
+    def _reset(self) -> InitState:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
         self._observation = beginning_state(length=self.length)
-        return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
+        return copy.deepcopy(self._observation), {}
 
-    def render(self) -> Any:
+    def _render(self) -> RenderType:
         if self.render_mode == "rgb_array":
             return copy.deepcopy(self._observation)
-        return super().render()
+        return super()._render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
+        """
+        Sets a seed, if defined.
+        """
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -213,10 +215,8 @@ def is_finished(observation: np.ndarray, action: Any) -> bool:
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
     """
-    is_finished_: bool = (
-        np.sum(observation) == observation.size and action == observation.size - 2
-    )
-    return is_finished_
+    del action
+    return np.sum(observation) == observation.size  # type: ignore
 
 
 def create_env_spec(length: int) -> envspec.EnvSpec:

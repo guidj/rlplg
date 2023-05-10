@@ -4,9 +4,11 @@ trajectory data.
 """
 
 
+import math
 from typing import Generator
 
 from rlplg import core
+from rlplg.core import TimeStep
 
 
 def generate_episodes(
@@ -18,6 +20,10 @@ def generate_episodes(
     Generates `num_episodes` episodes using the environment
     and policy provided for rollout.
 
+    A `TimeStep` from an env has the next step, and reward, SA(RS)A in SARSA.
+    Thus, to generated a `Trajectory`, we need to have the previous
+    state, the action, and reward.
+
     Args:
         enviroment: environment to use.
         policy: for rollout.
@@ -27,15 +33,19 @@ def generate_episodes(
         Trajectory instances from episodic rollouts, one step at a time.
     """
     for _ in range(num_episodes):
-        time_step = environment.reset()
+        obs, _ = environment.reset()
+        policy_state = policy.get_initial_state()
+        time_step: TimeStep = obs, math.nan, False, False, {}
         while True:
-            policy_step = policy.action(time_step)
+            obs, _, terminated, truncated, _ = time_step
+            policy_step = policy.action(obs, policy_state)
             next_time_step = environment.step(policy_step.action)
             yield core.Trajectory.from_transition(
                 time_step, policy_step, next_time_step
             )
-            if time_step.step_type == core.StepType.LAST:
+            if terminated or truncated:
                 break
+            policy_state = policy_step.state
             time_step = next_time_step
 
 

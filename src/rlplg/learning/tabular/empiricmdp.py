@@ -5,6 +5,7 @@ import collections
 import copy
 import dataclasses
 import logging
+import math
 import os.path
 import tempfile
 from typing import Any, Callable, DefaultDict, Mapping, Sequence, Tuple, TypeVar
@@ -14,6 +15,7 @@ import numpy as np
 import tensorflow as tf
 
 from rlplg import core, envdesc
+from rlplg.core import TimeStep
 from rlplg.learning.tabular import markovdp
 
 KREF_TRANSITIONS = "transitions"
@@ -107,7 +109,6 @@ def collect_mdp_stats(
     """
     Collections emperical statistics from an environment through play.
     """
-    environment.reset()
     transitions: DefaultDict[
         StateAction, DefaultDict[int, int]
     ] = collections.defaultdict(_trasitions_defaultdict)
@@ -116,19 +117,24 @@ def collect_mdp_stats(
     ] = collections.defaultdict(_rewards_defaultdict)
     logging_enabled = logging_frequency_episodes > 0
     for episode in range(1, num_episodes + 1):
-        time_step = environment.reset()
+        obs, _ = environment.reset()
+        policy_state = policy.get_initial_state()
+        time_step: TimeStep = obs, math.nan, False, False, {}
         while True:
-            policy_step = policy.action(time_step)
+            obs, _, terminated, truncated, _ = time_step
+            policy_step = policy.action(obs, policy_state)
             next_time_step = environment.step(policy_step.action)
+            next_obs, next_reward, _, _, _ = next_time_step
 
-            state = state_id_fn(time_step.observation)
+            state = state_id_fn(obs)
             action = action_id_fn(policy_step.action)
-            next_state = state_id_fn(next_time_step.observation)
+            next_state = state_id_fn(next_obs)
             transitions[(state, action)][next_state] += 1
-            rewards[(state, action)][next_state] += next_time_step.reward  # type: ignore
+            rewards[(state, action)][next_state] += next_reward  # type: ignore
 
-            if time_step.step_type == core.StepType.LAST:
+            if terminated or truncated:
                 break
+            policy_state = policy_step.state
             time_step = next_time_step
 
         # non-positive logging frequency disables logging

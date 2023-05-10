@@ -1,10 +1,12 @@
+from typing import Any
+
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
 from gymnasium import spaces
 
-from rlplg import core
+from rlplg.core import TimeStep
 from rlplg.environments import randomwalk
 
 
@@ -35,150 +37,153 @@ def test_state_randomwalk_with_invalid_steps(steps: int):
 
 def test_state_randomwalk_end_left_sequence():
     environment = randomwalk.StateRandomWalk(5)
-    assert_time_step(
-        environment.reset(),
-        core.TimeStep(
-            step_type=core.StepType.FIRST,
-            reward=0.0,
-            discount=1.0,
-            observation={
-                "position": np.array(2, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
-            },
-        ),
+    obs, info = environment.reset()
+    assert_observation(
+        obs,
+        {
+            "position": np.array(2, dtype=np.int64),
+            "steps": np.array(5, dtype=np.int64),
+            "right_end_reward": np.array(1.0, dtype=np.float32),
+            "left_end_reward": np.array(0.0, dtype=np.float32),
+            "step_reward": np.array(0.0, dtype=np.float32),
+        },
     )
+    assert info == {}
+
     # go left
     assert_time_step(
         environment.step(0),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "position": np.array(1, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            False,
+            False,
+            {},
         ),
     )
-    # go left
+    # go left (terminal state)
     assert_time_step(
         environment.step(0),
-        core.TimeStep(
-            step_type=core.StepType.LAST,
-            reward=0.0,
-            discount=0.0,
-            observation={
+        (
+            {
                 "position": np.array(0, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            True,
+            False,
+            {},
         ),
     )
     # go right - no change (terminal state)
     assert_time_step(
         environment.step(1),
-        core.TimeStep(
-            step_type=core.StepType.LAST,
-            reward=0.0,
-            discount=0.0,
-            observation={
+        (
+            {
                 "position": np.array(0, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            True,
+            False,
+            {},
         ),
     )
 
 
 def test_state_randomwalk_end_right_sequence():
     environment = randomwalk.StateRandomWalk(5)
-    assert_time_step(
-        environment.reset(),
-        core.TimeStep(
-            step_type=core.StepType.FIRST,
-            reward=0.0,
-            discount=1.0,
-            observation={
-                "position": np.array(2, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
-            },
-        ),
+    obs, info = environment.reset()
+
+    assert_observation(
+        obs,
+        {
+            "position": np.array(2, dtype=np.int64),
+            "steps": np.array(5, dtype=np.int64),
+            "right_end_reward": np.array(1.0, dtype=np.float32),
+            "left_end_reward": np.array(0.0, dtype=np.float32),
+            "step_reward": np.array(0.0, dtype=np.float32),
+        },
     )
+    assert info == {}
     # go left
     assert_time_step(
         environment.step(0),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "position": np.array(1, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            False,
+            False,
+            {},
         ),
     )
     # go right
     assert_time_step(
         environment.step(1),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "position": np.array(2, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            False,
+            False,
+            {},
         ),
     )
     # go right
     assert_time_step(
         environment.step(1),
-        core.TimeStep(
-            step_type=core.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "position": np.array(3, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            False,
+            False,
+            {},
         ),
     )
     # go right - terminal state
     assert_time_step(
         environment.step(1),
-        core.TimeStep(
-            step_type=core.StepType.LAST,
-            reward=1.0,
-            discount=0.0,
-            observation={
+        (
+            {
                 "position": np.array(4, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            1.0,
+            True,
+            False,
+            {},
         ),
     )
 
@@ -282,11 +287,16 @@ def test_state_representation():
     )
 
 
-def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:
-    assert output.step_type == expected.step_type
-    assert output.reward == expected.reward
-    assert output.discount == expected.discount
-    assert len(output.observation) == 5
-    for key, value in expected.observation.items():  # type: ignore
-        assert key in output.observation
-        assert output.observation[key] == value
+def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
+    assert_observation(output[0], expected[0])
+    assert output[1] == expected[1]
+    assert output[2] is expected[2]
+    assert output[3] is expected[3]
+    assert output[4] == expected[4]
+
+
+def assert_observation(output: Any, expected: Any) -> None:
+    assert len(output) == 5
+    for key, value in expected.items():  # type: ignore
+        assert key in output
+        np.testing.assert_allclose(output[key], value)

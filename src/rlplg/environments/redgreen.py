@@ -42,6 +42,7 @@ import numpy as np
 from gymnasium import spaces
 
 from rlplg import core, envdesc, envspec, npsci
+from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "RedGreenSeq"
@@ -74,14 +75,6 @@ class RedGreenSeq(core.PyEnvironment):
 
         self.cure_sequence = [ACTION_NAME_MAPPING[action] for action in cure]
         self.render_mode = render_mode
-        # def beginning_state(cure_sequence: Sequence[int]):
-        #     """
-        #     Generates the starting state.
-        #     """
-        #     return {
-        #         OBS_KEY_CURE_SEQUENCE: cure_sequence,
-        #         OBS_KEY_POSITION: 0,
-        #     }
         self.action_space = spaces.Box(low=0, high=len(ACTIONS) - 1, dtype=np.int64)
         self.observation_space = spaces.Dict(
             {
@@ -100,7 +93,7 @@ class RedGreenSeq(core.PyEnvironment):
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
 
-    def _step(self, action: Any) -> core.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -113,34 +106,26 @@ class RedGreenSeq(core.PyEnvironment):
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         new_observation, reward = apply_action(self._observation, action)
-
         finished = is_finished(new_observation)
-
         self._observation = new_observation
-        if finished:
-            return core.TimeStep.termination(
-                observation=copy.deepcopy(self._observation), reward=reward
-            )
-        return core.TimeStep.transition(
-            observation=copy.deepcopy(self._observation), reward=reward
-        )
+        return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> core.TimeStep:
+    def _reset(self) -> InitState:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
         self._observation = beginning_state(self.cure_sequence)
-        return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
+        return copy.deepcopy(self._observation), {}
 
-    def render(self) -> Any:
+    def _render(self) -> RenderType:
         if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         if self.render_mode == "rgb_array":
             return state_representation(self._observation)
-        return super().render()
+        return super()._render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:
@@ -236,8 +221,7 @@ def is_finished(observation: Any) -> bool:
     # does that fact that we just went into the
     # terminal state matter? No
     terminal_state = len(observation[OBS_KEY_CURE_SEQUENCE])
-    is_finished_: bool = observation[OBS_KEY_POSITION] == terminal_state
-    return is_finished_
+    return observation[OBS_KEY_POSITION] == terminal_state  # type: ignore
 
 
 def create_env_spec(cure: Sequence[str]) -> envspec.EnvSpec:

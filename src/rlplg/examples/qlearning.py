@@ -1,11 +1,12 @@
 import copy
 import logging
+import math
 from typing import Callable, Sequence, Tuple
 
 import numpy as np
 
 from rlplg import core
-from rlplg.core import NestedArray
+from rlplg.core import NestedArray, TimeStep
 from rlplg.learning.tabular import policies
 
 
@@ -28,11 +29,13 @@ def control(
     )
     episode = 0
     while episode < num_episodes:
-        time_step = environment.reset()
+        obs, _ = environment.reset()
+        time_step: TimeStep = obs, math.nan, False, False, {}
         step = 0
         transitions = []
         while True:
-            policy_step = collect_policy.action(time_step)
+            obs, _, truncated, terminated, _ = time_step
+            policy_step = collect_policy.action(obs)
             next_time_step = environment.step(policy_step.action)
             traj = core.Trajectory.from_transition(
                 time_step, policy_step, next_time_step
@@ -60,7 +63,7 @@ def control(
                 # remove earliest step
                 transitions.pop(0)
 
-            if time_step.step_type == core.StepType.LAST:
+            if terminated or truncated:
                 break
             time_step = next_time_step
 

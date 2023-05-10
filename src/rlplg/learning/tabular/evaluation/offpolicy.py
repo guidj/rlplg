@@ -213,7 +213,7 @@ def nstep_sarsa_action_values(
             if step < final_step:
                 # we don't need to transition because we already collected the experience
                 # a better way to determine the next state is terminal one
-                if np.array_equal(experiences[step].step_type, core.StepType.LAST):
+                if experiences[step].terminated or experiences[step].truncated:
                     final_step = step + 1
 
             tau = step - nstep + 1

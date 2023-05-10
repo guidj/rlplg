@@ -7,7 +7,6 @@ from gymnasium import spaces
 from hypothesis import strategies as st
 from PIL import Image as image
 
-from rlplg import core
 from rlplg.environments import gridworld
 from tests.rlplg.environments import grids
 
@@ -50,12 +49,10 @@ def test_gridworld_reset():
     environment = gridworld.GridWorld(
         size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
     )
-    step = environment.reset()
-    expected = core.TimeStep(
-        step_type=core.StepType.FIRST,
-        reward=0.0,
-        discount=1.0,
-        observation={
+    obs, info = environment.reset()
+    assert_observation(
+        obs,
+        {
             "start": np.array((3, 0), dtype=np.int64),
             "player": np.array((3, 0), dtype=np.int64),
             "cliffs": np.array([], dtype=np.int64),
@@ -63,10 +60,7 @@ def test_gridworld_reset():
             "size": np.array((4, 12), dtype=np.int64),
         },
     )
-    assert step.step_type == expected.step_type
-    assert step.reward == expected.reward
-    assert step.discount == expected.discount
-    assert_observation(step.observation, expected.observation)
+    assert info == {}
 
 
 def test_gridworld_transition_step():
@@ -74,12 +68,10 @@ def test_gridworld_transition_step():
         size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
     )
     environment.reset()
-    step = environment.step(gridworld.UP)
-    expected = core.TimeStep(
-        step_type=core.StepType.MID,
-        reward=-1.0,
-        discount=1.0,
-        observation={
+    obs, reward, finished, truncated, info = environment.step(gridworld.UP)
+    assert_observation(
+        obs,
+        {
             "start": np.array((3, 0), dtype=np.int64),
             "player": np.array((2, 0), dtype=np.int64),
             "cliffs": np.array([], dtype=np.int64),
@@ -87,10 +79,10 @@ def test_gridworld_transition_step():
             "size": np.array((4, 12), dtype=np.int64),
         },
     )
-    assert step.step_type == expected.step_type
-    assert step.reward == expected.reward
-    assert step.discount == expected.discount
-    assert_observation(step.observation, expected.observation)
+    assert reward == -1
+    assert finished is False
+    assert truncated is False
+    assert info == {}
 
 
 def test_gridworld_transition_into_cliff():
@@ -98,12 +90,10 @@ def test_gridworld_transition_into_cliff():
         size=(4, 12), cliffs=[(3, 1)], exits=[(3, 11)], start=(3, 0)
     )
     environment.reset()
-    step = environment.step(gridworld.RIGHT)
-    expected = core.TimeStep(
-        step_type=core.StepType.MID,
-        reward=-100.0,
-        discount=1.0,
-        observation={
+    obs, reward, terminated, truncated, info = environment.step(gridworld.RIGHT)
+    assert_observation(
+        obs,
+        {
             "start": np.array((3, 0), dtype=np.int64),
             "player": np.array((3, 0), dtype=np.int64),  # sent back to the start
             "cliffs": np.array([(3, 1)], dtype=np.int64),
@@ -111,10 +101,10 @@ def test_gridworld_transition_into_cliff():
             "size": np.array((4, 12), dtype=np.int64),
         },
     )
-    assert step.step_type == expected.step_type
-    assert step.reward == expected.reward
-    assert step.discount == expected.discount
-    assert_observation(step.observation, expected.observation)
+    assert reward == -100.0
+    assert terminated is False
+    assert truncated is False
+    assert info == {}
 
 
 def test_gridworld_final_step():
@@ -122,12 +112,10 @@ def test_gridworld_final_step():
         size=(4, 12), cliffs=[], exits=[(3, 1)], start=(3, 0)
     )
     environment.reset()
-    step = environment.step(gridworld.RIGHT)
-    expected = core.TimeStep(
-        step_type=core.StepType.LAST,
-        reward=-1.0,
-        discount=0.0,
-        observation={
+    obs, reward, terminated, truncated, info = environment.step(gridworld.RIGHT)
+    assert_observation(
+        obs,
+        {
             "start": np.array((3, 0), dtype=np.int64),
             "player": np.array((3, 1), dtype=np.int64),
             "cliffs": np.array([], dtype=np.int64),
@@ -135,10 +123,10 @@ def test_gridworld_final_step():
             "size": np.array((4, 12), dtype=np.int64),
         },
     )
-    assert step.step_type == expected.step_type
-    assert step.reward == expected.reward
-    assert step.discount == expected.discount
-    assert_observation(step.observation, expected.observation)
+    assert reward == -1.0
+    assert terminated is True
+    assert truncated is False
+    assert info == {}
 
 
 def test_gridworld_render():

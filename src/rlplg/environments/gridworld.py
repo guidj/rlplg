@@ -29,6 +29,7 @@ from gymnasium import spaces
 from PIL import Image as image
 
 from rlplg import core, envdesc, envspec, npsci
+from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "GridWorld"
@@ -130,7 +131,7 @@ class GridWorld(core.PyEnvironment):
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
 
-    def _step(self, action: Any) -> core.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -143,18 +144,12 @@ class GridWorld(core.PyEnvironment):
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         next_observation, reward = apply_action(self._observation, action)
-
         self._observation = next_observation
-        if coord_from_array(self._observation[Strings.player]) in self._exits:
-            return core.TimeStep.termination(
-                observation=copy.deepcopy(self._observation), reward=reward
-            )
-        return core.TimeStep.transition(
-            observation=copy.deepcopy(self._observation), reward=reward
-        )
+        finished = coord_from_array(self._observation[Strings.player]) in self._exits
+        return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> core.TimeStep:
-        """Starts a new sequence, returns the first `TimeStep` of this sequence.
+    def _reset(self) -> InitState:
+        """Starts a new sequence, returns the `InitState` for this environment.
 
         See `reset(self)` docstring for more details
         """
@@ -166,16 +161,16 @@ class GridWorld(core.PyEnvironment):
             cliffs=tuple(self._cliffs),
             exits=tuple(self._exits),
         )
-        return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
+        return copy.deepcopy(self._observation), {}
 
-    def render(self) -> Optional[Any]:
+    def _render(self) -> RenderType:
         if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         if self.render_mode == "rgb_array":
             return as_grid(self._observation)
-        return super().render()
+        return super()._render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:

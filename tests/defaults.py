@@ -4,6 +4,7 @@ from typing import Any, Optional, Sequence
 import numpy as np
 
 from rlplg import core, envdesc
+from rlplg.core import InitState, ObsType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 GRID_WIDTH = 5
@@ -47,7 +48,7 @@ class CountEnv(core.PyEnvironment):
         self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
 
-    def _step(self, action: Any) -> core.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """
         Updates the environment according to action and returns a `TimeStep`.
 
@@ -79,22 +80,16 @@ class CountEnv(core.PyEnvironment):
 
         self._observation = new_obs
         finished = np.array_equal(new_obs, self.MAX_VALUE)
-        if finished:
-            return core.TimeStep.termination(
-                observation=copy.deepcopy(self._observation), reward=reward
-            )
-        return core.TimeStep.transition(
-            observation=copy.deepcopy(self._observation), reward=reward
-        )
+        return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> core.TimeStep:
+    def _reset(self) -> InitState:
         """
         Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
         self._observation = np.array(0, np.int64)
-        return core.TimeStep.restart(observation=self._observation)
+        return copy.deepcopy(self._observation), {}
 
 
 class CountEnvMDP(markovdp.MDP):
@@ -164,7 +159,7 @@ class SingleStateEnv(core.PyEnvironment):
         self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
 
-    def _step(self, action: Any) -> core.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -176,17 +171,15 @@ class SingleStateEnv(core.PyEnvironment):
         # none
         if not (0 <= action < self.num_actions):
             raise ValueError(f"Unknown action {action}")
-        return core.TimeStep.transition(
-            observation=copy.deepcopy(self._observation), reward=0.0
-        )
+        return copy.deepcopy(self._observation), 0.0, False, False, {}
 
-    def _reset(self) -> core.TimeStep:
+    def _reset(self) -> InitState:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
         self._observation = np.array(0, np.int64)
-        return core.TimeStep.restart(observation=self._observation)
+        return copy.deepcopy(self._observation), {}
 
 
 class RoundRobinActionsPolicy(core.PyPolicy):
@@ -210,14 +203,14 @@ class RoundRobinActionsPolicy(core.PyPolicy):
 
     def _action(
         self,
-        time_step: core.TimeStep,
+        observation: ObsType,
         policy_state: Any,
         seed: Optional[int] = None,
     ) -> core.PolicyStep:
         """
         Takes the current time step (which includes the environment feedback)
         """
-        del time_step, policy_state, seed
+        del observation, policy_state, seed
         state, info = (), {"log_probability": np.log(0.5)}
 
         try:

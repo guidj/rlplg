@@ -15,17 +15,7 @@ def policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
     """The policy we're evaluating is assumed to be greedy w.r.t. Q(s, a).
     So the best action has probability 1.0, and all the others 0.0.
     """
-
-    # step_type: core.StepType = traj.step_type.item()
-    # reward: float = traj.reward.item()
-    # discount: float = traj.discount.item()
-    time_step = core.TimeStep(
-        step_type=traj.step_type,
-        reward=traj.reward,
-        discount=traj.discount,
-        observation=traj.observation,
-    )
-    policy_step = policy.action(time_step)
+    policy_step = policy.action(traj.observation)
     prob: float = np.where(
         np.array_equal(policy_step.action, traj.action), 1.0, 0.0
     ).item()
