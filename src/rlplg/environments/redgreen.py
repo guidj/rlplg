@@ -60,9 +60,7 @@ class RedGreenSeq(core.PyEnvironment):
     sequence of actions.
     """
 
-    metadata = {"render.modes": ["raw"]}
-
-    def __init__(self, cure: Sequence[str]):
+    def __init__(self, cure: Sequence[str], render_mode: str = "rgb_array"):
         """
         Args:
             cure_sequence: sequence of actions to take to cure a patient.
@@ -74,6 +72,7 @@ class RedGreenSeq(core.PyEnvironment):
             raise ValueError(f"Cure sequence should be longer than one: {len(cure)}")
 
         self.cure_sequence = [ACTION_NAME_MAPPING[action] for action in cure]
+        self.render_mode = render_mode
         self._action_spec = ()
         self._observation_spec = {
             OBS_KEY_CURE_SEQUENCE: (),
@@ -140,14 +139,14 @@ class RedGreenSeq(core.PyEnvironment):
         self._observation = beginning_state(self.cure_sequence)
         return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
-    def render(self, mode="rgb_array") -> Any:
+    def render(self) -> Any:
         if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
-        if mode == "rgb_array":
+        if self.render_mode == "rgb_array":
             return state_representation(self._observation)
-        return super().render(mode)
+        return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:

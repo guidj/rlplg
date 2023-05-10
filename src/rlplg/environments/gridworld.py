@@ -73,7 +73,6 @@ class GridWorld(core.PyEnvironment):
     GridWorld environment.
     """
 
-    metadata = {"render.modes": ["rgb_array"]}
     _num_layers = 3
 
     def __init__(
@@ -82,10 +81,12 @@ class GridWorld(core.PyEnvironment):
         cliffs: Sequence[Tuple[int, int]],
         exits: Sequence[Tuple[int, int]],
         start: Tuple[int, int],
+        render_mode: str = "rgb_array",
     ):
         super().__init__()
         assert_dimensions(size=size, start=start, cliffs=cliffs, exits=exits)
         assert_starting_grid(start=start, cliffs=cliffs, exits=exits)
+        self.render_mode = render_mode
         self._height, self._width = size
         self._size = size
         self._start = start
@@ -167,14 +168,14 @@ class GridWorld(core.PyEnvironment):
         )
         return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
-    def render(self, mode="rgb_array") -> Optional[Any]:
+    def render(self) -> Optional[Any]:
         if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
-        if mode == "rgb_array":
+        if self.render_mode == "rgb_array":
             return as_grid(self._observation)
-        return super().render(mode)
+        return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:

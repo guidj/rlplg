@@ -125,16 +125,14 @@ def test_abcseq_simple_sequence():
     length=st.integers(min_value=1, max_value=100),
 )
 def test_abcseq_render(length: int):
-    environment = abcseq.ABCSeq(length)
+    environment = abcseq.ABCSeq(length, render_mode="rgb_array")
     environment.reset(),
     # starting point
-    np.testing.assert_array_equal(
-        environment.render("rgb_array"), np.array([1] + [0] * length)
-    )
+    np.testing.assert_array_equal(environment.render(), np.array([1] + [0] * length))
     # one move
     environment.step(0)
     np.testing.assert_array_equal(
-        environment.render("rgb_array"), np.array([1, 1] + [0] * (length - 1))
+        environment.render(), np.array([1, 1] + [0] * (length - 1))
     )
 
 
@@ -143,10 +141,11 @@ def test_abcseq_render(length: int):
 )
 def test_abcseq_render_with_invalid_modes(length: int):
     modes = ("human",)
-    environment = abcseq.ABCSeq(length)
     for mode in modes:
+        environment = abcseq.ABCSeq(length, render_mode=mode)
+        environment.reset()
         with pytest.raises(NotImplementedError):
-            environment.render(mode)
+            environment.render()
 
 
 @hypothesis.given(

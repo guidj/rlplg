@@ -58,9 +58,10 @@ NUM_LETTERS = len(LETTERS)
 class ABCSeq(core.PyEnvironment):
     metadata = {"render.modes": ["raw"]}
 
-    def __init__(self, length: int):
+    def __init__(self, length: int, render_mode: str = "raw"):
         super().__init__()
         self.length = length
+        self.render_mode = render_mode
         if NUM_LETTERS < length < MIN_SEQ_LENGTH:
             raise ValueError(
                 f"Length must be between {MIN_SEQ_LENGTH} and {NUM_LETTERS}: {length}"
@@ -125,10 +126,10 @@ class ABCSeq(core.PyEnvironment):
         self._observation = beginning_state(length=self.length)
         return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
-    def render(self, mode="rgb_array") -> Any:
-        if mode == "rgb_array":
+    def render(self) -> Any:
+        if self.render_mode == "rgb_array":
             return copy.deepcopy(self._observation)
-        return super().render(mode)
+        return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:

@@ -178,13 +178,13 @@ def test_state_randomwalk_end_right_sequence():
 
 
 def test_state_randomwalk_render():
-    environment = randomwalk.StateRandomWalk(steps=3)
+    environment = randomwalk.StateRandomWalk(steps=3, render_mode="rgb_array")
     environment.reset()
     # starting point
-    np.testing.assert_array_equal(environment.render("rgb_array"), np.array([0, 1, 0]))
+    np.testing.assert_array_equal(environment.render(), np.array([0, 1, 0]))
     # one move left
     environment.step(0)
-    np.testing.assert_array_equal(environment.render("rgb_array"), np.array([1, 0, 0]))
+    np.testing.assert_array_equal(environment.render(), np.array([1, 0, 0]))
 
 
 @hypothesis.given(
@@ -192,11 +192,11 @@ def test_state_randomwalk_render():
 )
 def test_state_randomwalk_render_with_invalid_modes(steps: int):
     modes = ("human",)
-    environment = randomwalk.StateRandomWalk(steps=steps)
-    environment.reset()
     for mode in modes:
+        environment = randomwalk.StateRandomWalk(steps=steps, render_mode=mode)
+        environment.reset()
         with pytest.raises(NotImplementedError):
-            environment.render(mode)
+            environment.render()
 
 
 @hypothesis.given(

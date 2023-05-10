@@ -132,13 +132,13 @@ def test_gridworld_render():
 
 
 def test_gridworld_render_with_unsupported_mode():
-    environment = gridworld.GridWorld(
-        size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
-    )
-    environment.reset()
     for mode in ("human",):
         with pytest.raises(NotImplementedError):
-            environment.render(mode)
+            environment = gridworld.GridWorld(
+                size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0), render_mode=mode
+            )
+            environment.reset()
+            environment.render()
 
 
 def test_gridworld_seed():

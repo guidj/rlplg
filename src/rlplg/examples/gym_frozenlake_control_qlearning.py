@@ -40,7 +40,7 @@ def main(args: Args):
     Entry point.
     """
     # Init env and policy
-    env_spec = envsuite.load("FrozenLake-v1")
+    env_spec = envsuite.load("FrozenLake-v1", render_mode="human")
     episode = 0
     # Policy Control with Q-learning
     learned_policy, qtable = qlearning.control(
@@ -68,7 +68,7 @@ def main(args: Args):
             policy_state = policy_step.state
             time_step = env_spec.environment.step(policy_step.action)
 
-            logging.info(env_spec.environment.render(mode="human"))
+            logging.info(env_spec.environment.render())
             if time_step.step_type == core.StepType.LAST:
                 logging.info("Completed episode %d", episode + 1)
                 break

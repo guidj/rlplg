@@ -49,14 +49,13 @@ class StateRandomWalk(core.PyEnvironment):
     Terminal states: 0 and 6.
     """
 
-    metadata = {"render.modes": ["raw"]}
-
     def __init__(
         self,
         steps: int,
         left_end_reward: float = LEFT_REWARD,
         right_end_reward: float = RIGHT_REWARD,
         step_reward: float = STEP_REWARD,
+        render_mode: str = "rgb_array",
     ):
         """
         Args:
@@ -72,6 +71,7 @@ class StateRandomWalk(core.PyEnvironment):
         self.left_end_reward = left_end_reward
         self.right_end_reward = right_end_reward
         self.step_reward = step_reward
+        self.render_mode = render_mode
         self._action_spec = ()
         self._observation_spec = {
             OBS_KEY_POSITION: (),
@@ -144,14 +144,14 @@ class StateRandomWalk(core.PyEnvironment):
         )
         return core.TimeStep.restart(observation=copy.deepcopy(self._observation))
 
-    def render(self, mode="rgb_array") -> Optional[Any]:
+    def render(self) -> Optional[Any]:
         if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
-        if mode == "rgb_array":
+        if self.render_mode == "rgb_array":
             return state_representation(self._observation)
-        return super().render(mode)
+        return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:

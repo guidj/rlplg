@@ -119,28 +119,26 @@ def test_redgreen_simple_sequence():
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
 def test_redgreen_render(cure: Sequence[str]):
-    environment = redgreen.RedGreenSeq(cure)
+    environment = redgreen.RedGreenSeq(cure, render_mode="rgb_array")
     environment.reset()
     # starting point
     np.testing.assert_array_equal(
-        environment.render("rgb_array"),
+        environment.render(),
         [0] * len(cure),
     )
     # one move
     environment.step(redgreen.ACTION_NAME_MAPPING[cure[0]])
-    np.testing.assert_array_equal(
-        environment.render("rgb_array"), [1] + [0] * (len(cure) - 1)
-    )
+    np.testing.assert_array_equal(environment.render(), [1] + [0] * (len(cure) - 1))
 
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
 def test_redgreen_render_with_invalid_modes(cure: Sequence[str]):
     modes = ("human",)
-    environment = redgreen.RedGreenSeq(cure)
-    environment.reset()
     for mode in modes:
+        environment = redgreen.RedGreenSeq(cure, render_mode=mode)
+        environment.reset()
         with pytest.raises(NotImplementedError):
-            environment.render(mode)
+            environment.render()
 
 
 @hypothesis.given(
