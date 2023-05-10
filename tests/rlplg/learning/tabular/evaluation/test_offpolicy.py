@@ -94,8 +94,6 @@ def test_monte_carlo_action_values_with_one_episode_covering_every_action(
     """
 
     collect_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1],
     )
     results = offpolicy.monte_carlo_action_values(
@@ -220,8 +218,6 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every
     Every step following a mistep isn't.
     """
     collect_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1],
     )
 
@@ -259,8 +255,6 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_ever
     No step gets updated.
     """
     collect_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1],
     )
 
@@ -323,13 +317,11 @@ def constant_learning_rate(initial_lr: float, episode: int, step: int):
 
 
 @pytest.fixture(scope="function")
-def policy(environment: core.PyEnvironment, qtable: np.ndarray) -> core.PyPolicy:
+def policy(qtable: np.ndarray) -> core.PyPolicy:
     """
     Creates a greedy policy using a table.
     """
     return policies.PyQGreedyPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         state_id_fn=defaults.identity,
         action_values=qtable,
         emit_log_probability=True,

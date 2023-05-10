@@ -70,8 +70,6 @@ def test_first_visit_monte_carlo_action_values_with_one_episode_convering_every_
     ...
     """
     stochastic_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1],
     )
 
@@ -147,8 +145,6 @@ def test_sarsa_action_values_with_one_episode_convering_every_action(
     ...
     """
     stochastic_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1, 0],
     )
 
@@ -340,8 +336,6 @@ def constant_learning_rate(initial_lr: float, episode: int, step: int):
 @pytest.fixture(scope="function")
 def policy(environment: core.PyEnvironment, qtable: np.ndarray) -> core.PyPolicy:
     return policies.PyQGreedyPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         state_id_fn=defaults.identity,
         action_values=qtable,
         emit_log_probability=True,

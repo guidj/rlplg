@@ -92,8 +92,6 @@ def test_collect_mdp_stats():
     environment = defaults.CountEnv()
     mdp = defaults.CountEnvMDP()
     policy = policies.PyRandomPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         num_actions=mdp.env_desc().num_actions,
     )
 

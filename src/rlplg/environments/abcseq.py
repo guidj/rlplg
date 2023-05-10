@@ -45,6 +45,7 @@ import copy
 from typing import Any, Optional
 
 import numpy as np
+from gymnasium import spaces
 
 from rlplg import core, envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
@@ -66,34 +67,14 @@ class ABCSeq(core.PyEnvironment):
             raise ValueError(
                 f"Length must be between {MIN_SEQ_LENGTH} and {NUM_LETTERS}: {length}"
             )
-        self._action_spec = ()
-        self._observation_spec = ()
+        self.action_space = spaces.Box(low=0, high=length - 1, dtype=np.int64)
+        self.observation_space = spaces.Box(
+            low=0, high=1, shape=(length + 1,), dtype=np.int64
+        )
 
         # env specific
         self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed: Optional[int] = None
-
-    def observation_spec(self) -> Any:
-        """Defines the observations provided by the environment.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._observation_spec
-
-    def action_spec(self) -> Any:
-        """Defines the actions that should be provided to `step()`.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._action_spec
 
     def _step(self, action: Any) -> core.TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
@@ -101,8 +82,8 @@ class ABCSeq(core.PyEnvironment):
         See `step(self, action)` docstring for more details.
 
         Args:
-            action: A NumPy array, or a nested dict, list or tuple of arrays
-                corresponding to `action_spec()`.
+            action: A policy's chosen action.
+
         """
         new_observation = apply_action(self._observation, action)
         reward = action_reward(self._observation, action)

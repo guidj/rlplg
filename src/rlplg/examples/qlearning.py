@@ -112,8 +112,6 @@ def _target_and_collect_policies(
 ) -> Tuple[core.PyPolicy, core.PyPolicy]:
     _, num_actions = qtable.shape
     policy = policies.PyQGreedyPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         state_id_fn=state_id_fn,
         action_values=qtable,
     )

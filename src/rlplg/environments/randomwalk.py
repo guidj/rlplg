@@ -18,6 +18,7 @@ import math
 from typing import Any, Mapping, Optional, Tuple
 
 import numpy as np
+from gymnasium import spaces
 
 from rlplg import core, envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
@@ -38,7 +39,7 @@ OBS_KEY_STEP_REWARD = "step_reward"
 
 class StateRandomWalk(core.PyEnvironment):
     """
-    An environment where an agent is meant to right, until the end.
+    An environment where an agent is meant to go right, until the end.
     The environment can terminate on the last left or right states.
     By default, only the right direction yields a positive reward.
 
@@ -72,40 +73,26 @@ class StateRandomWalk(core.PyEnvironment):
         self.right_end_reward = right_end_reward
         self.step_reward = step_reward
         self.render_mode = render_mode
-        self._action_spec = ()
-        self._observation_spec = {
-            OBS_KEY_POSITION: (),
-            OBS_KEY_STEPS: (),
-            OBS_KEY_RIGHT_END_REWARD: (),
-            OBS_KEY_LEFT_END_REWARD: (),
-            OBS_KEY_STEP_REWARD: (),
-        }
+        self.action_space = spaces.Box(low=0, high=1, dtype=np.int64)
+        self.observation_space = spaces.Dict(
+            {
+                OBS_KEY_POSITION: spaces.Box(low=0, high=steps - 1, dtype=np.int64),
+                OBS_KEY_STEPS: spaces.Box(low=steps, high=steps, dtype=np.int64),
+                OBS_KEY_RIGHT_END_REWARD: spaces.Box(
+                    low=right_end_reward, high=right_end_reward, dtype=np.float32
+                ),
+                OBS_KEY_LEFT_END_REWARD: spaces.Box(
+                    low=left_end_reward, high=left_end_reward, dtype=np.float32
+                ),
+                OBS_KEY_STEP_REWARD: spaces.Box(
+                    low=step_reward, high=step_reward, dtype=np.float32
+                ),
+            }
+        )
 
         # env specific
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
-
-    def observation_spec(self) -> Any:
-        """Defines the observations provided by the environment.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._observation_spec
-
-    def action_spec(self) -> Any:
-        """Defines the actions that should be provided to `step()`.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._action_spec
 
     def _step(self, action: Any) -> core.TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
@@ -113,8 +100,8 @@ class StateRandomWalk(core.PyEnvironment):
         See `step(self, action)` docstring for more details.
 
         Args:
-            action: A NumPy array, or a nested dict, list or tuple of arrays
-                corresponding to `action_spec()`.
+            action: A policy's chosen action.
+
         """
         if self._observation == {}:
             raise RuntimeError(

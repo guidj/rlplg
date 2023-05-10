@@ -17,23 +17,7 @@ ACTOR_COLOR = (75, 25, 50)
 EXIT_COLOR = (255, 204, 0)
 
 
-class BasePyEnv(core.PyEnvironment):
-    """
-    A base class for test environments.
-    """
-
-    def __init__(self, action_spec: Any, observation_spec: Any):
-        self._action_spec = action_spec
-        self._observation_spec = observation_spec
-
-    def observation_spec(self) -> Any:
-        return self._observation_spec
-
-    def action_spec(self) -> Any:
-        return self._action_spec
-
-
-class CountEnv(BasePyEnv):
+class CountEnv(core.PyEnvironment):
     """
     Choose between moving forward or stopping, until we reach 3, starting from zero.
         - States: 0, 1, 2, 3 (terminal)
@@ -58,22 +42,19 @@ class CountEnv(BasePyEnv):
     RIGHT_MOVE_REWARD = -1.0
 
     def __init__(self):
-        super().__init__(
-            action_spec=(),
-            observation_spec=(),
-        )
+        super().__init__()
         # env specific
         self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
 
     def _step(self, action: Any) -> core.TimeStep:
-        """Updates the environment according to action and returns a `TimeStep`.
+        """
+        Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
 
         Args:
-        action: A NumPy array, or a nested dict, list or tuple of arrays
-            corresponding to `action_spec()`.
+            action: A policy's chosen action.
         """
 
         if np.size(self._observation) == 0:
@@ -107,7 +88,8 @@ class CountEnv(BasePyEnv):
         )
 
     def _reset(self) -> core.TimeStep:
-        """Starts a new sequence, returns the first `TimeStep` of this sequence.
+        """
+        Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
@@ -168,18 +150,15 @@ class CountEnvMDP(markovdp.MDP):
         return envdesc.EnvDesc(num_states=4, num_actions=2)
 
 
-class SingleStateEnv(BasePyEnv):
+class SingleStateEnv(core.PyEnvironment):
     """
     An environment that remains in a perpetual state.
     """
 
     def __init__(self, num_actions: int):
         assert num_actions > 0, "`num_actios` must be positive."
+        super().__init__()
         self.num_actions = num_actions
-        super().__init__(
-            action_spec=(),
-            observation_spec=(),
-        )
 
         # env specific
         self._observation: np.ndarray = np.empty(shape=(0,))
@@ -191,8 +170,7 @@ class SingleStateEnv(BasePyEnv):
         See `step(self, action)` docstring for more details.
 
         Args:
-        action: A NumPy array, or a nested dict, list or tuple of arrays
-            corresponding to `action_spec()`.
+            action: A policy's chosen action.
         """
 
         # none
@@ -218,11 +196,9 @@ class RoundRobinActionsPolicy(core.PyPolicy):
 
     def __init__(
         self,
-        time_step_spec: Any,
-        action_spec: Any,
         actions: Sequence[Any],
     ):
-        super().__init__(time_step_spec, action_spec)
+        super().__init__()
         self._counter = 0
         self._actions = actions
         self._iterator = iter(actions)

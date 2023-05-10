@@ -1,10 +1,11 @@
 import random
-from typing import Any, Mapping, Sequence
+from typing import Sequence
 
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
+from gymnasium import spaces
 
 from rlplg import core
 from rlplg.environments import redgreen
@@ -17,8 +18,17 @@ def test_redgreen_init(cure: Sequence[str]):
     cure_sequence = [redgreen.ACTION_NAME_MAPPING[step] for step in cure]
     environment = redgreen.RedGreenSeq(cure)
     assert environment.cure_sequence == cure_sequence
-    assert environment.action_spec() == action_spec()
-    assert environment.observation_spec() == observation_spec(cure_sequence)
+    assert environment.action_space == spaces.Box(low=0, high=2, dtype=np.int64)
+    assert environment.observation_space == spaces.Dict(
+        {
+            "cure_sequence": spaces.Box(
+                low=np.zeros(len(cure)),
+                high=np.array([2] * len(cure)),
+                dtype=np.int64,
+            ),
+            "position": spaces.Box(low=0, high=len(cure), dtype=np.int64),
+        }
+    )
 
 
 def test_redgreen_simple_sequence():
@@ -285,20 +295,6 @@ def test_state_representation():
         1,
         1,
     ]
-
-
-def action_spec() -> Any:
-    return ()
-
-
-def observation_spec(
-    cure_actions: Sequence[int],
-) -> Mapping[str, Any]:
-    del cure_actions
-    return {
-        "cure_sequence": (),
-        "position": (),
-    }
 
 
 def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:

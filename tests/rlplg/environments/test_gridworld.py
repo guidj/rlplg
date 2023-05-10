@@ -3,6 +3,7 @@ from typing import Any, Iterable, Sequence, Tuple
 import hypothesis
 import numpy as np
 import pytest
+from gymnasium import spaces
 from hypothesis import strategies as st
 from PIL import Image as image
 
@@ -13,15 +14,36 @@ from tests.rlplg.environments import grids
 
 def test_gridworld_init():
     environment = gridworld.GridWorld(size=(4, 12), cliffs=[], exits=[], start=(3, 0))
-
-    assert environment.observation_spec() == {
-        "start": (),
-        "player": (),
-        "cliffs": (),
-        "exits": (),
-        "size": (),
-    }
-    assert environment.action_spec() == ()
+    assert environment.action_space == spaces.Box(low=0, high=3, dtype=np.int64)
+    assert environment.observation_space == spaces.Dict(
+        {
+            "start": spaces.Box(
+                low=np.array([0, 0]),
+                high=np.array([3, 11]),
+                dtype=np.int64,
+            ),
+            "player": spaces.Box(
+                low=np.array([0, 0]),
+                high=np.array([3, 11]),
+                dtype=np.int64,
+            ),
+            "cliffs": spaces.Box(
+                low=np.array([0, 0, 0]),
+                high=np.array([0, 3, 11]),
+                dtype=np.int64,
+            ),
+            "exits": spaces.Box(
+                low=np.array([0, 0, 0]),
+                high=np.array([0, 3, 11]),
+                dtype=np.int64,
+            ),
+            "size": spaces.Box(
+                low=np.array([3, 11]),
+                high=np.array([3, 11]),
+                dtype=np.int64,
+            ),
+        }
+    )
 
 
 def test_gridworld_reset():

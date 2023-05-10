@@ -32,8 +32,6 @@ def create_observable_random_policy(
     emit_log_probability: bool = False,
 ):
     return policies.PyObservableRandomPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         num_actions=num_actions,
         emit_log_probability=emit_log_probability,
     )

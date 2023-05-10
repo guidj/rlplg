@@ -39,6 +39,7 @@ import hashlib
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
+from gymnasium import spaces
 
 from rlplg import core, envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
@@ -73,37 +74,31 @@ class RedGreenSeq(core.PyEnvironment):
 
         self.cure_sequence = [ACTION_NAME_MAPPING[action] for action in cure]
         self.render_mode = render_mode
-        self._action_spec = ()
-        self._observation_spec = {
-            OBS_KEY_CURE_SEQUENCE: (),
-            OBS_KEY_POSITION: (),
-        }
+        # def beginning_state(cure_sequence: Sequence[int]):
+        #     """
+        #     Generates the starting state.
+        #     """
+        #     return {
+        #         OBS_KEY_CURE_SEQUENCE: cure_sequence,
+        #         OBS_KEY_POSITION: 0,
+        #     }
+        self.action_space = spaces.Box(low=0, high=len(ACTIONS) - 1, dtype=np.int64)
+        self.observation_space = spaces.Dict(
+            {
+                OBS_KEY_CURE_SEQUENCE: spaces.Box(
+                    low=np.zeros(len(self.cure_sequence)),
+                    high=np.array([len(ACTIONS) - 1] * len(self.cure_sequence)),
+                    dtype=np.int64,
+                ),
+                OBS_KEY_POSITION: spaces.Box(
+                    low=0, high=len(self.cure_sequence), dtype=np.int64
+                ),
+            }
+        )
 
         # env specific
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
-
-    def observation_spec(self) -> Any:
-        """Defines the observations provided by the environment.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._observation_spec
-
-    def action_spec(self) -> Any:
-        """Defines the actions that should be provided to `step()`.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._action_spec
 
     def _step(self, action: Any) -> core.TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
@@ -111,8 +106,7 @@ class RedGreenSeq(core.PyEnvironment):
         See `step(self, action)` docstring for more details.
 
         Args:
-            action: A NumPy array, or a nested dict, list or tuple of arrays
-                corresponding to `action_spec()`.
+            action: A policy's chosen action.
         """
         if self._observation == {}:
             raise RuntimeError(

@@ -1,9 +1,8 @@
-from typing import Any
-
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
+from gymnasium import spaces
 
 from rlplg import core
 from rlplg.environments import randomwalk
@@ -16,9 +15,16 @@ def test_state_randomwalk_init(steps: int):
     assert environment.left_end_reward == 0
     assert environment.right_end_reward == 1
     assert environment.step_reward == 0
-
-    assert environment.action_spec() == action_spec()
-    assert environment.observation_spec() == observation_spec(steps=steps)
+    assert environment.action_space == spaces.Box(low=0, high=1, dtype=np.int64)
+    assert environment.observation_space == spaces.Dict(
+        {
+            "position": spaces.Box(low=0, high=steps - 1, dtype=np.int64),
+            "steps": spaces.Box(low=steps, high=steps, dtype=np.int64),
+            "right_end_reward": spaces.Box(low=1, high=1, dtype=np.float32),
+            "left_end_reward": spaces.Box(low=0, high=0, dtype=np.float32),
+            "step_reward": spaces.Box(low=0, high=0, dtype=np.float32),
+        }
+    )
 
 
 @hypothesis.given(steps=st.integers(max_value=2))
@@ -249,8 +255,6 @@ def test_create_env_spec(steps: int):
     assert env_spec.env_desc.num_states == steps
     assert env_spec.env_desc.num_actions == 2
     assert isinstance(env_spec.environment, randomwalk.StateRandomWalk)
-    assert env_spec.environment.action_spec() == action_spec()
-    assert env_spec.environment.observation_spec() == observation_spec(steps=steps)
     assert isinstance(env_spec.discretizer, randomwalk.StateRandomWalkMdpDiscretizer)
 
 
@@ -276,21 +280,6 @@ def test_state_representation():
         randomwalk.state_representation({"position": 0, "steps": 3}),
         np.array([1, 0, 0]),
     )
-
-
-def action_spec() -> Any:
-    return ()
-
-
-def observation_spec(steps: int) -> Any:
-    del steps
-    return {
-        "position": (),
-        "steps": (),
-        "right_end_reward": (),
-        "left_end_reward": (),
-        "step_reward": (),
-    }
 
 
 def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:

@@ -25,6 +25,7 @@ from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 import tensorflow as tf
+from gymnasium import spaces
 from PIL import Image as image
 
 from rlplg import core, envdesc, envspec, npsci
@@ -94,40 +95,40 @@ class GridWorld(core.PyEnvironment):
         self._exits = set(exits)
 
         # left, right, up, down
-        self._action_spec = ()
-        self._observation_spec = {
-            "start": (),
-            "player": (),
-            "cliffs": (),
-            "exits": (),
-            "size": (),
-        }
+        self.action_space = spaces.Box(low=0, high=3, dtype=np.int64)
+        self.observation_space = spaces.Dict(
+            {
+                "start": spaces.Box(
+                    low=np.array([0, 0]),
+                    high=np.array([self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+                "player": spaces.Box(
+                    low=np.array([0, 0]),
+                    high=np.array([self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+                "cliffs": spaces.Box(
+                    low=np.array([0, 0, 0]),
+                    high=np.array([0, self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+                "exits": spaces.Box(
+                    low=np.array([0, 0, 0]),
+                    high=np.array([0, self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+                "size": spaces.Box(
+                    low=np.array([self._height - 1, self._width - 1]),
+                    high=np.array([self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+            }
+        )
 
         # env specific
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
-
-    def observation_spec(self) -> Any:
-        """Defines the observations provided by the environment.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._observation_spec
-
-    def action_spec(self) -> Any:
-        """Defines the actions that should be provided to `step()`.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._action_spec
 
     def _step(self, action: Any) -> core.TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
@@ -135,8 +136,7 @@ class GridWorld(core.PyEnvironment):
         See `step(self, action)` docstring for more details.
 
         Args:
-        action: A NumPy array, or a nested dict, list or tuple of arrays
-            corresponding to `action_spec()`.
+            action: A policy's chosen action.
         """
         if self._observation == {}:
             raise RuntimeError(

@@ -122,12 +122,8 @@ class PyPolicy(abc.ABC):
 
     def __init__(
         self,
-        time_step_spec: Any,
-        action_spec: Any,
         emit_log_probability: bool = False,
     ):
-        self.time_step_spec = time_step_spec
-        self.action_spec = action_spec
         self.emit_log_probability = emit_log_probability
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
@@ -163,14 +159,14 @@ class PyPolicy(abc.ABC):
 
 
         Args:
-          time_step: A `TimeStep` tuple corresponding to `time_step_spec()`.
+          time_step: A `TimeStep` tuple.
           policy_state: An optional previous policy_state.
           seed: Seed to use when choosing action. Impl specific.
 
         Returns:
           A PolicyStep containing:
-            `action`: A nest of action Arrays matching the `action_spec()`.
-            `state`: A nest of policy states to be fed into the next call to action.
+            `action`: The policy's chosen action.
+            `state`: A policy state to be fed into the next call to action.
             `info`: Optional side information such as action log probabilities.
         """
         return self._action(time_step, policy_state, seed=seed)
@@ -192,8 +188,8 @@ class PyPolicy(abc.ABC):
 
         Returns:
           A `PolicyStep` named tuple containing:
-            `action`: A nest of action Arrays matching the `action_spec()`.
-            `state`: A nest of policy states to be fed into the next call to action.
+            `action`: The policy's chosen action.
+            `state`: A policy state to be fed into the next call to action.
             `info`: Optional side information such as action log probabilities.
         """
 
@@ -204,22 +200,26 @@ class PyEnvironment(gym.Env):
     """
 
     def step(self, action: Any) -> TimeStep:
+        """
+        Takes an action and advances the environment
+        to the next state.
+        """
         return self._step(action)
 
     @abc.abstractmethod
     def _step(self, action: Any) -> TimeStep:
-        """ """
+        """
+        Override this method to define `step`.
+        """
 
     def reset(self) -> TimeStep:
+        """
+        Resets the environment to a starting state.
+        """
         return self._reset()
 
     @abc.abstractmethod
     def _reset(self) -> TimeStep:
-        """ """
-
-    def time_step_spec(self):
-        del self
-        return ()
-
-    def action_spec(self):
-        return ()
+        """
+        Override this method to define `reset`.
+        """

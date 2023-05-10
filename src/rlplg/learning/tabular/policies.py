@@ -15,14 +15,10 @@ class PyRandomPolicy(core.PyPolicy):
 
     def __init__(
         self,
-        time_step_spec: Any,
-        action_spec: Any,
         num_actions: int,
         emit_log_probability: bool = False,
     ):
         super().__init__(
-            time_step_spec=time_step_spec,
-            action_spec=action_spec,
             emit_log_probability=emit_log_probability,
         )
         self._num_actions = num_actions
@@ -66,8 +62,6 @@ class PyQGreedyPolicy(core.PyPolicy):
 
     def __init__(
         self,
-        time_step_spec: Any,
-        action_spec: Any,
         state_id_fn: Callable[[Any], int],
         action_values: np.ndarray,
         emit_log_probability: bool = False,
@@ -80,8 +74,6 @@ class PyQGreedyPolicy(core.PyPolicy):
         """
 
         super().__init__(
-            time_step_spec,
-            action_spec,
             emit_log_probability=emit_log_probability,
         )
 
@@ -141,16 +133,12 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
             )
 
         super().__init__(
-            time_step_spec=policy.time_step_spec,
-            action_spec=policy.action_spec,
             emit_log_probability=emit_log_probability,
         )
 
         self._num_actions = num_actions
         self.exploit_policy = policy
         self.explore_policy = PyRandomPolicy(
-            time_step_spec=policy.time_step_spec,
-            action_spec=policy.action_spec,
             num_actions=num_actions,
             emit_log_probability=emit_log_probability,
         )
@@ -210,14 +198,10 @@ class PyObservableRandomPolicy(ObservablePolicy):
 
     def __init__(
         self,
-        time_step_spec: Any,
-        action_spec: Any,
         num_actions: int,
         emit_log_probability: bool = False,
     ):
         self._policy = PyRandomPolicy(
-            time_step_spec=time_step_spec,
-            action_spec=action_spec,
             num_actions=num_actions,
             emit_log_probability=emit_log_probability,
         )

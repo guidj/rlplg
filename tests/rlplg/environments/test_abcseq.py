@@ -1,9 +1,8 @@
-from typing import Any
-
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
+from gymnasium import spaces
 
 from rlplg import core
 from rlplg.environments import abcseq
@@ -13,8 +12,12 @@ from rlplg.environments import abcseq
 def test_abcseq_init(length: int):
     environment = abcseq.ABCSeq(length)
     assert environment.length == length
-    assert environment.action_spec() == action_spec(length)
-    assert environment.observation_spec() == observation_spec(length)
+    assert environment.action_space == spaces.Box(
+        low=0, high=length - 1, dtype=np.int64
+    )
+    assert environment.observation_space == spaces.Box(
+        low=0, high=1, shape=(length + 1,), dtype=np.int64
+    )
 
 
 def test_abcseq_simple_sequence():
@@ -299,14 +302,6 @@ def test_state_id():
     assert abcseq.get_state_id([1, 0, 0]) == 0
     assert abcseq.get_state_id([1, 1, 0]) == 1
     assert abcseq.get_state_id([1, 1, 1]) == 2
-
-
-def action_spec(length: int) -> Any:
-    return ()
-
-
-def observation_spec(length: int) -> Any:
-    return ()
 
 
 def assert_time_step(output: core.TimeStep, expected: core.TimeStep) -> None:
