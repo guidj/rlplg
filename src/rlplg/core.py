@@ -16,16 +16,6 @@ InitState = Tuple[ObsType, Mapping[str, Any]]
 RenderType = Optional[Union[RenderFrame, Sequence[RenderFrame]]]
 
 
-class StepType:
-    """
-    Indicates the type of step.
-    """
-
-    FIRST = 1
-    MID = 2
-    LAST = 3
-
-
 @dataclasses.dataclass(frozen=True)
 class PolicyStep:
     """
