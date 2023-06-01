@@ -1,6 +1,6 @@
 import numpy as np
-from tf_agents.environments import py_environment
 
+from rlplg import core
 from rlplg.learning.tabular import dynamicprog, policies
 from tests import defaults
 
@@ -27,13 +27,11 @@ def test_dynamic_iterative_policy_evaluation():
 
 
 def create_observable_random_policy(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     num_actions: int,
     emit_log_probability: bool = False,
 ):
     return policies.PyObservableRandomPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         num_actions=num_actions,
         emit_log_probability=emit_log_probability,
     )

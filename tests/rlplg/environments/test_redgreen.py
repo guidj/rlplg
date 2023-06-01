@@ -1,13 +1,13 @@
 import random
-from typing import Mapping, Sequence
+from typing import Any, Sequence
 
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
+from gymnasium import spaces
 
+from rlplg.core import TimeStep
 from rlplg.environments import redgreen
 
 VALID_ACTIONS = ["red", "green", "wait"]
@@ -18,130 +18,140 @@ def test_redgreen_init(cure: Sequence[str]):
     cure_sequence = [redgreen.ACTION_NAME_MAPPING[step] for step in cure]
     environment = redgreen.RedGreenSeq(cure)
     assert environment.cure_sequence == cure_sequence
-    assert environment.action_spec() == action_spec()
-    assert environment.observation_spec() == observation_spec(cure_sequence)
+    assert environment.action_space == spaces.Box(low=0, high=2, dtype=np.int64)
+    assert environment.observation_space == spaces.Dict(
+        {
+            "cure_sequence": spaces.Box(
+                low=np.zeros(len(cure)),
+                high=np.array([2] * len(cure)),
+                dtype=np.int64,
+            ),
+            "position": spaces.Box(low=0, high=len(cure), dtype=np.int64),
+        }
+    )
 
 
 def test_redgreen_simple_sequence():
     cure = ["red", "green", "wait"]
     environment = redgreen.RedGreenSeq(cure)
-    assert_time_step(
-        environment.reset(),
-        ts.TimeStep(
-            step_type=ts.StepType.FIRST,
-            reward=0.0,
-            discount=1.0,
-            observation={
-                "cure_sequence": [0, 1, 2],
-                "position": 0,
-            },
-        ),
+    obs, info = environment.reset()
+    assert_observation(
+        obs,
+        {
+            "cure_sequence": [0, 1, 2],
+            "position": 0,
+        },
     )
-    # final treatment step, prematurely
+    assert info == {}
+    # last treatment step, prematurely
     assert_time_step(
         environment.step(2),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
-            reward=-2.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "cure_sequence": [0, 1, 2],
                 "position": 0,
             },
+            -2.0,
+            False,
+            False,
+            {},
         ),
     )
     # first treatment step
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
-            reward=-1.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "cure_sequence": [0, 1, 2],
                 "position": 1,
             },
+            -1.0,
+            False,
+            False,
+            {},
         ),
     )
     # second treatment step
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
-            reward=-1.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "cure_sequence": [0, 1, 2],
                 "position": 2,
             },
+            -1.0,
+            False,
+            False,
+            {},
         ),
     )
     # wrong treatment step
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
-            reward=-2.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "cure_sequence": [0, 1, 2],
                 "position": 2,
             },
+            -2.0,
+            False,
+            False,
+            {},
         ),
     )
     # third and final treatment step
     assert_time_step(
         environment.step(2),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
-            reward=-1.0,
-            discount=0.0,
-            observation={
+        (
+            {
                 "cure_sequence": [0, 1, 2],
                 "position": 3,
             },
+            -1.0,
+            True,
+            False,
+            {},
         ),
     )
 
     # another treatment step in the terminal state
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
-            reward=0.0,
-            discount=0.0,
-            observation={
+        (
+            {
                 "cure_sequence": [0, 1, 2],
                 "position": 3,
             },
+            0.0,
+            True,
+            False,
+            {},
         ),
     )
 
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
 def test_redgreen_render(cure: Sequence[str]):
-    environment = redgreen.RedGreenSeq(cure)
+    environment = redgreen.RedGreenSeq(cure, render_mode="rgb_array")
     environment.reset()
     # starting point
     np.testing.assert_array_equal(
-        environment.render("rgb_array"),
+        environment.render(),  # type: ignore
         [0] * len(cure),
     )
     # one move
     environment.step(redgreen.ACTION_NAME_MAPPING[cure[0]])
-    np.testing.assert_array_equal(
-        environment.render("rgb_array"), [1] + [0] * (len(cure) - 1)
-    )
+    np.testing.assert_array_equal(environment.render(), [1] + [0] * (len(cure) - 1))  # type: ignore
 
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
 def test_redgreen_render_with_invalid_modes(cure: Sequence[str]):
     modes = ("human",)
-    environment = redgreen.RedGreenSeq(cure)
-    environment.reset()
     for mode in modes:
+        environment = redgreen.RedGreenSeq(cure, render_mode=mode)
+        environment.reset()
         with pytest.raises(NotImplementedError):
-            environment.render(mode)
+            environment.render()
 
 
 @hypothesis.given(
@@ -290,41 +300,15 @@ def test_state_representation():
     ]
 
 
-def action_spec() -> array_spec.BoundedArraySpec:
-    return array_spec.BoundedArraySpec(
-        shape=(),
-        dtype=np.int64,
-        minimum=0,
-        maximum=2,
-        name="action",
-    )
+def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
+    assert_observation(output[0], expected[0])
+    assert output[1] == expected[1]
+    assert output[2] is expected[2]
+    assert output[3] is expected[3]
+    assert output[4] == expected[4]
 
 
-def observation_spec(
-    cure_actions: Sequence[int],
-) -> Mapping[str, array_spec.BoundedArraySpec]:
-    return {
-        "cure_sequence": array_spec.BoundedArraySpec(
-            shape=(len(cure_actions),),
-            dtype=np.int64,
-            minimum=[0] * len(cure_actions),
-            maximum=[2] * len(cure_actions),
-            name="cure_sequence",
-        ),
-        "position": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=0,
-            maximum=len(cure_actions),
-            name="position",
-        ),
-    }
-
-
-def assert_time_step(output: ts.TimeStep, expected: ts.TimeStep) -> None:
-    assert output.step_type == expected.step_type
-    assert output.reward == expected.reward
-    assert output.discount == expected.discount
-    assert len(output.observation) == len(expected.observation)
-    assert output.observation["cure_sequence"] == expected.observation["cure_sequence"]
-    assert output.observation["position"] == expected.observation["position"]
+def assert_observation(output: Any, expected: Any) -> None:
+    assert len(output) == 2
+    assert output["cure_sequence"] == expected["cure_sequence"]
+    assert output["position"] == expected["position"]

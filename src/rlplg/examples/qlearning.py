@@ -1,26 +1,25 @@
 import copy
 import logging
+import math
 from typing import Callable, Sequence, Tuple
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import time_step as ts
-from tf_agents.trajectories import trajectory
 
+from rlplg import core
+from rlplg.core import NestedArray, TimeStep
 from rlplg.learning.tabular import policies
 
 
 def control(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     num_episodes: int,
-    state_id_fn: Callable[[np.ndarray], int],
+    state_id_fn: Callable[[NestedArray], int],
     initial_qtable: np.ndarray,
     epsilon: float,
     gamma: float,
     alpha: float,
     log_step: int = 100,
-) -> Tuple[py_policy.PyPolicy, np.ndarray]:
+) -> Tuple[core.PyPolicy, np.ndarray]:
     """
     Implements Q-learning, using epsilon-greedy as a collection (behavior) policy.
     """
@@ -30,14 +29,17 @@ def control(
     )
     episode = 0
     while episode < num_episodes:
-        environment.reset()
+        obs, _ = environment.reset()
+        time_step: TimeStep = obs, math.nan, False, False, {}
         step = 0
         transitions = []
         while True:
-            time_step = environment.current_time_step()
-            policy_step = collect_policy.action(time_step)
+            obs, _, truncated, terminated, _ = time_step
+            policy_step = collect_policy.action(obs)
             next_time_step = environment.step(policy_step.action)
-            traj = trajectory.from_transition(time_step, policy_step, next_time_step)
+            traj = core.Trajectory.from_transition(
+                time_step, policy_step, next_time_step
+            )
             transitions.append(traj)
             step += 1
 
@@ -61,8 +63,9 @@ def control(
                 # remove earliest step
                 transitions.pop(0)
 
-            if time_step.step_type == ts.StepType.LAST:
+            if terminated or truncated:
                 break
+            time_step = next_time_step
 
         episode += 1
         if episode % log_step == 0:
@@ -77,10 +80,10 @@ def control(
 
 def _qlearing_step(
     qtable: np.ndarray,
-    state_id_fn: Callable[[np.ndarray], int],
+    state_id_fn: Callable[[NestedArray], int],
     gamma: float,
     alpha: float,
-    experiences: Sequence[trajectory.Trajectory],
+    experiences: Sequence[core.Trajectory],
 ) -> None:
     steps = len(experiences)
 
@@ -91,7 +94,7 @@ def _qlearing_step(
         state_id = state_id_fn(experiences[step].observation)
         next_state_id = state_id_fn(experiences[step + 1].observation)
 
-        state_action_value = qtable[state_id, experiences[step].action]
+        state_action_value = qtable[state_id, experiences[step].action]  # type: ignore
         next_state_actions_values = qtable[next_state_id]
         next_best_action = np.random.choice(
             np.flatnonzero(next_state_actions_values == next_state_actions_values.max())
@@ -105,15 +108,13 @@ def _qlearing_step(
 
 
 def _target_and_collect_policies(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
     state_id_fn: Callable[[np.ndarray], int],
     qtable: np.ndarray,
     epsilon: float,
-) -> Tuple[py_policy.PyPolicy, py_policy.PyPolicy]:
+) -> Tuple[core.PyPolicy, core.PyPolicy]:
     _, num_actions = qtable.shape
     policy = policies.PyQGreedyPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         state_id_fn=state_id_fn,
         action_values=qtable,
     )

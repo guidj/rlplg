@@ -9,9 +9,8 @@ in policy evaluation algorithms.
 """
 import numpy as np
 import pytest
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
 
+from rlplg import core
 from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 from rlplg.learning.tabular.evaluation import onpolicy
@@ -19,8 +18,8 @@ from tests import defaults
 
 
 def test_first_visit_monte_carlo_action_values_with_one_episode(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     At each step, except the last, there are value updates.
@@ -47,12 +46,12 @@ def test_first_visit_monte_carlo_action_values_with_one_episode(
     steps, qtable = next(iter(output))
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -2.8525], [0, -1.95], [0, -1], [0, 0]]
+        qtable, np.array([[0, -2.8525], [0, -1.95], [0, -1], [0, 0]])
     )
 
 
 def test_first_visit_monte_carlo_action_values_with_one_episode_convering_every_action(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
 ):
     """
     At each step, except the last, there are value updates.
@@ -71,8 +70,6 @@ def test_first_visit_monte_carlo_action_values_with_one_episode_convering_every_
     ...
     """
     stochastic_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1],
     )
 
@@ -92,13 +89,15 @@ def test_first_visit_monte_carlo_action_values_with_one_episode_convering_every_
     assert steps == 7
     np.testing.assert_array_almost_equal(
         qtable,
-        [[-29.751219, -20.790756], [-20.832375, -11.4025], [-10.95, -1], [0, 0]],
+        np.array(
+            [[-29.751219, -20.790756], [-20.832375, -11.4025], [-10.95, -1], [0, 0]]
+        ),
     )
 
 
 def test_sarsa_action_values_with_one_episode(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     At each step, except the last, there are value updates.
@@ -127,12 +126,12 @@ def test_sarsa_action_values_with_one_episode(
     steps, qtable = next(iter(output))
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]]
+        qtable, np.array([[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]])
     )
 
 
 def test_sarsa_action_values_with_one_episode_convering_every_action(
-    environment: py_environment.PyEnvironment,
+    environment: core.PyEnvironment,
 ):
     """
     At each step, except the last, there are value updates.
@@ -146,8 +145,6 @@ def test_sarsa_action_values_with_one_episode_convering_every_action(
     ...
     """
     stochastic_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1, 0],
     )
 
@@ -169,13 +166,13 @@ def test_sarsa_action_values_with_one_episode_convering_every_action(
     steps, qtable = next(iter(output))
     assert steps == 7
     np.testing.assert_array_almost_equal(
-        qtable, [[-1, -0.1], [-1, -0.1], [-1, -0.1], [0, 0]]
+        qtable, np.array([[-1, -0.1], [-1, -0.1], [-1, -0.1], [0, 0]])
     )
 
 
 def test_first_visit_monte_carlo_state_values_with_one_episode(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Every (state, action) pair is updated, since
@@ -204,8 +201,8 @@ def test_first_visit_monte_carlo_state_values_with_one_episode(
 
 
 def test_first_visit_monte_carlo_state_values_with_two_episodes(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Every (state, action) pair is updated, since
@@ -241,8 +238,8 @@ def test_first_visit_monte_carlo_state_values_with_two_episodes(
 
 
 def test_one_step_td_state_values_with_one_episode(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Every (state, action) pair is updated, since
@@ -272,8 +269,8 @@ def test_one_step_td_state_values_with_one_episode(
 
 
 def test_one_step_td_state_values_with_two_episodes(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Every (state, action) pair is updated, since
@@ -337,12 +334,8 @@ def constant_learning_rate(initial_lr: float, episode: int, step: int):
 
 
 @pytest.fixture(scope="function")
-def policy(
-    environment: py_environment.PyEnvironment, qtable: np.ndarray
-) -> py_policy.PyPolicy:
+def policy(environment: core.PyEnvironment, qtable: np.ndarray) -> core.PyPolicy:
     return policies.PyQGreedyPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         state_id_fn=defaults.identity,
         action_values=qtable,
         emit_log_probability=True,
@@ -358,7 +351,7 @@ def qtable() -> np.ndarray:
 
 
 @pytest.fixture(scope="function")
-def environment() -> py_environment.PyEnvironment:
+def environment() -> core.PyEnvironment:
     """
     Test environment.
     """

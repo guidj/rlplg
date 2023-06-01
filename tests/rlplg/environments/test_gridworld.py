@@ -3,11 +3,9 @@ from typing import Any, Iterable, Sequence, Tuple
 import hypothesis
 import numpy as np
 import pytest
+from gymnasium import spaces
 from hypothesis import strategies as st
 from PIL import Image as image
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray
 
 from rlplg.environments import gridworld
 from tests.rlplg.environments import grids
@@ -15,46 +13,35 @@ from tests.rlplg.environments import grids
 
 def test_gridworld_init():
     environment = gridworld.GridWorld(size=(4, 12), cliffs=[], exits=[], start=(3, 0))
-
-    assert environment.observation_spec() == {
-        "start": array_spec.BoundedArraySpec(
-            shape=(2,),
-            dtype=np.int64,
-            minimum=np.array([3, 0]),
-            maximum=np.array([3, 0]),
-            name="player",
-        ),
-        "player": array_spec.BoundedArraySpec(
-            shape=(2,),
-            dtype=np.int64,
-            minimum=np.array([0, 0]),
-            maximum=np.array([3, 11]),
-            name="player",
-        ),
-        "cliffs": array_spec.BoundedArraySpec(
-            shape=(0, 2),
-            dtype=np.int64,
-            minimum=np.array([0, 0]),
-            maximum=np.array([3, 11]),
-            name="cliffs",
-        ),
-        "exits": array_spec.BoundedArraySpec(
-            shape=(0, 2),
-            dtype=np.int64,
-            minimum=np.array([0, 0]),
-            maximum=np.array([3, 11]),
-            name="exits",
-        ),
-        "size": array_spec.BoundedArraySpec(
-            shape=(2,),
-            dtype=np.int64,
-            minimum=np.array([4, 12]),
-            maximum=np.array([4, 12]),
-            name="size",
-        ),
-    }
-    assert environment.action_spec() == array_spec.BoundedArraySpec(
-        shape=(), dtype=np.int64, minimum=0, maximum=3, name="action"
+    assert environment.action_space == spaces.Box(low=0, high=3, dtype=np.int64)
+    assert environment.observation_space == spaces.Dict(
+        {
+            "start": spaces.Box(
+                low=np.array([0, 0]),
+                high=np.array([3, 11]),
+                dtype=np.int64,
+            ),
+            "player": spaces.Box(
+                low=np.array([0, 0]),
+                high=np.array([3, 11]),
+                dtype=np.int64,
+            ),
+            "cliffs": spaces.Box(
+                low=np.array([0, 0, 0]),
+                high=np.array([0, 3, 11]),
+                dtype=np.int64,
+            ),
+            "exits": spaces.Box(
+                low=np.array([0, 0, 0]),
+                high=np.array([0, 3, 11]),
+                dtype=np.int64,
+            ),
+            "size": spaces.Box(
+                low=np.array([3, 11]),
+                high=np.array([3, 11]),
+                dtype=np.int64,
+            ),
+        }
     )
 
 
@@ -62,12 +49,10 @@ def test_gridworld_reset():
     environment = gridworld.GridWorld(
         size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
     )
-    step = environment.reset()
-    expected = ts.TimeStep(
-        step_type=ts.StepType.FIRST,
-        reward=0.0,
-        discount=1.0,
-        observation={
+    obs, info = environment.reset()
+    assert_observation(
+        obs,
+        {
             "start": np.array((3, 0), dtype=np.int64),
             "player": np.array((3, 0), dtype=np.int64),
             "cliffs": np.array([], dtype=np.int64),
@@ -75,10 +60,7 @@ def test_gridworld_reset():
             "size": np.array((4, 12), dtype=np.int64),
         },
     )
-    assert step.step_type == expected.step_type
-    assert step.reward == expected.reward
-    assert step.discount == expected.discount
-    assert_observation(step.observation, expected.observation)
+    assert info == {}
 
 
 def test_gridworld_transition_step():
@@ -86,12 +68,10 @@ def test_gridworld_transition_step():
         size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
     )
     environment.reset()
-    step = environment.step(gridworld.UP)
-    expected = ts.TimeStep(
-        step_type=ts.StepType.MID,
-        reward=-1.0,
-        discount=1.0,
-        observation={
+    obs, reward, finished, truncated, info = environment.step(gridworld.UP)
+    assert_observation(
+        obs,
+        {
             "start": np.array((3, 0), dtype=np.int64),
             "player": np.array((2, 0), dtype=np.int64),
             "cliffs": np.array([], dtype=np.int64),
@@ -99,10 +79,10 @@ def test_gridworld_transition_step():
             "size": np.array((4, 12), dtype=np.int64),
         },
     )
-    assert step.step_type == expected.step_type
-    assert step.reward == expected.reward
-    assert step.discount == expected.discount
-    assert_observation(step.observation, expected.observation)
+    assert reward == -1
+    assert finished is False
+    assert truncated is False
+    assert info == {}
 
 
 def test_gridworld_transition_into_cliff():
@@ -110,12 +90,10 @@ def test_gridworld_transition_into_cliff():
         size=(4, 12), cliffs=[(3, 1)], exits=[(3, 11)], start=(3, 0)
     )
     environment.reset()
-    step = environment.step(gridworld.RIGHT)
-    expected = ts.TimeStep(
-        step_type=ts.StepType.MID,
-        reward=-100.0,
-        discount=1.0,
-        observation={
+    obs, reward, terminated, truncated, info = environment.step(gridworld.RIGHT)
+    assert_observation(
+        obs,
+        {
             "start": np.array((3, 0), dtype=np.int64),
             "player": np.array((3, 0), dtype=np.int64),  # sent back to the start
             "cliffs": np.array([(3, 1)], dtype=np.int64),
@@ -123,10 +101,10 @@ def test_gridworld_transition_into_cliff():
             "size": np.array((4, 12), dtype=np.int64),
         },
     )
-    assert step.step_type == expected.step_type
-    assert step.reward == expected.reward
-    assert step.discount == expected.discount
-    assert_observation(step.observation, expected.observation)
+    assert reward == -100.0
+    assert terminated is False
+    assert truncated is False
+    assert info == {}
 
 
 def test_gridworld_final_step():
@@ -134,12 +112,10 @@ def test_gridworld_final_step():
         size=(4, 12), cliffs=[], exits=[(3, 1)], start=(3, 0)
     )
     environment.reset()
-    step = environment.step(gridworld.RIGHT)
-    expected = ts.TimeStep(
-        step_type=ts.StepType.LAST,
-        reward=-1.0,
-        discount=0.0,
-        observation={
+    obs, reward, terminated, truncated, info = environment.step(gridworld.RIGHT)
+    assert_observation(
+        obs,
+        {
             "start": np.array((3, 0), dtype=np.int64),
             "player": np.array((3, 1), dtype=np.int64),
             "cliffs": np.array([], dtype=np.int64),
@@ -147,10 +123,10 @@ def test_gridworld_final_step():
             "size": np.array((4, 12), dtype=np.int64),
         },
     )
-    assert step.step_type == expected.step_type
-    assert step.reward == expected.reward
-    assert step.discount == expected.discount
-    assert_observation(step.observation, expected.observation)
+    assert reward == -1.0
+    assert terminated is True
+    assert truncated is False
+    assert info == {}
 
 
 def test_gridworld_render():
@@ -166,13 +142,13 @@ def test_gridworld_render():
 
 
 def test_gridworld_render_with_unsupported_mode():
-    environment = gridworld.GridWorld(
-        size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
-    )
-    environment.reset()
     for mode in ("human",):
         with pytest.raises(NotImplementedError):
-            environment.render(mode)
+            environment = gridworld.GridWorld(
+                size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0), render_mode=mode
+            )
+            environment.reset()
+            environment.render()
 
 
 def test_gridworld_seed():
@@ -385,7 +361,7 @@ def test_as_grid():
     np.testing.assert_array_equal(output, expected)
 
 
-def assert_observation(output: NestedArray, expected: NestedArray) -> None:
+def assert_observation(output: Any, expected: Any) -> None:
     np.testing.assert_array_equal(output["size"], expected["size"])
     np.testing.assert_array_equal(output["player"], expected["player"])
     np.testing.assert_array_equal(output["start"], expected["start"])

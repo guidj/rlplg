@@ -18,12 +18,10 @@ import math
 from typing import Any, Mapping, Optional, Tuple
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
+from gymnasium import spaces
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, envdesc, envspec, npsci
+from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "StateRandomWalk"
@@ -40,9 +38,9 @@ OBS_KEY_RIGHT_END_REWARD = "right_end_reward"
 OBS_KEY_STEP_REWARD = "step_reward"
 
 
-class StateRandomWalk(py_environment.PyEnvironment):
+class StateRandomWalk(core.PyEnvironment):
     """
-    An environment where an agent is meant to right, until the end.
+    An environment where an agent is meant to go right, until the end.
     The environment can terminate on the last left or right states.
     By default, only the right direction yields a positive reward.
 
@@ -53,14 +51,13 @@ class StateRandomWalk(py_environment.PyEnvironment):
     Terminal states: 0 and 6.
     """
 
-    metadata = {"render.modes": ["raw"]}
-
     def __init__(
         self,
         steps: int,
         left_end_reward: float = LEFT_REWARD,
         right_end_reward: float = RIGHT_REWARD,
         step_reward: float = STEP_REWARD,
+        render_mode: str = "rgb_array",
     ):
         """
         Args:
@@ -76,102 +73,47 @@ class StateRandomWalk(py_environment.PyEnvironment):
         self.left_end_reward = left_end_reward
         self.right_end_reward = right_end_reward
         self.step_reward = step_reward
-        self._action_spec = array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=0,
-            maximum=len(ACTIONS) - 1,
-            name="action",
+        self.render_mode = render_mode
+        self.action_space = spaces.Box(low=0, high=1, dtype=np.int64)
+        self.observation_space = spaces.Dict(
+            {
+                OBS_KEY_POSITION: spaces.Box(low=0, high=steps - 1, dtype=np.int64),
+                OBS_KEY_STEPS: spaces.Box(low=steps, high=steps, dtype=np.int64),
+                OBS_KEY_RIGHT_END_REWARD: spaces.Box(
+                    low=right_end_reward, high=right_end_reward, dtype=np.float32
+                ),
+                OBS_KEY_LEFT_END_REWARD: spaces.Box(
+                    low=left_end_reward, high=left_end_reward, dtype=np.float32
+                ),
+                OBS_KEY_STEP_REWARD: spaces.Box(
+                    low=step_reward, high=step_reward, dtype=np.float32
+                ),
+            }
         )
-        self._observation_spec = {
-            OBS_KEY_POSITION: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=0,
-                maximum=steps - 1,
-                name=OBS_KEY_POSITION,
-            ),
-            OBS_KEY_STEPS: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=steps,
-                maximum=steps,
-                name=OBS_KEY_STEPS,
-            ),
-            OBS_KEY_RIGHT_END_REWARD: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.float32,
-                minimum=np.finfo(np.float32).min,
-                maximum=np.finfo(np.float32).max,
-                name=OBS_KEY_RIGHT_END_REWARD,
-            ),
-            OBS_KEY_LEFT_END_REWARD: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.float32,
-                minimum=np.finfo(np.float32).min,
-                maximum=np.finfo(np.float32).max,
-                name=OBS_KEY_LEFT_END_REWARD,
-            ),
-            OBS_KEY_STEP_REWARD: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.float32,
-                minimum=np.finfo(np.float32).min,
-                maximum=np.finfo(np.float32).max,
-                name=OBS_KEY_STEP_REWARD,
-            ),
-        }
 
         # env specific
-        self._observation: Optional[NestedArray] = None
-        self._seed = None
+        self._observation: Mapping[str, Any] = {}
+        self._seed: Optional[int] = None
 
-    def observation_spec(self) -> NestedArraySpec:
-        """Defines the observations provided by the environment.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._observation_spec
-
-    def action_spec(self) -> NestedArraySpec:
-        """Defines the actions that should be provided to `step()`.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._action_spec
-
-    def _step(self, action: NestedArray) -> ts.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
 
         Args:
-            action: A NumPy array, or a nested dict, list or tuple of arrays
-                corresponding to `action_spec()`.
+            action: A policy's chosen action.
+
         """
-        if self._observation is None:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         new_observation, reward = apply_action(self._observation, action)
         finished = is_finished(new_observation)
         self._observation = new_observation
-        if finished:
-            return ts.termination(
-                observation=copy.deepcopy(self._observation), reward=reward
-            )
-        return ts.transition(
-            observation=copy.deepcopy(self._observation), reward=reward
-        )
+        return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> ts.TimeStep:
+    def _reset(self) -> InitState:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
@@ -182,18 +124,18 @@ class StateRandomWalk(py_environment.PyEnvironment):
             right_end_reward=self.right_end_reward,
             step_reward=self.step_reward,
         )
-        return ts.restart(observation=copy.deepcopy(self._observation))
+        return copy.deepcopy(self._observation), {}
 
-    def render(self, mode="rgb_array") -> Optional[NestedArray]:
-        if self._observation is None:
+    def _render(self) -> RenderType:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
-        if mode == "rgb_array":
+        if self.render_mode == "rgb_array":
             return state_representation(self._observation)
-        return super().render(mode)
+        return super()._render()
 
-    def seed(self, seed: Seed = None) -> Any:
+    def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -221,9 +163,7 @@ class StateRandomWalkMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-def apply_action(
-    observation: NestedArray, action: NestedArray
-) -> Tuple[NestedArray, float]:
+def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
     """
     Computes a new observation and reward given the current state and action.
 
@@ -332,7 +272,7 @@ def get_state_id(observation: Mapping[str, Any]) -> int:
     return state_id
 
 
-def state_representation(observation: Mapping[str, Any]) -> NestedArray:
+def state_representation(observation: Mapping[str, Any]) -> np.ndarray:
     """
     An array view of the state, where the position of the
     agent is marked with an 1.

@@ -1,8 +1,10 @@
+"""
+This module has spec definition for environments.
+"""
+
 import dataclasses
 
-from tf_agents.environments import py_environment
-
-from rlplg import envdesc
+from rlplg import core, envdesc
 from rlplg.learning.tabular import markovdp
 
 
@@ -14,6 +16,6 @@ class EnvSpec:
 
     name: str
     level: str
-    environment: py_environment.PyEnvironment
+    environment: core.PyEnvironment
     discretizer: markovdp.MdpDiscretizer
     env_desc: envdesc.EnvDesc

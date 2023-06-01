@@ -3,47 +3,40 @@ Policy utility functions.
 """
 
 import logging
-from typing import Any, Callable, Iterable, Optional, Set
+from typing import Any, Callable, Iterable, Optional, Set, Union
 
 import numpy as np
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import time_step as ts
-from tf_agents.trajectories import trajectory
+from numpy.typing import DTypeLike
+
+from rlplg import core
 
 
-def policy_prob_fn(policy: py_policy.PyPolicy, traj: trajectory.Trajectory) -> float:
+def policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
     """The policy we're evaluating is assumed to be greedy w.r.t. Q(s, a).
     So the best action has probability 1.0, and all the others 0.0.
     """
-
-    time_step = ts.TimeStep(
-        step_type=traj.step_type,
-        reward=traj.reward,
-        discount=traj.discount,
-        observation=traj.observation,
-    )
-    policy_step = policy.action(time_step)
-    prob: float = np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
+    policy_step = policy.action(traj.observation)
+    prob: float = np.where(
+        np.array_equal(policy_step.action, traj.action), 1.0, 0.0
+    ).item()
     return prob
 
 
-def collect_policy_prob_fn(
-    policy: py_policy.PyPolicy, traj: trajectory.Trajectory
-) -> float:
+def collect_policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
     """The behavior policy is assumed to be fixed over the evaluation window.
     We log probabilities when choosing actions, so we can just use that information.
     For a random policy on K arms, log_prob = log(1/K).
     We just have to return exp(log_prob).
     """
     del policy
-    prob: float = np.math.exp(traj.policy_info.log_probability)
+    prob: float = np.exp(traj.policy_info["log_probability"])
     return prob
 
 
 def initial_table(
     num_states: int,
     num_actions: int,
-    dtype: np.dtype = np.float32,
+    dtype: DTypeLike = np.float32,
     random: bool = False,
     terminal_states: Optional[Set[int]] = None,
 ) -> np.ndarray:
@@ -74,10 +67,10 @@ def chain_map(inputs: Any, funcs: Iterable[Callable[[Any], Any]]):
             return inputs
 
 
-def nan_or_inf(array: np.ndarray) -> bool:
+def nan_or_inf(array: Union[np.ndarray, int, float]) -> bool:
     """
     Checks if an array has `nan` or `inf` values.
     """
-    is_nan: bool = np.any(np.isnan(array))
-    is_inf: bool = np.any(np.isinf(array))
+    is_nan: bool = np.any(np.isnan(array)).item()
+    is_inf: bool = np.any(np.isinf(array)).item()
     return is_nan or is_inf

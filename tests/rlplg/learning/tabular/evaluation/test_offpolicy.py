@@ -6,11 +6,8 @@ We ignore that in some tests to verify the computation.
 """
 import numpy as np
 import pytest
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import time_step as ts
-from tf_agents.trajectories import trajectory
 
+from rlplg import core
 from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 from rlplg.learning.tabular.evaluation import offpolicy
@@ -18,8 +15,8 @@ from tests import defaults
 
 
 def test_monte_carlo_action_values_with_one_episode(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Every (state, action) pair is updated, since
@@ -50,8 +47,8 @@ def test_monte_carlo_action_values_with_one_episode(
 
 
 def test_monte_carlo_action_values_with_two_episodes(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Every (state, action) pair is updated, since
@@ -87,8 +84,8 @@ def test_monte_carlo_action_values_with_two_episodes(
 
 
 def test_monte_carlo_action_values_with_one_episode_covering_every_action(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Only the last two state-action pairs are updated because
@@ -97,8 +94,6 @@ def test_monte_carlo_action_values_with_one_episode_covering_every_action(
     """
 
     collect_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1],
     )
     results = offpolicy.monte_carlo_action_values(
@@ -141,8 +136,8 @@ def test_monte_carlo_action_values_step_with_reward_discount():
 
 
 def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Each step value updates.
@@ -171,13 +166,13 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
     steps, qtable = next(iter(output))
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]]
+        qtable, np.array([[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]])
     )
 
 
 def test_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Every step is updated after n+2 steps, so the final step isn't updated.
@@ -205,26 +200,24 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
     steps, qtable = next(output_iter)
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -0.195], [0, -0.195], [0, -0.1], [0, 0]]
+        qtable, np.array([[0, -0.195], [0, -0.195], [0, -0.1], [0, 0]])
     )
     steps, qtable = next(output_iter)
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, [[0, -0.379525], [0, -0.3705], [0, -0.19], [0, 0]]
+        qtable, np.array([[0, -0.379525], [0, -0.3705], [0, -0.19], [0, 0]])
     )
 
 
 def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every_action(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     Every step preceding a correct step is updated.
     Every step following a mistep isn't.
     """
     collect_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1],
     )
 
@@ -249,19 +242,19 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every
     assert len(output) == 1
     steps, qtable = next(iter(output))
     assert steps == 7
-    np.testing.assert_array_almost_equal(qtable, [[-2, 0], [-2, 0], [-2, -0.2], [0, 0]])
+    np.testing.assert_array_almost_equal(
+        qtable, np.array([[-2, 0], [-2, 0], [-2, -0.2], [0, 0]])
+    )
 
 
 def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_every_action(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
 ):
     """
     No step gets updated.
     """
     collect_policy = defaults.RoundRobinActionsPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         actions=[0, 1, 0, 1, 0, 1],
     )
 
@@ -287,36 +280,26 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_ever
     steps, qtable = next(iter(output))
     assert steps == 7
     np.testing.assert_array_almost_equal(
-        qtable, [[0, 0], [0, 0], [-4.38, -0.2], [0, 0]]
+        qtable, np.array([[0, 0], [0, 0], [-4.38, -0.2], [0, 0]])
     )
 
 
-def policy_prob_fn(policy: py_policy.PyPolicy, traj: trajectory.Trajectory) -> float:
+def policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
     """The policy we're evaluating is assumed to be greedy w.r.t. Q(s, a).
     So the best action has probability 1.0, and all the others 0.0.
     """
-
-    time_step = ts.TimeStep(
-        step_type=traj.step_type,
-        reward=traj.reward,
-        discount=traj.discount,
-        observation=traj.observation,
-    )
-    policy_step = policy.action(time_step)
-    prob: float = np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0)
-    return prob
+    policy_step = policy.action(observation=traj.observation)
+    return np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0).item()  # type: ignore
 
 
-def collect_policy_prob_fn(
-    policy: py_policy.PyPolicy, traj: trajectory.Trajectory
-) -> float:
+def collect_policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
     """The behavior policy is assumed to be fixed over the evaluation window.
     We log probabilities when choosing actions, so we can just use that information.
     For a random policy on K arms, log_prob = log(1/K).
     We just have to return exp(log_prob).
     """
     del policy
-    prob: float = np.math.exp(traj.policy_info.log_probability)
+    prob: float = np.exp(traj.policy_info["log_probability"])
     return prob
 
 
@@ -327,15 +310,11 @@ def constant_learning_rate(initial_lr: float, episode: int, step: int):
 
 
 @pytest.fixture(scope="function")
-def policy(
-    environment: py_environment.PyEnvironment, qtable: np.ndarray
-) -> py_policy.PyPolicy:
+def policy(qtable: np.ndarray) -> core.PyPolicy:
     """
     Creates a greedy policy using a table.
     """
     return policies.PyQGreedyPolicy(
-        time_step_spec=environment.time_step_spec(),
-        action_spec=environment.action_spec(),
         state_id_fn=defaults.identity,
         action_values=qtable,
         emit_log_probability=True,
@@ -351,7 +330,7 @@ def qtable() -> np.ndarray:
 
 
 @pytest.fixture(scope="function")
-def environment() -> py_environment.PyEnvironment:
+def environment() -> core.PyEnvironment:
     """
     Test environment.
     """

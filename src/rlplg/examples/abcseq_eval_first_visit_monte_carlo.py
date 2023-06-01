@@ -47,8 +47,6 @@ def main(args: Args):
     env_spec = envsuite.load(name="ABCSeq", length=args.num_letters)
     gamma = 0.99
     policy = policies.PyRandomPolicy(
-        time_step_spec=env_spec.environment.time_step_spec(),
-        action_spec=env_spec.environment.action_spec(),
         num_actions=env_spec.env_desc.num_actions,
         emit_log_probability=False,
     )

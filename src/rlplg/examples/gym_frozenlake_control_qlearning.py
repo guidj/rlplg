@@ -6,10 +6,10 @@ https://www.gymlibrary.ml/environments/toy_text/cliff_walking/
 import argparse
 import dataclasses
 import logging
-
-from tf_agents.trajectories import time_step as ts
+import math
 
 from rlplg import envsuite, npsci
+from rlplg.core import TimeStep
 from rlplg.examples import factories, qlearning, rendering
 
 
@@ -42,7 +42,7 @@ def main(args: Args):
     Entry point.
     """
     # Init env and policy
-    env_spec = envsuite.load("FrozenLake-v1")
+    env_spec = envsuite.load("FrozenLake-v1", render_mode="human")
     episode = 0
     # Policy Control with Q-learning
     learned_policy, qtable = qlearning.control(
@@ -62,16 +62,17 @@ def main(args: Args):
     logging.info("\n%s", rendering.vis_learned_array(qtable))
     # play N times
     for episode in range(args.play_episodes):
-        time_step = env_spec.environment.reset()
-        policy_state = learned_policy.get_initial_state(None)
+        obs, _ = env_spec.environment.reset()
+        policy_state = learned_policy.get_initial_state()
+        time_step: TimeStep = obs, math.nan, False, False, {}
         steps = 0
         while True:
-            policy_step = learned_policy.action(time_step, policy_state)
-            policy_state = policy_step.state
-            time_step = env_spec.environment.step(policy_step.action)
+            obs, _, terminated, truncated, _ = time_step
+            policy_step = learned_policy.action(obs, policy_state)
+            next_time_step = env_spec.environment.step(policy_step.action)
 
-            logging.info(env_spec.environment.render(mode="human"))
-            if time_step.step_type == ts.StepType.LAST:
+            logging.info(env_spec.environment.render())
+            if terminated or truncated:
                 logging.info("Completed episode %d", episode + 1)
                 break
 
@@ -81,6 +82,8 @@ def main(args: Args):
                     "Stopping game play - policy doesn't solve the problem!"
                 )
                 break
+            policy_state = policy_step.state
+            time_step = next_time_step
 
     env_spec.environment.close()
 

@@ -1,10 +1,9 @@
 import copy
-from typing import Callable, Tuple
+from typing import Any, Callable, Tuple
 
 import hypothesis
 import numpy as np
 from hypothesis import strategies as st
-from tf_agents.typing.types import NestedArray
 
 from rlplg.learning.approx import modelspec
 
@@ -15,7 +14,7 @@ class ProviderValueFn(modelspec.ValueFnModel):
     at instantiation.
     """
 
-    def __init__(self, value_fn: Callable[[NestedArray], float]):
+    def __init__(self, value_fn: Callable[[Any], float]):
         self._value_fn = value_fn
         self._weights = None
 
@@ -28,7 +27,7 @@ class ProviderValueFn(modelspec.ValueFnModel):
             0.0 if inputs.is_terminal_state is True else self._value_fn(inputs.features)
         )
 
-    def gradients(self, inputs: modelspec.ValueFnInputs) -> NestedArray:
+    def gradients(self, inputs: modelspec.ValueFnInputs) -> Any:
         """
         Computes the gradients of the output
         with respect to the weights.
@@ -37,20 +36,20 @@ class ProviderValueFn(modelspec.ValueFnModel):
 
     def predict_and_gradients(
         self, inputs: modelspec.ValueFnInputs
-    ) -> Tuple[float, NestedArray]:
+    ) -> Tuple[float, Any]:
         """
         Computes prediction and gradients of the
         weights for the prediction.
         """
         return self.predict(inputs), self.gradients(inputs)
 
-    def weights(self) -> NestedArray:
+    def weights(self) -> Any:
         """
         Returns the current weights of the model.
         """
         return self._weights
 
-    def assign_weights(self, weights: NestedArray) -> None:
+    def assign_weights(self, weights: Any) -> None:
         """
         Assigns new values to the model weights.
         """
@@ -100,7 +99,7 @@ def test_approx_fn_weights():
     assert approx_fn.weights() == 100.0
 
 
-def pre_proc(observation: NestedArray) -> modelspec.ValueFnInputs:
+def pre_proc(observation: Any) -> modelspec.ValueFnInputs:
     """
     Negative states are terminal.
     """
@@ -109,12 +108,12 @@ def pre_proc(observation: NestedArray) -> modelspec.ValueFnInputs:
     )
 
 
-def create_state_values_fn() -> Callable[[NestedArray], float]:
+def create_state_values_fn() -> Callable[[Any], float]:
     """
     Static values for a hypothetical environment.
     """
 
-    def value_fn(features: NestedArray) -> float:
+    def value_fn(features: Any) -> float:
         value: float = features**2.0
         return value
 

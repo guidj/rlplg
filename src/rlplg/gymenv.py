@@ -2,7 +2,7 @@ import base64
 import hashlib
 from typing import Any, Mapping
 
-from tf_agents.environments import suite_gym
+import gymnasium as gym
 
 from rlplg import envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
@@ -34,17 +34,10 @@ def create_env_spec(name: str, **kwargs: Mapping[str, Any]) -> envspec.EnvSpec:
     """
     Creates an env spec from a gridworld config.
     """
-    environment = suite_gym.load(name, **kwargs)
+    environment = gym.make(name, **kwargs)
     discretizer = GymEnvMdpDiscretizer()
-    num_states = (
-        environment.observation_spec().maximum
-        - environment.observation_spec().minimum
-        + 1
-    )
-    num_actions = (
-        environment.action_spec().maximum - environment.action_spec().minimum + 1
-    )
-    env_desc = envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
+    # TODO: infer or drop `EnvDesc` from EnvSpec
+    env_desc = envdesc.EnvDesc(num_states=0, num_actions=0)
     return envspec.EnvSpec(
         name=name,
         level=__encode_env(**kwargs),

@@ -2,14 +2,9 @@ import copy
 from typing import Any, Optional, Sequence
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import policy_step
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
-from rlplg import envdesc
+from rlplg import core, envdesc
+from rlplg.core import InitState, ObsType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 GRID_WIDTH = 5
@@ -23,23 +18,7 @@ ACTOR_COLOR = (75, 25, 50)
 EXIT_COLOR = (255, 204, 0)
 
 
-class BasePyEnv(py_environment.PyEnvironment):
-    """
-    A base class for test environments.
-    """
-
-    def __init__(self, action_spec: NestedArraySpec, observation_spec: NestedArraySpec):
-        self._action_spec = action_spec
-        self._observation_spec = observation_spec
-
-    def observation_spec(self) -> NestedArraySpec:
-        return self._observation_spec
-
-    def action_spec(self) -> NestedArraySpec:
-        return self._action_spec
-
-
-class CountEnv(BasePyEnv):
+class CountEnv(core.PyEnvironment):
     """
     Choose between moving forward or stopping, until we reach 3, starting from zero.
         - States: 0, 1, 2, 3 (terminal)
@@ -64,36 +43,22 @@ class CountEnv(BasePyEnv):
     RIGHT_MOVE_REWARD = -1.0
 
     def __init__(self):
-        super().__init__(
-            action_spec=array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=0,
-                maximum=1,
-                name="action",
-            ),
-            observation_spec=array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=0,
-                name="observation",
-            ),
-        )
+        super().__init__()
         # env specific
-        self._observation: Optional[np.ndarray] = None
+        self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
 
-    def _step(self, action: NestedArray) -> ts.TimeStep:
-        """Updates the environment according to action and returns a `TimeStep`.
+    def _step(self, action: Any) -> TimeStep:
+        """
+        Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
 
         Args:
-        action: A NumPy array, or a nested dict, list or tuple of arrays
-            corresponding to `action_spec()`.
+            action: A policy's chosen action.
         """
 
-        if self._observation is None:
+        if np.size(self._observation) == 0:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -115,21 +80,16 @@ class CountEnv(BasePyEnv):
 
         self._observation = new_obs
         finished = np.array_equal(new_obs, self.MAX_VALUE)
-        if finished:
-            return ts.termination(
-                observation=copy.deepcopy(self._observation), reward=reward
-            )
-        return ts.transition(
-            observation=copy.deepcopy(self._observation), reward=reward
-        )
+        return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> ts.TimeStep:
-        """Starts a new sequence, returns the first `TimeStep` of this sequence.
+    def _reset(self) -> InitState:
+        """
+        Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
         self._observation = np.array(0, np.int64)
-        return ts.restart(observation=self._observation)
+        return copy.deepcopy(self._observation), {}
 
 
 class CountEnvMDP(markovdp.MDP):
@@ -137,9 +97,7 @@ class CountEnvMDP(markovdp.MDP):
     Markov decision process definition for CountEnv.
     """
 
-    def transition_probability(
-        self, state: NestedArray, action: NestedArray, next_state: NestedArray
-    ) -> float:
+    def transition_probability(self, state: Any, action: Any, next_state: Any) -> float:
         """
         Given a state s, action a, and next state s' returns a transition probability.
         Args:
@@ -161,9 +119,7 @@ class CountEnvMDP(markovdp.MDP):
             return 1.0
         return 0.0
 
-    def reward(
-        self, state: NestedArray, action: NestedArray, next_state: NestedArray
-    ) -> float:
+    def reward(self, state: Any, action: Any, next_state: Any) -> float:
         """
         Given a state s, action a, and next state s' returns the expected reward.
 
@@ -174,6 +130,7 @@ class CountEnvMDP(markovdp.MDP):
         Returns
             A transition probability.
         """
+        del next_state
         if state == CountEnv.MAX_VALUE:
             return 0.0
         elif action == CountEnv.ACTION_NOTHING:
@@ -188,87 +145,73 @@ class CountEnvMDP(markovdp.MDP):
         return envdesc.EnvDesc(num_states=4, num_actions=2)
 
 
-class SingleStateEnv(BasePyEnv):
+class SingleStateEnv(core.PyEnvironment):
     """
     An environment that remains in a perpetual state.
     """
 
     def __init__(self, num_actions: int):
         assert num_actions > 0, "`num_actios` must be positive."
+        super().__init__()
         self.num_actions = num_actions
-        super().__init__(
-            action_spec=array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=0,
-                maximum=num_actions,
-                name="action",
-            ),
-            observation_spec=array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=0,
-                maximum=0,
-                name="observation",
-            ),
-        )
 
         # env specific
-        self._observation: Optional[np.ndarray] = None
+        self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
 
-    def _step(self, action: NestedArray) -> ts.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
 
         Args:
-        action: A NumPy array, or a nested dict, list or tuple of arrays
-            corresponding to `action_spec()`.
+            action: A policy's chosen action.
         """
 
         # none
         if not (0 <= action < self.num_actions):
             raise ValueError(f"Unknown action {action}")
-        return ts.transition(observation=copy.deepcopy(self._observation), reward=0.0)
+        return copy.deepcopy(self._observation), 0.0, False, False, {}
 
-    def _reset(self) -> ts.TimeStep:
+    def _reset(self) -> InitState:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
         self._observation = np.array(0, np.int64)
-        return ts.restart(observation=self._observation)
+        return copy.deepcopy(self._observation), {}
 
 
-class RoundRobinActionsPolicy(py_policy.PyPolicy):
+class RoundRobinActionsPolicy(core.PyPolicy):
     """
     Chooses a sequence of actions provided in the constructor, forever.
     """
 
     def __init__(
         self,
-        time_step_spec: ts.TimeStep,
-        action_spec: NestedArraySpec,
         actions: Sequence[Any],
     ):
-        super().__init__(time_step_spec, action_spec)
+        super().__init__()
         self._counter = 0
         self._actions = actions
         self._iterator = iter(actions)
         self.emit_log_probability = True
 
+    def _get_initial_state(self, batch_size: Optional[int]) -> Any:
+        del batch_size
+        return ()
+
     def _action(
         self,
-        time_step: ts.TimeStep,
-        policy_state: NestedArray,
-        seed: Optional[Seed] = None,
-    ) -> policy_step.PolicyStep:
+        observation: ObsType,
+        policy_state: Any,
+        seed: Optional[int] = None,
+    ) -> core.PolicyStep:
         """
         Takes the current time step (which includes the environment feedback)
         """
-        del time_step, policy_state, seed
-        state, info = (), policy_step.PolicyInfo(log_probability=np.math.log(0.5))
+        del observation, policy_state, seed
+        state, info = (), {"log_probability": np.log(0.5)}
 
         try:
             action = next(self._iterator)
@@ -276,7 +219,7 @@ class RoundRobinActionsPolicy(py_policy.PyPolicy):
             self._iterator = iter(self._actions)
             action = next(self._iterator)
 
-        return policy_step.PolicyStep(np.array(action, dtype=np.int64), state, info)
+        return core.PolicyStep(np.array(action, dtype=np.int64), state, info)
 
 
 def identity(value: Any) -> Any:
@@ -314,19 +257,4 @@ def policy_info(log_probability: float):
     """
     Creates a policy_step.PolicyInfo instance from a given log_probability.
     """
-    return policy_step.PolicyInfo(log_probability=log_probability)
-
-
-def log_prob_policy_info_spec() -> array_spec.BoundedArraySpec:
-    """
-    Creates policy_step.PolicyInfo spec.
-    """
-    return policy_step.PolicyInfo(
-        log_probability=array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.float32,
-            maximum=0,
-            minimum=-float("inf"),
-            name="log_probability",
-        )
-    )
+    return {"log_probability": log_probability}

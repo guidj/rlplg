@@ -36,15 +36,13 @@ Teacher policy: optimize to make as fewer changes on the student policy
 import base64
 import copy
 import hashlib
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
-from tf_agents.environments import py_environment
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
+from gymnasium import spaces
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, envdesc, envspec, npsci
+from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "RedGreenSeq"
@@ -58,15 +56,13 @@ OBS_KEY_CURE_SEQUENCE = "cure_sequence"
 OBS_KEY_POSITION = "position"
 
 
-class RedGreenSeq(py_environment.PyEnvironment):
+class RedGreenSeq(core.PyEnvironment):
     """
     An environment where an agent is meant to follow a pre-defined
     sequence of actions.
     """
 
-    metadata = {"render.modes": ["raw"]}
-
-    def __init__(self, cure: Sequence[str]):
+    def __init__(self, cure: Sequence[str], render_mode: str = "rgb_array"):
         """
         Args:
             cure_sequence: sequence of actions to take to cure a patient.
@@ -78,100 +74,60 @@ class RedGreenSeq(py_environment.PyEnvironment):
             raise ValueError(f"Cure sequence should be longer than one: {len(cure)}")
 
         self.cure_sequence = [ACTION_NAME_MAPPING[action] for action in cure]
-        self._action_spec = array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=0,
-            maximum=len(ACTIONS) - 1,
-            name="action",
+        self.render_mode = render_mode
+        self.action_space = spaces.Box(low=0, high=len(ACTIONS) - 1, dtype=np.int64)
+        self.observation_space = spaces.Dict(
+            {
+                OBS_KEY_CURE_SEQUENCE: spaces.Box(
+                    low=np.zeros(len(self.cure_sequence)),
+                    high=np.array([len(ACTIONS) - 1] * len(self.cure_sequence)),
+                    dtype=np.int64,
+                ),
+                OBS_KEY_POSITION: spaces.Box(
+                    low=0, high=len(self.cure_sequence), dtype=np.int64
+                ),
+            }
         )
-        self._observation_spec = {
-            OBS_KEY_CURE_SEQUENCE: array_spec.BoundedArraySpec(
-                shape=(len(self.cure_sequence),),
-                dtype=np.int64,
-                minimum=np.array([min(ACTIONS)] * len(cure)),
-                maximum=np.array([max(ACTIONS)] * len(cure)),
-                name=OBS_KEY_CURE_SEQUENCE,
-            ),
-            OBS_KEY_POSITION: array_spec.BoundedArraySpec(
-                shape=(),
-                dtype=np.int64,
-                minimum=0,
-                maximum=len(cure),
-                name=OBS_KEY_POSITION,
-            ),
-        }
 
         # env specific
-        self._observation: Optional[NestedArray] = None
-        self._seed = None
+        self._observation: Mapping[str, Any] = {}
+        self._seed: Optional[int] = None
 
-    def observation_spec(self) -> NestedArraySpec:
-        """Defines the observations provided by the environment.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._observation_spec
-
-    def action_spec(self) -> NestedArraySpec:
-        """Defines the actions that should be provided to `step()`.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._action_spec
-
-    def _step(self, action: NestedArray) -> ts.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
 
         Args:
-            action: A NumPy array, or a nested dict, list or tuple of arrays
-                corresponding to `action_spec()`.
+            action: A policy's chosen action.
         """
-        if self._observation is None:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         new_observation, reward = apply_action(self._observation, action)
-
         finished = is_finished(new_observation)
-
         self._observation = new_observation
-        if finished:
-            return ts.termination(
-                observation=copy.deepcopy(self._observation), reward=reward
-            )
-        return ts.transition(
-            observation=copy.deepcopy(self._observation), reward=reward
-        )
+        return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> ts.TimeStep:
+    def _reset(self) -> InitState:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
         self._observation = beginning_state(self.cure_sequence)
-        return ts.restart(observation=copy.deepcopy(self._observation))
+        return copy.deepcopy(self._observation), {}
 
-    def render(self, mode="rgb_array") -> Optional[NestedArray]:
-        if self._observation is None:
+    def _render(self) -> RenderType:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
-        if mode == "rgb_array":
+        if self.render_mode == "rgb_array":
             return state_representation(self._observation)
-        return super().render(mode)
+        return super()._render()
 
-    def seed(self, seed: Seed = None) -> Any:
+    def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -199,9 +155,7 @@ class RedGreenMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-def apply_action(
-    observation: NestedArray, action: NestedArray
-) -> Tuple[NestedArray, float]:
+def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
     """
     Computes a new observation and reward given the current state and action.
 
@@ -259,7 +213,7 @@ def beginning_state(cure_sequence: Sequence[int]):
     }
 
 
-def is_finished(observation: NestedArray) -> bool:
+def is_finished(observation: Any) -> bool:
     """
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
@@ -267,8 +221,7 @@ def is_finished(observation: NestedArray) -> bool:
     # does that fact that we just went into the
     # terminal state matter? No
     terminal_state = len(observation[OBS_KEY_CURE_SEQUENCE])
-    is_finished_: bool = observation[OBS_KEY_POSITION] == terminal_state
-    return is_finished_
+    return observation[OBS_KEY_POSITION] == terminal_state  # type: ignore
 
 
 def create_env_spec(cure: Sequence[str]) -> envspec.EnvSpec:
@@ -295,7 +248,7 @@ def __encode_env(cure: Sequence[str]) -> str:
     return base64.b32encode(hashing.digest()).decode("UTF-8")
 
 
-def get_state_id(observation: NestedArray) -> int:
+def get_state_id(observation: Any) -> int:
     """
     Computes an integer ID that represents that state.
     """
@@ -303,7 +256,7 @@ def get_state_id(observation: NestedArray) -> int:
     return state_id
 
 
-def state_observation(cure_sequence: Sequence[int], state_id: int) -> NestedArray:
+def state_observation(cure_sequence: Sequence[int], state_id: int) -> Mapping[str, Any]:
     """
     Generates a state observation, given an interger ID and the cure sequence.
 
@@ -320,7 +273,7 @@ def state_observation(cure_sequence: Sequence[int], state_id: int) -> NestedArra
     }
 
 
-def state_representation(observation: NestedArray) -> Sequence[int]:
+def state_representation(observation: Any) -> Sequence[int]:
     """
     An array view of the state, where successful steps are marked
     with 1s and missing steps are marked with a 0.

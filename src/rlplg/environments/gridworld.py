@@ -17,7 +17,6 @@ import contextlib
 import copy
 import hashlib
 import io
-import logging
 import os
 import os.path
 import sys
@@ -26,13 +25,11 @@ from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 import tensorflow as tf
+from gymnasium import spaces
 from PIL import Image as image
-from tf_agents.environments import py_environment
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray, NestedArraySpec, Seed
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, envdesc, envspec, npsci
+from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "GridWorld"
@@ -73,12 +70,11 @@ class Strings:
     start = "start"
 
 
-class GridWorld(py_environment.PyEnvironment):
+class GridWorld(core.PyEnvironment):
     """
     GridWorld environment.
     """
 
-    metadata = {"render.modes": ["rgb_array"]}
     _num_layers = 3
 
     def __init__(
@@ -87,10 +83,12 @@ class GridWorld(py_environment.PyEnvironment):
         cliffs: Sequence[Tuple[int, int]],
         exits: Sequence[Tuple[int, int]],
         start: Tuple[int, int],
+        render_mode: str = "rgb_array",
     ):
         super().__init__()
         assert_dimensions(size=size, start=start, cliffs=cliffs, exits=exits)
         assert_starting_grid(start=start, cliffs=cliffs, exits=exits)
+        self.render_mode = render_mode
         self._height, self._width = size
         self._size = size
         self._start = start
@@ -98,103 +96,60 @@ class GridWorld(py_environment.PyEnvironment):
         self._exits = set(exits)
 
         # left, right, up, down
-        self._action_spec = array_spec.BoundedArraySpec(
-            shape=(), dtype=np.int64, minimum=0, maximum=3, name="action"
+        self.action_space = spaces.Box(low=0, high=3, dtype=np.int64)
+        self.observation_space = spaces.Dict(
+            {
+                "start": spaces.Box(
+                    low=np.array([0, 0]),
+                    high=np.array([self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+                "player": spaces.Box(
+                    low=np.array([0, 0]),
+                    high=np.array([self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+                "cliffs": spaces.Box(
+                    low=np.array([0, 0, 0]),
+                    high=np.array([0, self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+                "exits": spaces.Box(
+                    low=np.array([0, 0, 0]),
+                    high=np.array([0, self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+                "size": spaces.Box(
+                    low=np.array([self._height - 1, self._width - 1]),
+                    high=np.array([self._height - 1, self._width - 1]),
+                    dtype=np.int64,
+                ),
+            }
         )
-        self._observation_spec = {
-            "start": array_spec.BoundedArraySpec(
-                shape=(2,),
-                dtype=np.int64,
-                minimum=np.array(start),
-                maximum=np.array(start),
-                name="start",
-            ),
-            "player": array_spec.BoundedArraySpec(
-                shape=(2,),
-                dtype=np.int64,
-                minimum=np.zeros(shape=(2,)),
-                maximum=np.array([dim - 1 for dim in size]),
-                name="player",
-            ),
-            "cliffs": array_spec.BoundedArraySpec(
-                shape=(len(cliffs), 2),
-                dtype=np.int64,
-                # these aren't exact, just theoretical
-                # for the dims of the grid
-                minimum=np.zeros(shape=(2,)),
-                maximum=np.array([dim - 1 for dim in size]),
-                name="cliffs",
-            ),
-            "exits": array_spec.BoundedArraySpec(
-                shape=(len(exits), 2),
-                dtype=np.int64,
-                # these aren't exact, just theoretical
-                # for the dims of the grid
-                minimum=np.zeros(shape=(2,)),
-                maximum=np.array([dim - 1 for dim in size]),
-                name="exits",
-            ),
-            "size": array_spec.BoundedArraySpec(
-                shape=(2,),
-                dtype=np.int64,
-                minimum=np.array(size),
-                maximum=np.array(size),
-                name="exits",
-            ),
-        }
 
         # env specific
-        self._observation: Optional[NestedArray] = None
-        self._seed = None
+        self._observation: Mapping[str, Any] = {}
+        self._seed: Optional[int] = None
 
-    def observation_spec(self) -> NestedArraySpec:
-        """Defines the observations provided by the environment.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._observation_spec
-
-    def action_spec(self) -> NestedArraySpec:
-        """Defines the actions that should be provided to `step()`.
-
-        May use a subclass of `ArraySpec` that specifies additional properties such
-        as min and max bounds on the values.
-
-        Returns:
-          An `ArraySpec`, or a nested dict, list or tuple of `ArraySpec`s.
-        """
-        return self._action_spec
-
-    def _step(self, action: NestedArray) -> ts.TimeStep:
+    def _step(self, action: Any) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
 
         Args:
-        action: A NumPy array, or a nested dict, list or tuple of arrays
-            corresponding to `action_spec()`.
+            action: A policy's chosen action.
         """
-        if self._observation is None:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         next_observation, reward = apply_action(self._observation, action)
-
         self._observation = next_observation
-        if coord_from_array(self._observation[Strings.player]) in self._exits:
-            return ts.termination(
-                observation=copy.deepcopy(self._observation), reward=reward
-            )
-        return ts.transition(
-            observation=copy.deepcopy(self._observation), reward=reward
-        )
+        finished = coord_from_array(self._observation[Strings.player]) in self._exits
+        return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> ts.TimeStep:
-        """Starts a new sequence, returns the first `TimeStep` of this sequence.
+    def _reset(self) -> InitState:
+        """Starts a new sequence, returns the `InitState` for this environment.
 
         See `reset(self)` docstring for more details
         """
@@ -206,18 +161,18 @@ class GridWorld(py_environment.PyEnvironment):
             cliffs=tuple(self._cliffs),
             exits=tuple(self._exits),
         )
-        return ts.restart(observation=copy.deepcopy(self._observation))
+        return copy.deepcopy(self._observation), {}
 
-    def render(self, mode="rgb_array") -> Optional[NestedArray]:
-        if self._observation is None:
+    def _render(self) -> RenderType:
+        if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
-        if mode == "rgb_array":
+        if self.render_mode == "rgb_array":
             return as_grid(self._observation)
-        return super().render(mode)
+        return super()._render()
 
-    def seed(self, seed: Seed = None) -> Any:
+    def seed(self, seed: Optional[int] = None) -> Any:
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -264,22 +219,16 @@ class GridWorldRenderer:
             BlueMoonSprites(sprites_dir) if sprites_dir is not None else None
         )
         self.viewer: Optional[Any] = None
-        try:
-            from gym.envs.classic_control import rendering
-
-            self.viewer = rendering.SimpleImageViewer()
-        except ImportError as err:
-            logging.error(err)
-            logging.info("Proceeding without rendering")
+        raise NotImplementedError("Rendering not supported!")
 
     def render(
         self,
         mode: str,
         observation: np.ndarray,
-        last_move: Optional[NestedArray],
+        last_move: Optional[Any],
         caption: Optional[str],
         sleep: Optional[float] = 0.05,
-    ):
+    ) -> Any:
         """
         Args:
             mode: the rendering mode
@@ -289,13 +238,14 @@ class GridWorldRenderer:
             sleep: time between rendering frames
         """
         assert mode in self.metadata["render.modes"]
-
+        if sleep is not None and sleep > 0:
+            time.sleep(sleep)
         if mode == "raw":
-            output = observation
+            return observation
         elif mode == "rgb_array":
             if self.sprites is None:
                 raise RuntimeError(f"No sprites fo reder in {mode} mode.")
-            output = observation_as_image(self.sprites, observation, last_move)
+            return observation_as_image(self.sprites, observation, last_move)
         elif mode == "human":
             if self.viewer is None:
                 raise RuntimeError(
@@ -309,16 +259,13 @@ class GridWorldRenderer:
             )
             if isinstance(caption, str):
                 self.viewer.window.set_caption(caption)
-            output = self.viewer.isopen
+            return self.viewer.isopen
         elif mode == "ansi":
-            output = observation_as_string(observation, last_move)
+            return observation_as_string(observation, last_move)
         else:
             raise RuntimeError(
                 f"Unknown mode: {mode}. Exepcted of one: {self.metadata['render.modes']}"
             )
-        if sleep is not None and sleep > 0:
-            time.sleep(sleep)
-        return output
 
     def close(self):
         """
@@ -445,9 +392,7 @@ def states_mapping(
     return {value: key for key, value in enumerate(sorted(states))}
 
 
-def apply_action(
-    observation: NestedArray, action: NestedArray
-) -> Tuple[NestedArray, float]:
+def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
     """
     One step transition of the MDP.
 
@@ -469,7 +414,7 @@ def apply_action(
     return next_observation, reward
 
 
-def _step(observation: NestedArray, action: NestedArray) -> Tuple[int, int]:
+def _step(observation: Any, action: Any) -> Tuple[int, int]:
     # If in exit, stay
     if coord_from_array(observation[Strings.player]) in coords_from_sequence(
         observation[Strings.exits]
@@ -489,7 +434,7 @@ def _step(observation: NestedArray, action: NestedArray) -> Tuple[int, int]:
     return (pos_x, pos_y)
 
 
-def _step_reward(observation: NestedArray, next_position: Tuple[int, int]) -> float:
+def _step_reward(observation: Any, next_position: Tuple[int, int]) -> float:
     # terminal state (current pos)
     if coord_from_array(observation[Strings.player]) in coords_from_sequence(
         observation[Strings.exits]
@@ -623,7 +568,7 @@ def create_position_from_state_id_fn(
     return position_from_state_id
 
 
-def as_grid(observation: Mapping[str, Any]) -> NestedArray:
+def as_grid(observation: Mapping[str, Any]) -> np.ndarray:
     """
     Creates a 3D array representation of the grid, with 1s where
     there is an item of the layer and 0 otherwise.
@@ -675,7 +620,7 @@ def image_as_array(img: image.Image) -> np.ndarray:
 def observation_as_image(
     sprites: Sprites,
     observation: np.ndarray,
-    last_move: Optional[NestedArray],
+    last_move: Optional[Any],
 ) -> np.ndarray:
     _, height, width = observation.shape
     rows = []
@@ -709,9 +654,7 @@ def _hborder(size: int) -> np.ndarray:
     return np.array([[COLOR_SILVER] * size], dtype=np.uint8)
 
 
-def observation_as_string(
-    observation: np.ndarray, last_move: Optional[NestedArray]
-) -> str:
+def observation_as_string(observation: np.ndarray, last_move: Optional[Any]) -> str:
     _, height, width = observation.shape
     out = io.StringIO()
     for x in range(height):
@@ -727,7 +670,7 @@ def observation_as_string(
 
 
 def position_as_string(
-    observation: np.ndarray, x: int, y: int, last_move: Optional[NestedArray]
+    observation: np.ndarray, x: int, y: int, last_move: Optional[Any]
 ) -> str:
     """
     Given a position:

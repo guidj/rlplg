@@ -1,10 +1,12 @@
+from typing import Any
+
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
-from tf_agents.specs import array_spec
-from tf_agents.trajectories import time_step as ts
+from gymnasium import spaces
 
+from rlplg.core import TimeStep
 from rlplg.environments import randomwalk
 
 
@@ -15,9 +17,16 @@ def test_state_randomwalk_init(steps: int):
     assert environment.left_end_reward == 0
     assert environment.right_end_reward == 1
     assert environment.step_reward == 0
-
-    assert environment.action_spec() == action_spec()
-    assert environment.observation_spec() == observation_spec(steps=steps)
+    assert environment.action_space == spaces.Box(low=0, high=1, dtype=np.int64)
+    assert environment.observation_space == spaces.Dict(
+        {
+            "position": spaces.Box(low=0, high=steps - 1, dtype=np.int64),
+            "steps": spaces.Box(low=steps, high=steps, dtype=np.int64),
+            "right_end_reward": spaces.Box(low=1, high=1, dtype=np.float32),
+            "left_end_reward": spaces.Box(low=0, high=0, dtype=np.float32),
+            "step_reward": spaces.Box(low=0, high=0, dtype=np.float32),
+        }
+    )
 
 
 @hypothesis.given(steps=st.integers(max_value=2))
@@ -28,162 +37,165 @@ def test_state_randomwalk_with_invalid_steps(steps: int):
 
 def test_state_randomwalk_end_left_sequence():
     environment = randomwalk.StateRandomWalk(5)
-    assert_time_step(
-        environment.reset(),
-        ts.TimeStep(
-            step_type=ts.StepType.FIRST,
-            reward=0.0,
-            discount=1.0,
-            observation={
-                "position": np.array(2, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
-            },
-        ),
+    obs, info = environment.reset()
+    assert_observation(
+        obs,
+        {
+            "position": np.array(2, dtype=np.int64),
+            "steps": np.array(5, dtype=np.int64),
+            "right_end_reward": np.array(1.0, dtype=np.float32),
+            "left_end_reward": np.array(0.0, dtype=np.float32),
+            "step_reward": np.array(0.0, dtype=np.float32),
+        },
     )
+    assert info == {}
+
     # go left
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "position": np.array(1, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            False,
+            False,
+            {},
         ),
     )
-    # go left
+    # go left (terminal state)
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
-            reward=0.0,
-            discount=0.0,
-            observation={
+        (
+            {
                 "position": np.array(0, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            True,
+            False,
+            {},
         ),
     )
     # go right - no change (terminal state)
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
-            reward=0.0,
-            discount=0.0,
-            observation={
+        (
+            {
                 "position": np.array(0, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            True,
+            False,
+            {},
         ),
     )
 
 
 def test_state_randomwalk_end_right_sequence():
     environment = randomwalk.StateRandomWalk(5)
-    assert_time_step(
-        environment.reset(),
-        ts.TimeStep(
-            step_type=ts.StepType.FIRST,
-            reward=0.0,
-            discount=1.0,
-            observation={
-                "position": np.array(2, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
-            },
-        ),
+    obs, info = environment.reset()
+
+    assert_observation(
+        obs,
+        {
+            "position": np.array(2, dtype=np.int64),
+            "steps": np.array(5, dtype=np.int64),
+            "right_end_reward": np.array(1.0, dtype=np.float32),
+            "left_end_reward": np.array(0.0, dtype=np.float32),
+            "step_reward": np.array(0.0, dtype=np.float32),
+        },
     )
+    assert info == {}
     # go left
     assert_time_step(
         environment.step(0),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "position": np.array(1, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            False,
+            False,
+            {},
         ),
     )
     # go right
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "position": np.array(2, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            False,
+            False,
+            {},
         ),
     )
     # go right
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.MID,
-            reward=0.0,
-            discount=1.0,
-            observation={
+        (
+            {
                 "position": np.array(3, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            0.0,
+            False,
+            False,
+            {},
         ),
     )
     # go right - terminal state
     assert_time_step(
         environment.step(1),
-        ts.TimeStep(
-            step_type=ts.StepType.LAST,
-            reward=1.0,
-            discount=0.0,
-            observation={
+        (
+            {
                 "position": np.array(4, dtype=np.int64),
                 "steps": np.array(5, dtype=np.int64),
                 "right_end_reward": np.array(1.0, dtype=np.float32),
                 "left_end_reward": np.array(0.0, dtype=np.float32),
                 "step_reward": np.array(0.0, dtype=np.float32),
             },
+            1.0,
+            True,
+            False,
+            {},
         ),
     )
 
 
 def test_state_randomwalk_render():
-    environment = randomwalk.StateRandomWalk(steps=3)
+    environment = randomwalk.StateRandomWalk(steps=3, render_mode="rgb_array")
     environment.reset()
     # starting point
-    np.testing.assert_array_equal(environment.render("rgb_array"), np.array([0, 1, 0]))
+    np.testing.assert_array_equal(environment.render(), np.array([0, 1, 0]))
     # one move left
     environment.step(0)
-    np.testing.assert_array_equal(environment.render("rgb_array"), np.array([1, 0, 0]))
+    np.testing.assert_array_equal(environment.render(), np.array([1, 0, 0]))
 
 
 @hypothesis.given(
@@ -191,11 +203,11 @@ def test_state_randomwalk_render():
 )
 def test_state_randomwalk_render_with_invalid_modes(steps: int):
     modes = ("human",)
-    environment = randomwalk.StateRandomWalk(steps=steps)
-    environment.reset()
     for mode in modes:
+        environment = randomwalk.StateRandomWalk(steps=steps, render_mode=mode)
+        environment.reset()
         with pytest.raises(NotImplementedError):
-            environment.render(mode)
+            environment.render()
 
 
 @hypothesis.given(
@@ -248,8 +260,6 @@ def test_create_env_spec(steps: int):
     assert env_spec.env_desc.num_states == steps
     assert env_spec.env_desc.num_actions == 2
     assert isinstance(env_spec.environment, randomwalk.StateRandomWalk)
-    assert env_spec.environment.action_spec() == action_spec()
-    assert env_spec.environment.observation_spec() == observation_spec(steps=steps)
     assert isinstance(env_spec.discretizer, randomwalk.StateRandomWalkMdpDiscretizer)
 
 
@@ -277,61 +287,16 @@ def test_state_representation():
     )
 
 
-def action_spec() -> array_spec.BoundedArraySpec:
-    return array_spec.BoundedArraySpec(
-        shape=(),
-        dtype=np.int64,
-        minimum=0,
-        maximum=1,
-        name="action",
-    )
+def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
+    assert_observation(output[0], expected[0])
+    assert output[1] == expected[1]
+    assert output[2] is expected[2]
+    assert output[3] is expected[3]
+    assert output[4] == expected[4]
 
 
-def observation_spec(steps: int) -> array_spec.BoundedArraySpec:
-    return {
-        "position": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=0,
-            maximum=steps - 1,
-            name="position",
-        ),
-        "steps": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.int64,
-            minimum=steps,
-            maximum=steps,
-            name="steps",
-        ),
-        "right_end_reward": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.float32,
-            minimum=np.finfo(np.float32).min,
-            maximum=np.finfo(np.float32).max,
-            name="right_end_reward",
-        ),
-        "left_end_reward": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.float32,
-            minimum=np.finfo(np.float32).min,
-            maximum=np.finfo(np.float32).max,
-            name="left_end_reward",
-        ),
-        "step_reward": array_spec.BoundedArraySpec(
-            shape=(),
-            dtype=np.float32,
-            minimum=np.finfo(np.float32).min,
-            maximum=np.finfo(np.float32).max,
-            name="step_reward",
-        ),
-    }
-
-
-def assert_time_step(output: ts.TimeStep, expected: ts.TimeStep) -> None:
-    assert output.step_type == expected.step_type
-    assert output.reward == expected.reward
-    assert output.discount == expected.discount
-    assert len(output.observation) == 5
-    for key, value in expected.observation.items():
-        assert key in output.observation
-        assert output.observation[key] == value
+def assert_observation(output: Any, expected: Any) -> None:
+    assert len(output) == 5
+    for key, value in expected.items():  # type: ignore
+        assert key in output
+        np.testing.assert_allclose(output[key], value)

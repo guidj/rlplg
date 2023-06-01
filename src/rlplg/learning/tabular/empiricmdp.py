@@ -5,6 +5,7 @@ import collections
 import copy
 import dataclasses
 import logging
+import math
 import os.path
 import tempfile
 from typing import Any, Callable, DefaultDict, Mapping, Sequence, Tuple, TypeVar
@@ -12,12 +13,9 @@ from typing import Any, Callable, DefaultDict, Mapping, Sequence, Tuple, TypeVar
 import h5py
 import numpy as np
 import tensorflow as tf
-from tf_agents.environments import py_environment
-from tf_agents.policies import py_policy
-from tf_agents.trajectories import time_step as ts
-from tf_agents.typing.types import NestedArray
 
-from rlplg import envdesc
+from rlplg import core, envdesc
+from rlplg.core import TimeStep
 from rlplg.learning.tabular import markovdp
 
 KREF_TRANSITIONS = "transitions"
@@ -64,9 +62,7 @@ class InferredMdp(markovdp.MDP):
         self._mdp_functions = mdp_functions
         self._env_desc = env_desc
 
-    def transition_probability(
-        self, state: NestedArray, action: NestedArray, next_state: NestedArray
-    ) -> float:
+    def transition_probability(self, state: Any, action: Any, next_state: Any) -> float:
         """
         Given a state s, action a, and next state s' returns a transition probability.
         Args:
@@ -80,9 +76,7 @@ class InferredMdp(markovdp.MDP):
         key = (state, action, next_state)
         return self._mdp_functions.transition.get(key, 0)
 
-    def reward(
-        self, state: NestedArray, action: NestedArray, next_state: NestedArray
-    ) -> float:
+    def reward(self, state: Any, action: Any, next_state: Any) -> float:
         """
         Given a state s, action a, and next state s' returns the expected reward.
 
@@ -105,8 +99,8 @@ class InferredMdp(markovdp.MDP):
 
 
 def collect_mdp_stats(
-    environment: py_environment.PyEnvironment,
-    policy: py_policy.PyPolicy,
+    environment: core.PyEnvironment,
+    policy: core.PyPolicy,
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     num_episodes: int,
@@ -115,7 +109,6 @@ def collect_mdp_stats(
     """
     Collections emperical statistics from an environment through play.
     """
-    environment.reset()
     transitions: DefaultDict[
         StateAction, DefaultDict[int, int]
     ] = collections.defaultdict(_trasitions_defaultdict)
@@ -124,20 +117,25 @@ def collect_mdp_stats(
     ] = collections.defaultdict(_rewards_defaultdict)
     logging_enabled = logging_frequency_episodes > 0
     for episode in range(1, num_episodes + 1):
-        environment.reset()
+        obs, _ = environment.reset()
+        policy_state = policy.get_initial_state()
+        time_step: TimeStep = obs, math.nan, False, False, {}
         while True:
-            time_step = environment.current_time_step()
-            policy_step = policy.action(time_step)
+            obs, _, terminated, truncated, _ = time_step
+            policy_step = policy.action(obs, policy_state)
             next_time_step = environment.step(policy_step.action)
+            next_obs, next_reward, _, _, _ = next_time_step
 
-            state = state_id_fn(time_step.observation)
+            state = state_id_fn(obs)
             action = action_id_fn(policy_step.action)
-            next_state = state_id_fn(next_time_step.observation)
+            next_state = state_id_fn(next_obs)
             transitions[(state, action)][next_state] += 1
-            rewards[(state, action)][next_state] += next_time_step.reward
+            rewards[(state, action)][next_state] += next_reward  # type: ignore
 
-            if time_step.step_type == ts.StepType.LAST:
+            if terminated or truncated:
                 break
+            policy_state = policy_step.state
+            time_step = next_time_step
 
         # non-positive logging frequency disables logging
         if logging_enabled and episode % logging_frequency_episodes == 0:

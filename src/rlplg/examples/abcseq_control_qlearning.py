@@ -5,10 +5,10 @@ Example on using Q-learning to find an optimal policy.
 import argparse
 import dataclasses
 import logging
-
-from tf_agents.trajectories import time_step as ts
+import math
 
 from rlplg import envsuite, tracking
+from rlplg.core import TimeStep
 from rlplg.examples import factories, qlearning, rendering
 
 
@@ -69,17 +69,18 @@ def main(args: Args):
     stats = tracking.EpisodeStats()
     # play N times
     for episode in range(args.play_episodes):
-        time_step = env_spec.environment.reset()
-        policy_state = learned_policy.get_initial_state(None)
+        obs, _ = env_spec.environment.reset()
+        policy_state = learned_policy.get_initial_state()
+        time_step: TimeStep = obs, math.nan, False, False, {}
         steps = 0
         while True:
-            policy_step = learned_policy.action(time_step, policy_state)
-            policy_state = policy_step.state
-            time_step = env_spec.environment.step(policy_step.action)
+            obs, _, terminated, _, _ = time_step
+            policy_step = learned_policy.action(obs, policy_state)
+            next_time_step = env_spec.environment.step(policy_step.action)
+            _, next_reward, _, _, _ = next_time_step
+            stats.new_reward(next_reward)
 
-            stats.new_reward(time_step.reward)
-
-            if time_step.step_type == ts.StepType.LAST:
+            if terminated:
                 stats.end_episode(success=True)
                 logging.info("Episode %d stats: %s", episode + 1, stats)
                 break
@@ -90,6 +91,8 @@ def main(args: Args):
                     "Stopping game play - policy doesn't solve the problem!"
                 )
                 break
+            policy_state = policy_step.state
+            time_step = next_time_step
 
     env_spec.environment.close()
 
