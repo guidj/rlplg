@@ -7,6 +7,7 @@ Hence, no actions taken in the terminal state are used
 in policy evaluation algorithms.
 
 """
+import gymnasium as gym
 import numpy as np
 import pytest
 
@@ -18,7 +19,7 @@ from tests import defaults
 
 
 def test_first_visit_monte_carlo_action_values_with_one_episode(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -51,7 +52,7 @@ def test_first_visit_monte_carlo_action_values_with_one_episode(
 
 
 def test_first_visit_monte_carlo_action_values_with_one_episode_convering_every_action(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
 ):
     """
     At each step, except the last, there are value updates.
@@ -96,7 +97,7 @@ def test_first_visit_monte_carlo_action_values_with_one_episode_convering_every_
 
 
 def test_sarsa_action_values_with_one_episode(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -131,7 +132,7 @@ def test_sarsa_action_values_with_one_episode(
 
 
 def test_sarsa_action_values_with_one_episode_convering_every_action(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
 ):
     """
     At each step, except the last, there are value updates.
@@ -171,7 +172,7 @@ def test_sarsa_action_values_with_one_episode_convering_every_action(
 
 
 def test_first_visit_monte_carlo_state_values_with_one_episode(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -201,7 +202,7 @@ def test_first_visit_monte_carlo_state_values_with_one_episode(
 
 
 def test_first_visit_monte_carlo_state_values_with_two_episodes(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -238,7 +239,7 @@ def test_first_visit_monte_carlo_state_values_with_two_episodes(
 
 
 def test_one_step_td_state_values_with_one_episode(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -269,7 +270,7 @@ def test_one_step_td_state_values_with_one_episode(
 
 
 def test_one_step_td_state_values_with_two_episodes(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -334,7 +335,7 @@ def constant_learning_rate(initial_lr: float, episode: int, step: int):
 
 
 @pytest.fixture(scope="function")
-def policy(environment: core.PyEnvironment, qtable: np.ndarray) -> core.PyPolicy:
+def policy(environment: gym.Env, qtable: np.ndarray) -> core.PyPolicy:
     return policies.PyQGreedyPolicy(
         state_id_fn=defaults.identity,
         action_values=qtable,
@@ -351,7 +352,7 @@ def qtable() -> np.ndarray:
 
 
 @pytest.fixture(scope="function")
-def environment() -> core.PyEnvironment:
+def environment() -> gym.Env:
     """
     Test environment.
     """

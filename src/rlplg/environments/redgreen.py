@@ -38,10 +38,11 @@ import copy
 import hashlib
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
+import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import core, envdesc, envspec, npsci
+from rlplg import envdesc, envspec, npsci
 from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
@@ -56,7 +57,7 @@ OBS_KEY_CURE_SEQUENCE = "cure_sequence"
 OBS_KEY_POSITION = "position"
 
 
-class RedGreenSeq(core.PyEnvironment):
+class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
     """
     An environment where an agent is meant to follow a pre-defined
     sequence of actions.
@@ -93,7 +94,7 @@ class RedGreenSeq(core.PyEnvironment):
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
 
-    def _step(self, action: Any) -> TimeStep:
+    def step(self, action: int) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -110,24 +111,35 @@ class RedGreenSeq(core.PyEnvironment):
         self._observation = new_observation
         return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> InitState:
-        """Starts a new sequence, returns the first `TimeStep` of this sequence.
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
+    ) -> InitState:
+        """Starts a new sequence, returns the `InitState` for this environment.
 
         See `reset(self)` docstring for more details
         """
+        del options
+        self.seed(seed)
         self._observation = beginning_state(self.cure_sequence)
         return copy.deepcopy(self._observation), {}
 
-    def _render(self) -> RenderType:
+    def render(self) -> RenderType:
+        """
+        Renders a view of the environment's current
+        state.
+        """
         if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         if self.render_mode == "rgb_array":
             return state_representation(self._observation)
-        return super()._render()
+        return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
+        """
+        Sets a seed, if defined.
+        """
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -139,14 +151,14 @@ class RedGreenMdpDiscretizer(markovdp.MdpDiscretizer):
     Creates an environment discrete maps for states and actions.
     """
 
-    def state(self, observation: Any) -> int:
+    def state(self, observation: Mapping[str, Any]) -> int:
         """
         Maps an observation to a state ID.
         """
         del self
         return get_state_id(observation)
 
-    def action(self, action: Any) -> int:
+    def action(self, action: int) -> int:
         """
         Maps an agent action to an action ID.
         """
@@ -155,7 +167,7 @@ class RedGreenMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
+def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:
     """
     Computes a new observation and reward given the current state and action.
 
@@ -187,7 +199,7 @@ def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
     """
     pos = observation[OBS_KEY_POSITION]
     terminal_state = len(observation[OBS_KEY_CURE_SEQUENCE])
-    new_observation = copy.deepcopy(observation)
+    new_observation = dict(**copy.deepcopy(observation))
     if observation[OBS_KEY_POSITION] == terminal_state:
         move_penalty = 0.0
         reward = 0.0
@@ -213,7 +225,7 @@ def beginning_state(cure_sequence: Sequence[int]):
     }
 
 
-def is_finished(observation: Any) -> bool:
+def is_finished(observation: Mapping[str, Any]) -> bool:
     """
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
@@ -248,7 +260,7 @@ def __encode_env(cure: Sequence[str]) -> str:
     return base64.b32encode(hashing.digest()).decode("UTF-8")
 
 
-def get_state_id(observation: Any) -> int:
+def get_state_id(observation: Mapping[str, Any]) -> int:
     """
     Computes an integer ID that represents that state.
     """
@@ -273,7 +285,7 @@ def state_observation(cure_sequence: Sequence[int], state_id: int) -> Mapping[st
     }
 
 
-def state_representation(observation: Any) -> Sequence[int]:
+def state_representation(observation: Mapping[str, Any]) -> Sequence[int]:
     """
     An array view of the state, where successful steps are marked
     with 1s and missing steps are marked with a 0.

@@ -1,6 +1,6 @@
+import gymnasium as gym
 import numpy as np
 
-from rlplg import core
 from rlplg.learning.tabular import dynamicprog, policies
 from tests import defaults
 
@@ -27,7 +27,7 @@ def test_dynamic_iterative_policy_evaluation():
 
 
 def create_observable_random_policy(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     num_actions: int,
     emit_log_probability: bool = False,
 ):

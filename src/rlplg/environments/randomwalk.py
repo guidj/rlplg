@@ -17,10 +17,11 @@ import hashlib
 import math
 from typing import Any, Mapping, Optional, Tuple
 
+import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import core, envdesc, envspec, npsci
+from rlplg import envdesc, envspec, npsci
 from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
@@ -38,7 +39,7 @@ OBS_KEY_RIGHT_END_REWARD = "right_end_reward"
 OBS_KEY_STEP_REWARD = "step_reward"
 
 
-class StateRandomWalk(core.PyEnvironment):
+class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
     """
     An environment where an agent is meant to go right, until the end.
     The environment can terminate on the last left or right states.
@@ -95,7 +96,7 @@ class StateRandomWalk(core.PyEnvironment):
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
 
-    def _step(self, action: Any) -> TimeStep:
+    def step(self, action: int) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -113,11 +114,15 @@ class StateRandomWalk(core.PyEnvironment):
         self._observation = new_observation
         return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> InitState:
-        """Starts a new sequence, returns the first `TimeStep` of this sequence.
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
+    ) -> InitState:
+        """Starts a new sequence, returns the `InitState` for this environment.
 
         See `reset(self)` docstring for more details
         """
+        del options
+        self.seed(seed)
         self._observation = beginning_state(
             steps=self.steps,
             left_end_reward=self.left_end_reward,
@@ -126,16 +131,23 @@ class StateRandomWalk(core.PyEnvironment):
         )
         return copy.deepcopy(self._observation), {}
 
-    def _render(self) -> RenderType:
+    def render(self) -> RenderType:
+        """
+        Renders a view of the environment's current
+        state.
+        """
         if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         if self.render_mode == "rgb_array":
             return state_representation(self._observation)
-        return super()._render()
+        return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
+        """
+        Sets a seed, if defined.
+        """
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -147,14 +159,14 @@ class StateRandomWalkMdpDiscretizer(markovdp.MdpDiscretizer):
     Creates an environment discrete maps for states and actions.
     """
 
-    def state(self, observation: Any) -> int:
+    def state(self, observation: Mapping[str, Any]) -> int:
         """
         Maps an observation to a state ID.
         """
         del self
         return get_state_id(observation)
 
-    def action(self, action: Any) -> int:
+    def action(self, action: int) -> int:
         """
         Maps an agent action to an action ID.
         """
@@ -163,7 +175,7 @@ class StateRandomWalkMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
+def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:
     """
     Computes a new observation and reward given the current state and action.
 
@@ -175,7 +187,7 @@ def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
     """
     right_terminal_state = observation[OBS_KEY_STEPS] - 1
     terminal_states = set((0, right_terminal_state))
-    new_observation = copy.deepcopy(observation)
+    new_observation = dict(**copy.deepcopy(observation))
     # default reward + for terminal states
     reward = 0.0
     if npsci.item(observation[OBS_KEY_POSITION]) in terminal_states:

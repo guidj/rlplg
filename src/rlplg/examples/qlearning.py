@@ -3,6 +3,7 @@ import logging
 import math
 from typing import Callable, Sequence, Tuple
 
+import gymnasium as gym
 import numpy as np
 
 from rlplg import core
@@ -11,7 +12,7 @@ from rlplg.learning.tabular import policies
 
 
 def control(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     num_episodes: int,
     state_id_fn: Callable[[NestedArray], int],
     initial_qtable: np.ndarray,
@@ -108,7 +109,7 @@ def _qlearing_step(
 
 
 def _target_and_collect_policies(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     state_id_fn: Callable[[np.ndarray], int],
     qtable: np.ndarray,
     epsilon: float,

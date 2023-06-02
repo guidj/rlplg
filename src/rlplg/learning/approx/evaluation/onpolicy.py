@@ -6,6 +6,7 @@ Policy evaluation methods with approximation.
 import copy
 from typing import Callable, Generator, Tuple
 
+import gymnasium as gym
 import numpy as np
 
 from rlplg import core, envplay
@@ -16,13 +17,13 @@ from rlplg.learning.opt import schedules
 
 def gradient_monte_carlo_state_values(
     policy: core.PyPolicy,
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     estimator: modelspec.ApproxFn,
     generate_episodes: Callable[
         [
-            core.PyEnvironment,
+            gym.Env,
             core.PyPolicy,
             int,
         ],

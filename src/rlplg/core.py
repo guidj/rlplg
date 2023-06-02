@@ -5,7 +5,6 @@ import abc
 import dataclasses
 from typing import Any, Mapping, Optional, Sequence, Tuple, Union
 
-import gymnasium as gym
 import numpy as np
 from gymnasium.core import ActType, ObsType, RenderFrame, SupportsFloat
 from numpy.typing import ArrayLike
@@ -140,57 +139,3 @@ class PyPolicy(abc.ABC):
             `state`: A policy state to be fed into the next call to action.
             `info`: Optional side information such as action log probabilities.
         """
-
-
-class PyEnvironment(gym.Env):
-    """
-    A generic environment class.
-    It exists to introduce pattern of overriding
-    using private methods.
-    """
-
-    def step(self, action: ActType) -> TimeStep:
-        """
-        Takes an action and advances the environment
-        to the next state.
-        """
-        return self._step(action)
-
-    @abc.abstractmethod
-    def _step(self, action: ActType) -> TimeStep:
-        """
-        Override this method to define `step`.
-        """
-        raise NotImplementedError
-
-    def reset(
-        self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
-    ) -> InitState:
-        """
-        Resets the environment to a starting state.
-        TODO: support seed and options.
-        """
-        del seed
-        del options
-        return self._reset()
-
-    @abc.abstractmethod
-    def _reset(self) -> InitState:
-        """
-        Override this method to define `reset`.
-        """
-        raise NotImplementedError
-
-    def render(self) -> RenderType:
-        """
-        Returns frames to render.
-        These can be basic data types, e.g. string.
-        """
-        return self._render()
-
-    @abc.abstractmethod
-    def _render(self) -> RenderType:
-        """
-        Override this method to define `render`.
-        """
-        raise NotImplementedError

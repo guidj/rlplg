@@ -1,6 +1,7 @@
 import copy
-from typing import Any, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
+import gymnasium as gym
 import numpy as np
 
 from rlplg import core, envdesc
@@ -18,7 +19,7 @@ ACTOR_COLOR = (75, 25, 50)
 EXIT_COLOR = (255, 204, 0)
 
 
-class CountEnv(core.PyEnvironment):
+class CountEnv(gym.Env[np.ndarray, int]):
     """
     Choose between moving forward or stopping, until we reach 3, starting from zero.
         - States: 0, 1, 2, 3 (terminal)
@@ -48,7 +49,7 @@ class CountEnv(core.PyEnvironment):
         self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
 
-    def _step(self, action: Any) -> TimeStep:
+    def step(self, action: int) -> TimeStep:
         """
         Updates the environment according to action and returns a `TimeStep`.
 
@@ -82,12 +83,15 @@ class CountEnv(core.PyEnvironment):
         finished = np.array_equal(new_obs, self.MAX_VALUE)
         return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> InitState:
-        """
-        Starts a new sequence, returns the first `TimeStep` of this sequence.
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
+    ) -> InitState:
+        """Starts a new sequence, returns the `InitState` for this environment.
 
         See `reset(self)` docstring for more details
         """
+        del seed
+        del options
         self._observation = np.array(0, np.int64)
         return copy.deepcopy(self._observation), {}
 
@@ -145,7 +149,7 @@ class CountEnvMDP(markovdp.MDP):
         return envdesc.EnvDesc(num_states=4, num_actions=2)
 
 
-class SingleStateEnv(core.PyEnvironment):
+class SingleStateEnv(gym.Env[np.ndarray, int]):
     """
     An environment that remains in a perpetual state.
     """
@@ -159,7 +163,7 @@ class SingleStateEnv(core.PyEnvironment):
         self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
 
-    def _step(self, action: Any) -> TimeStep:
+    def step(self, action: int) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -173,8 +177,10 @@ class SingleStateEnv(core.PyEnvironment):
             raise ValueError(f"Unknown action {action}")
         return copy.deepcopy(self._observation), 0.0, False, False, {}
 
-    def _reset(self) -> InitState:
-        """Starts a new sequence, returns the first `TimeStep` of this sequence.
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
+    ) -> InitState:
+        """Starts a new sequence, returns the `InitState` for this environment.
 
         See `reset(self)` docstring for more details
         """

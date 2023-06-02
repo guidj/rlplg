@@ -4,6 +4,7 @@ Policy evaluation methods tests.
 Note: terminal states should be initialized to zero.
 We ignore that in some tests to verify the computation.
 """
+import gymnasium as gym
 import numpy as np
 import pytest
 
@@ -15,7 +16,7 @@ from tests import defaults
 
 
 def test_monte_carlo_action_values_with_one_episode(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -47,7 +48,7 @@ def test_monte_carlo_action_values_with_one_episode(
 
 
 def test_monte_carlo_action_values_with_two_episodes(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -84,7 +85,7 @@ def test_monte_carlo_action_values_with_two_episodes(
 
 
 def test_monte_carlo_action_values_with_one_episode_covering_every_action(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -136,7 +137,7 @@ def test_monte_carlo_action_values_step_with_reward_discount():
 
 
 def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -171,7 +172,7 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
 
 
 def test_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -210,7 +211,7 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
 
 
 def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every_action(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -248,7 +249,7 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every
 
 
 def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_every_action(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
 ):
     """
@@ -330,7 +331,7 @@ def qtable() -> np.ndarray:
 
 
 @pytest.fixture(scope="function")
-def environment() -> core.PyEnvironment:
+def environment() -> gym.Env:
     """
     Test environment.
     """
