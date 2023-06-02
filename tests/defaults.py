@@ -203,14 +203,14 @@ class RoundRobinActionsPolicy(core.PyPolicy):
         self._iterator = iter(actions)
         self.emit_log_probability = True
 
-    def _get_initial_state(self, batch_size: Optional[int]) -> Any:
+    def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
         return ()
 
-    def _action(
+    def action(
         self,
         observation: ObsType,
-        policy_state: Any,
+        policy_state: Any = (),
         seed: Optional[int] = None,
     ) -> core.PolicyStep:
         """

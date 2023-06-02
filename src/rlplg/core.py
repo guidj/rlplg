@@ -73,6 +73,7 @@ class PyPolicy(abc.ABC):
     ):
         self.emit_log_probability = emit_log_probability
 
+    @abc.abstractmethod
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         """Returns an initial state usable by the policy.
 
@@ -82,47 +83,12 @@ class PyPolicy(abc.ABC):
         Returns:
           An initial policy state.
         """
-        return self._get_initial_state(batch_size)
 
     @abc.abstractmethod
-    def _get_initial_state(self, batch_size: Optional[int]) -> Any:
-        """Default implementation of `get_initial_state`.
-
-        Args:
-          batch_size: The batch shape.
-
-        Returns:
-          An object of type `policy_state` containing properly
-          initialized Arrays.
-        """
-
     def action(
         self,
         observation: ObsType,
         policy_state: Any = (),
-        seed: Optional[int] = None,
-    ) -> PolicyStep:
-        """Generates next action given the time_step and policy_state.
-
-
-        Args:
-          observation: An observation.
-          policy_state: An optional previous policy state.
-          seed: Seed to use when choosing action. Impl specific.
-
-        Returns:
-          A PolicyStep containing:
-            `action`: The policy's chosen action.
-            `state`: A policy state to be fed into the next call to action.
-            `info`: Optional side information such as action log probabilities.
-        """
-        return self._action(observation, policy_state, seed=seed)
-
-    @abc.abstractmethod
-    def _action(
-        self,
-        observation: ObsType,
-        policy_state: Any,
         seed: Optional[int] = None,
     ) -> PolicyStep:
         """Implementation of `action`.
