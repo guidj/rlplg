@@ -5,6 +5,7 @@ import collections
 import copy
 from typing import Any, Callable, DefaultDict, Generator, List, Tuple
 
+import gymnasium as gym
 import numpy as np
 
 from rlplg import core, envplay
@@ -13,7 +14,7 @@ from rlplg.learning.opt import schedules
 
 def first_visit_monte_carlo_action_values(
     policy: core.PyPolicy,
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     num_episodes: int,
     gamma: float,
     state_id_fn: Callable[[Any], int],
@@ -21,7 +22,7 @@ def first_visit_monte_carlo_action_values(
     initial_qtable: np.ndarray,
     generate_episodes: Callable[
         [
-            core.PyEnvironment,
+            gym.Env,
             core.PyPolicy,
             int,
         ],
@@ -103,7 +104,7 @@ def first_visit_monte_carlo_action_values(
 
 def sarsa_action_values(
     policy: core.PyPolicy,
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     gamma: float,
@@ -112,7 +113,7 @@ def sarsa_action_values(
     initial_qtable: np.ndarray,
     generate_episodes: Callable[
         [
-            core.PyEnvironment,
+            gym.Env,
             core.PyPolicy,
             int,
         ],
@@ -177,14 +178,14 @@ def sarsa_action_values(
 
 def first_visit_monte_carlo_state_values(
     policy: core.PyPolicy,
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     num_episodes: int,
     gamma: float,
     state_id_fn: Callable[[Any], int],
     initial_values: np.ndarray,
     generate_episodes: Callable[
         [
-            core.PyEnvironment,
+            gym.Env,
             core.PyPolicy,
             int,
         ],
@@ -255,7 +256,7 @@ def first_visit_monte_carlo_state_values(
 
 def one_step_td_state_values(
     policy: core.PyPolicy,
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     gamma: float,
@@ -263,7 +264,7 @@ def one_step_td_state_values(
     initial_values: np.ndarray,
     generate_episodes: Callable[
         [
-            core.PyEnvironment,
+            gym.Env,
             core.PyPolicy,
             int,
         ],

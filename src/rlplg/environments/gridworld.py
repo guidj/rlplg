@@ -23,12 +23,13 @@ import sys
 import time
 from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
+import gymnasium as gym
 import numpy as np
 import tensorflow as tf
 from gymnasium import spaces
 from PIL import Image as image
 
-from rlplg import core, envdesc, envspec, npsci
+from rlplg import envdesc, envspec, npsci
 from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
@@ -70,7 +71,7 @@ class Strings:
     start = "start"
 
 
-class GridWorld(core.PyEnvironment):
+class GridWorld(gym.Env[Mapping[str, Any], int]):
     """
     GridWorld environment.
     """
@@ -131,7 +132,7 @@ class GridWorld(core.PyEnvironment):
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
 
-    def _step(self, action: Any) -> TimeStep:
+    def step(self, action: int) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -148,11 +149,15 @@ class GridWorld(core.PyEnvironment):
         finished = coord_from_array(self._observation[Strings.player]) in self._exits
         return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> InitState:
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
+    ) -> InitState:
         """Starts a new sequence, returns the `InitState` for this environment.
 
         See `reset(self)` docstring for more details
         """
+        del options
+        self.seed(seed)
         # place agent at the start
         self._observation = create_observation(
             size=self._size,
@@ -163,16 +168,23 @@ class GridWorld(core.PyEnvironment):
         )
         return copy.deepcopy(self._observation), {}
 
-    def _render(self) -> RenderType:
+    def render(self) -> RenderType:
+        """
+        Renders a view of the environment's current
+        state.
+        """
         if self._observation == {}:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         if self.render_mode == "rgb_array":
             return as_grid(self._observation)
-        return super()._render()
+        return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
+        """
+        Sets a seed, if defined.
+        """
         if seed is not None:
             self._seed = seed
             np.random.seed(seed)
@@ -192,13 +204,13 @@ class GridWorldMdpDiscretizer(markovdp.MdpDiscretizer):
         _states_mapping = states_mapping(size=size, cliffs=cliffs)
         self.__state_fn = create_state_id_fn(states=_states_mapping)
 
-    def state(self, observation: Any) -> int:
+    def state(self, observation: Mapping[str, Any]) -> int:
         """
         Maps an observation to a state ID.
         """
         return self.__state_fn(observation)
 
-    def action(self, action: Any) -> int:
+    def action(self, action: int) -> int:
         """
         Maps an agent action to an action ID.
         """
@@ -392,7 +404,7 @@ def states_mapping(
     return {value: key for key, value in enumerate(sorted(states))}
 
 
-def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
+def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:
     """
     One step transition of the MDP.
 
@@ -409,12 +421,12 @@ def apply_action(observation: Any, action: Any) -> Tuple[Any, float]:
     if next_position in coords_from_sequence(observation[Strings.cliffs]):
         # send back to the beginning
         next_position = coord_from_array(observation[Strings.start])
-    next_observation = copy.deepcopy(observation)
+    next_observation = dict(**copy.deepcopy(observation))
     next_observation[Strings.player] = np.array(next_position, dtype=np.int64)
     return next_observation, reward
 
 
-def _step(observation: Any, action: Any) -> Tuple[int, int]:
+def _step(observation: Mapping[str, Any], action: int) -> Tuple[int, int]:
     # If in exit, stay
     if coord_from_array(observation[Strings.player]) in coords_from_sequence(
         observation[Strings.exits]
@@ -434,7 +446,9 @@ def _step(observation: Any, action: Any) -> Tuple[int, int]:
     return (pos_x, pos_y)
 
 
-def _step_reward(observation: Any, next_position: Tuple[int, int]) -> float:
+def _step_reward(
+    observation: Mapping[str, Any], next_position: Tuple[int, int]
+) -> float:
     # terminal state (current pos)
     if coord_from_array(observation[Strings.player]) in coords_from_sequence(
         observation[Strings.exits]

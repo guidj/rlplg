@@ -26,11 +26,11 @@ class PyRandomPolicy(core.PyPolicy):
         self._arms = np.arange(start=0, stop=num_actions)
         self._uniform_chance = np.array(1.0) / np.array(num_actions, dtype=np.float32)
 
-    def _get_initial_state(self, batch_size: Optional[int]) -> Any:
+    def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
         return ()
 
-    def _action(
+    def action(
         self,
         observation: ObsType,
         policy_state: Any = (),
@@ -81,14 +81,14 @@ class PyQGreedyPolicy(core.PyPolicy):
         self._state_id_fn = state_id_fn
         self._state_action_value_table = copy.deepcopy(action_values)
 
-    def _get_initial_state(self, batch_size: Optional[int]) -> Any:
+    def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
         return ()
 
-    def _action(
+    def action(
         self,
         observation: ObsType,
-        policy_state: Any,
+        policy_state: Any = (),
         seed: Optional[int] = None,
     ) -> core.PolicyStep:
         if seed is not None:
@@ -145,11 +145,11 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
         )
         self.epsilon = epsilon
 
-    def _get_initial_state(self, batch_size: Optional[int]) -> Any:
+    def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
         return ()
 
-    def _action(
+    def action(
         self,
         observation: ObsType,
         policy_state: Any = (),
@@ -209,7 +209,7 @@ class PyObservableRandomPolicy(ObservablePolicy):
         prob = 1.0 / num_actions
         self._probs = np.ones(shape=num_actions) * prob
 
-    def _action(
+    def action(
         self,
         observation: ObsType,
         policy_state: Any = (),

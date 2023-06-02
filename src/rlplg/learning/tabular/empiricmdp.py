@@ -10,6 +10,7 @@ import os.path
 import tempfile
 from typing import Any, Callable, DefaultDict, Mapping, Sequence, Tuple, TypeVar
 
+import gymnasium as gym
 import h5py
 import numpy as np
 import tensorflow as tf
@@ -99,7 +100,7 @@ class InferredMdp(markovdp.MDP):
 
 
 def collect_mdp_stats(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],

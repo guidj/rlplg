@@ -5,6 +5,7 @@ import collections
 import copy
 from typing import Any, Callable, Generator, Tuple
 
+import gymnasium as gym
 import numpy as np
 
 from rlplg import core, envplay
@@ -16,7 +17,7 @@ MCUpdate = collections.namedtuple("MCUpdate", ["returns", "cu_sum", "value", "we
 def monte_carlo_action_values(
     policy: core.PyPolicy,
     collect_policy: core.PyPolicy,
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     num_episodes: int,
     gamma: float,
     policy_probability_fn: Callable[
@@ -32,7 +33,7 @@ def monte_carlo_action_values(
     initial_qtable: np.ndarray,
     generate_episodes: Callable[
         [
-            core.PyEnvironment,
+            gym.Env,
             core.PyPolicy,
             int,
         ],
@@ -143,7 +144,7 @@ def monte_carlo_action_values_step(
 def nstep_sarsa_action_values(
     policy: core.PyPolicy,
     collect_policy: core.PyPolicy,
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     gamma: float,
@@ -161,7 +162,7 @@ def nstep_sarsa_action_values(
     initial_qtable: np.ndarray,
     generate_episodes: Callable[
         [
-            core.PyEnvironment,
+            gym.Env,
             core.PyPolicy,
             int,
         ],

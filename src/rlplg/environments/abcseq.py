@@ -42,12 +42,13 @@ Notes:
 """
 
 import copy
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
+import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import core, envdesc, envspec, npsci
+from rlplg import envdesc, envspec, npsci
 from rlplg.core import InitState, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
@@ -57,7 +58,7 @@ LETTERS = [chr(value) for value in range(ord("A"), ord("Z") + 1)]
 NUM_LETTERS = len(LETTERS)
 
 
-class ABCSeq(core.PyEnvironment):
+class ABCSeq(gym.Env[np.ndarray, int]):
     """
     A sequence of tokens in order.
     The goal is to follow then, from left to right, until the end, selecting
@@ -83,7 +84,7 @@ class ABCSeq(core.PyEnvironment):
         self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed: Optional[int] = None
 
-    def _step(self, action: Any) -> TimeStep:
+    def step(self, action: int) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
 
         See `step(self, action)` docstring for more details.
@@ -98,18 +99,26 @@ class ABCSeq(core.PyEnvironment):
         self._observation = new_observation
         return copy.deepcopy(self._observation), reward, finished, False, {}
 
-    def _reset(self) -> InitState:
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
+    ) -> InitState:
         """Starts a new sequence, returns the first `TimeStep` of this sequence.
 
         See `reset(self)` docstring for more details
         """
+        del options
+        self.seed(seed)
         self._observation = beginning_state(length=self.length)
         return copy.deepcopy(self._observation), {}
 
-    def _render(self) -> RenderType:
+    def render(self) -> RenderType:
+        """
+        Renders a view of the environment's current
+        state.
+        """
         if self.render_mode == "rgb_array":
             return copy.deepcopy(self._observation)
-        return super()._render()
+        return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
         """
@@ -126,7 +135,7 @@ class ABCSeqMdpDiscretizer(markovdp.MdpDiscretizer):
     Creates an environment discrete maps for states and actions.
     """
 
-    def state(self, observation: Any) -> int:
+    def state(self, observation: np.ndarray) -> int:
         """
         Maps an observation to a state ID.
         """
@@ -142,7 +151,7 @@ class ABCSeqMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-def apply_action(observation: np.ndarray, action: Any) -> np.ndarray:
+def apply_action(observation: np.ndarray, action: int) -> np.ndarray:
     """
     Transitions:
         - The agent can only say to have learned a letter if they go to it after
@@ -167,7 +176,7 @@ def apply_action(observation: np.ndarray, action: Any) -> np.ndarray:
     return new_observation
 
 
-def action_reward(observation: np.ndarray, action: Any) -> float:
+def action_reward(observation: np.ndarray, action: int) -> float:
     """
     One penalty per turn and one for the distance - except
     in the terminal state.
@@ -210,7 +219,7 @@ def beginning_state(length: int) -> np.ndarray:
     return observation
 
 
-def is_finished(observation: np.ndarray, action: Any) -> bool:
+def is_finished(observation: np.ndarray, action: int) -> bool:
     """
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.

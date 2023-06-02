@@ -4,7 +4,9 @@ This module has spec definition for environments.
 
 import dataclasses
 
-from rlplg import core, envdesc
+import gymnasium as gym
+
+from rlplg import envdesc
 from rlplg.learning.tabular import markovdp
 
 
@@ -16,6 +18,6 @@ class EnvSpec:
 
     name: str
     level: str
-    environment: core.PyEnvironment
+    environment: gym.Env
     discretizer: markovdp.MdpDiscretizer
     env_desc: envdesc.EnvDesc

@@ -7,12 +7,14 @@ trajectory data.
 import math
 from typing import Generator
 
+import gymnasium as gym
+
 from rlplg import core
 from rlplg.core import TimeStep
 
 
 def generate_episodes(
-    environment: core.PyEnvironment,
+    environment: gym.Env,
     policy: core.PyPolicy,
     num_episodes: int,
 ) -> Generator[core.Trajectory, None, None]:
