@@ -42,7 +42,7 @@ def main(args: Args):
     Entry point.
     """
     # Init env and policy
-    env_spec = envsuite.load("FrozenLake-v1", render_mode="human")
+    env_spec = envsuite.load("FrozenLake-v1", render_mode="ansi")
     episode = 0
     # Policy Control with Q-learning
     learned_policy, qtable = qlearning.control(

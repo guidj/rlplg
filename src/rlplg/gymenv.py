@@ -3,6 +3,8 @@ import hashlib
 from typing import Any, Mapping
 
 import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
 
 from rlplg import envdesc, envspec, npsci
 from rlplg.learning.tabular import markovdp
@@ -36,8 +38,7 @@ def create_env_spec(name: str, **kwargs: Mapping[str, Any]) -> envspec.EnvSpec:
     """
     environment = gym.make(name, **kwargs)
     discretizer = GymEnvMdpDiscretizer()
-    # TODO: infer or drop `EnvDesc` from EnvSpec
-    env_desc = envdesc.EnvDesc(num_states=0, num_actions=0)
+    env_desc = parse_gym_env_desc(environment=environment)
     return envspec.EnvSpec(
         name=name,
         level=__encode_env(**kwargs),
@@ -45,6 +46,23 @@ def create_env_spec(name: str, **kwargs: Mapping[str, Any]) -> envspec.EnvSpec:
         discretizer=discretizer,
         env_desc=env_desc,
     )
+
+
+def parse_gym_env_desc(environment: gym.Env) -> envdesc.EnvDesc:
+    """
+    Infers the EnvDesc from a `gym.Env`.
+    """
+    num_actions = (
+        environment.action_space.n
+        if isinstance(environment.action_space, spaces.Discrete)
+        else np.inf
+    )
+    num_states = (
+        environment.observation_space.n
+        if isinstance(environment.action_space, spaces.Discrete)
+        else np.inf
+    )
+    return envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
 
 
 def __encode_env(**kwargs: Mapping[str, Any]) -> str:
