@@ -57,7 +57,11 @@ def parse_gym_env_desc(environment: gym.Env) -> envdesc.EnvDesc:
         if isinstance(environment.action_space, spaces.Discrete)
         else np.inf
     )
-    num_states = environment.observation_space.n if isinstance(environment.action_space, spaces.Discrete) else np.inf
+    num_states = (
+        environment.observation_space.n
+        if isinstance(environment.action_space, spaces.Discrete)
+        else np.inf
+    )
     return envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
 
 
