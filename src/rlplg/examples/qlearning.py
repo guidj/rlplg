@@ -26,7 +26,7 @@ def control(
     """
     qtable = copy.deepcopy(initial_qtable)
     policy, collect_policy = _target_and_collect_policies(
-        environment=environment, state_id_fn=state_id_fn, qtable=qtable, epsilon=epsilon
+        state_id_fn=state_id_fn, qtable=qtable, epsilon=epsilon
     )
     episode = 0
     while episode < num_episodes:
@@ -55,7 +55,6 @@ def control(
 
                 # update policies
                 policy, collect_policy = _target_and_collect_policies(
-                    environment=environment,
                     state_id_fn=state_id_fn,
                     qtable=qtable,
                     epsilon=epsilon,
@@ -109,7 +108,6 @@ def _qlearing_step(
 
 
 def _target_and_collect_policies(
-    environment: gym.Env,
     state_id_fn: Callable[[np.ndarray], int],
     qtable: np.ndarray,
     epsilon: float,
