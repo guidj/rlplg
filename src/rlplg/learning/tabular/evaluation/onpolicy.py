@@ -26,7 +26,7 @@ def first_visit_monte_carlo_action_values(
             core.PyPolicy,
             int,
         ],
-        Generator[core.Trajectory, None, None],
+        Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
 ) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
@@ -45,7 +45,7 @@ def first_visit_monte_carlo_action_values(
         action_id_fn: A function that maps actions to an int ID for
             the Q(S, A) table.
         initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates trajectories from a given trajectory.
+        event_mapper: A function that generates trajectories from a given trajectory step.
             This is useful in cases where the caller whishes to apply
             a transformation to experience logs.
             Defautls to `envplay.identity_replay`.
@@ -73,7 +73,7 @@ def first_visit_monte_carlo_action_values(
         # This can be memory intensive, for long episodes and large state/action representations.
         _experiences = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
-        experiences: List[core.Trajectory] = []
+        experiences: List[core.TrajectoryStep] = []
         while len(_experiences) > 0:
             experience = _experiences.pop()
             state_action_visits_remaining[visit_key(experience)] += 1
@@ -117,7 +117,7 @@ def sarsa_action_values(
             core.PyPolicy,
             int,
         ],
-        Generator[core.Trajectory, None, None],
+        Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
 ) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
@@ -140,7 +140,7 @@ def sarsa_action_values(
         action_id_fn: A function that maps actions to an int ID for
             the Q(S, A) table.
         initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates trajectories from a given trajectory.
+        event_mapper: A function that generates a trajectory from a given trajectory steps.
             This is useful in cases where the caller whishes to apply
             a transformation to experience logs.
             Defautls to `envplay.identity_replay`.
@@ -189,7 +189,7 @@ def first_visit_monte_carlo_state_values(
             core.PyPolicy,
             int,
         ],
-        Generator[core.Trajectory, None, None],
+        Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
 ) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
@@ -227,7 +227,7 @@ def first_visit_monte_carlo_state_values(
         # This can be memory intensive, for long episodes and large state/action representations.
         _experiences = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
-        experiences: List[core.Trajectory] = []
+        experiences: List[core.TrajectoryStep] = []
         while len(_experiences) > 0:
             experience = _experiences.pop()
             state_visits[state_id_fn(experience.observation)] += 1
@@ -268,7 +268,7 @@ def one_step_td_state_values(
             core.PyPolicy,
             int,
         ],
-        Generator[core.Trajectory, None, None],
+        Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
 ) -> Generator[Tuple[int, np.ndarray], None, None]:
     """

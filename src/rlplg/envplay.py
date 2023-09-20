@@ -17,7 +17,7 @@ def generate_episodes(
     environment: gym.Env,
     policy: core.PyPolicy,
     num_episodes: int,
-) -> Generator[core.Trajectory, None, None]:
+) -> Generator[core.TrajectoryStep, None, None]:
     """
     Generates `num_episodes` episodes using the environment
     and policy provided for rollout.
@@ -42,7 +42,7 @@ def generate_episodes(
             obs, _, terminated, truncated, _ = time_step
             policy_step = policy.action(obs, policy_state)
             next_time_step = environment.step(policy_step.action)
-            yield core.Trajectory.from_transition(
+            yield core.TrajectoryStep.from_transition(
                 time_step, policy_step, next_time_step
             )
             if terminated or truncated:
@@ -52,10 +52,10 @@ def generate_episodes(
 
 
 def identity_replay(
-    event: core.Trajectory,
-) -> Generator[core.Trajectory, None, None]:
+    event: core.TrajectoryStep,
+) -> Generator[core.TrajectoryStep, None, None]:
     """
     Yields:
-        The given trajectory, as is.
+        The given trajectory step, as is.
     """
     yield event

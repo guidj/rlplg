@@ -21,11 +21,11 @@ def monte_carlo_action_values(
     num_episodes: int,
     gamma: float,
     policy_probability_fn: Callable[
-        [core.PyPolicy, core.Trajectory],
+        [core.PyPolicy, core.TrajectoryStep],
         float,
     ],
     collect_policy_probability_fn: Callable[
-        [core.PyPolicy, core.Trajectory],
+        [core.PyPolicy, core.TrajectoryStep],
         float,
     ],
     state_id_fn: Callable[[Any], int],
@@ -37,7 +37,7 @@ def monte_carlo_action_values(
             core.PyPolicy,
             int,
         ],
-        Generator[core.Trajectory, None, None],
+        Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
 ) -> Generator[Tuple[int, np.ndarray], None, None]:
     """Off-policy MC Prediction.
@@ -150,11 +150,11 @@ def nstep_sarsa_action_values(
     gamma: float,
     nstep: int,
     policy_probability_fn: Callable[
-        [core.PyPolicy, core.Trajectory],
+        [core.PyPolicy, core.TrajectoryStep],
         float,
     ],
     collect_policy_probability_fn: Callable[
-        [core.PyPolicy, core.Trajectory],
+        [core.PyPolicy, core.TrajectoryStep],
         float,
     ],
     state_id_fn: Callable[[Any], int],
@@ -166,7 +166,7 @@ def nstep_sarsa_action_values(
             core.PyPolicy,
             int,
         ],
-        Generator[core.Trajectory, None, None],
+        Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
 ) -> Generator[Tuple[int, np.ndarray], None, None]:
     """
@@ -182,9 +182,9 @@ def nstep_sarsa_action_values(
         gamma: The discount rate.
         nstep: The number of steps before value updates in the MDP sequence.
         policy_probability_fn: returns action propensity for the target policy,
-            given a trajectory.
+            given a trajectory step.
         collect_policy_probability_fn: returns action propensity for the collect policy,
-            given a trajectory.
+            given a trajectory step.
         state_id_fn: A function that maps observations to an int ID for
             the Q(S, A) table.
         action_id_fn: A function that maps actions to an int ID for

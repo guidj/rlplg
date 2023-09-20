@@ -38,7 +38,7 @@ def control(
             obs, _, truncated, terminated, _ = time_step
             policy_step = collect_policy.action(obs)
             next_time_step = environment.step(policy_step.action)
-            traj = core.Trajectory.from_transition(
+            traj = core.TrajectoryStep.from_transition(
                 time_step, policy_step, next_time_step
             )
             transitions.append(traj)
@@ -83,7 +83,7 @@ def _qlearing_step(
     state_id_fn: Callable[[NestedArray], int],
     gamma: float,
     alpha: float,
-    experiences: Sequence[core.Trajectory],
+    experiences: Sequence[core.TrajectoryStep],
 ) -> None:
     steps = len(experiences)
 
