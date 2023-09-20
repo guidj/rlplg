@@ -27,7 +27,7 @@ def gradient_monte_carlo_state_values(
             core.PyPolicy,
             int,
         ],
-        Generator[core.Trajectory, None, None],
+        Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
 ) -> Generator[Tuple[int, modelspec.ApproxFn], None, None]:
     """

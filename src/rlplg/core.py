@@ -28,9 +28,9 @@ class PolicyStep:
 
 
 @dataclasses.dataclass(frozen=True)
-class Trajectory:
+class TrajectoryStep:
     """
-    A trajectory an example for training RL agents.
+    A trajectory step for training RL agents.
     """
 
     observation: ObsType
@@ -45,14 +45,14 @@ class Trajectory:
         time_step: TimeStep,
         action_step: PolicyStep,
         next_time_step: TimeStep,
-    ) -> "Trajectory":
+    ) -> "TrajectoryStep":
         """
-        Builds a trajectory given a state and action.
+        Builds a trajectory step given a state and action.
         """
         obs, _, terminated, truncated, _ = time_step
         _, next_reward, _, _, _ = next_time_step
 
-        return Trajectory(
+        return TrajectoryStep(
             observation=obs,
             action=action_step.action,
             policy_info=action_step.info,

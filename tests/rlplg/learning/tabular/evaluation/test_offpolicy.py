@@ -285,7 +285,7 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_ever
     )
 
 
-def policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
+def policy_prob_fn(policy: core.PyPolicy, traj: core.TrajectoryStep) -> float:
     """The policy we're evaluating is assumed to be greedy w.r.t. Q(s, a).
     So the best action has probability 1.0, and all the others 0.0.
     """
@@ -293,7 +293,7 @@ def policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
     return np.where(np.array_equal(policy_step.action, traj.action), 1.0, 0.0).item()  # type: ignore
 
 
-def collect_policy_prob_fn(policy: core.PyPolicy, traj: core.Trajectory) -> float:
+def collect_policy_prob_fn(policy: core.PyPolicy, traj: core.TrajectoryStep) -> float:
     """The behavior policy is assumed to be fixed over the evaluation window.
     We log probabilities when choosing actions, so we can just use that information.
     For a random policy on K arms, log_prob = log(1/K).
