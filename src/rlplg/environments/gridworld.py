@@ -140,7 +140,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         Args:
             action: A policy's chosen action.
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -173,7 +173,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         Renders a view of the environment's current
         state.
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -636,12 +636,15 @@ def observation_as_image(
     observation: np.ndarray,
     last_move: Optional[Any],
 ) -> np.ndarray:
+    """
+    Converts an observation to an image (matrix).
+    """
     _, height, width = observation.shape
     rows = []
-    for x in range(height):
+    for pos_x in range(height):
         row = []
-        for y in range(width):
-            pos = position_as_string(observation, x, y, last_move)
+        for pos_y in range(width):
+            pos = position_as_string(observation, pos_x, pos_y, last_move)
             if pos in set(["[X]", "[x̄]"]):
                 row.append(sprites.cliff_sprite)
             elif pos in set(["[S]"] + [f"[{move}]" for move in MOVES]):
@@ -650,7 +653,7 @@ def observation_as_image(
             else:
                 row.append(sprites.path_sprite)
             # vertical border; same size as sprite
-            if y < width - 1:
+            if pos_y < width - 1:
                 row.append(_vborder(size=row[-1].shape[0]))
         rows.append(np.hstack(row))
         # horizontal border
@@ -669,11 +672,14 @@ def _hborder(size: int) -> np.ndarray:
 
 
 def observation_as_string(observation: np.ndarray, last_move: Optional[Any]) -> str:
+    """
+    Converts an observation to a string.
+    """
     _, height, width = observation.shape
     out = io.StringIO()
-    for x in range(height):
-        for y in range(width):
-            out.write(position_as_string(observation, x, y, last_move))
+    for pos_x in range(height):
+        for pos_y in range(width):
+            out.write(position_as_string(observation, pos_x, pos_y, last_move))
         out.write("\n")
 
     out.write("\n\n")
@@ -684,7 +690,7 @@ def observation_as_string(observation: np.ndarray, last_move: Optional[Any]) -> 
 
 
 def position_as_string(
-    observation: np.ndarray, x: int, y: int, last_move: Optional[Any]
+    observation: np.ndarray, pos_x: int, pos_y: int, last_move: Optional[Any]
 ) -> str:
     """
     Given a position:
@@ -700,15 +706,21 @@ def position_as_string(
      - If the player is on an exit, returns Ē
 
     """
-    if observation[Layers.player, x, y] and observation[Layers.cliff, x, y]:
+    if (
+        observation[Layers.player, pos_x, pos_y]
+        and observation[Layers.cliff, pos_x, pos_y]
+    ):
         return "[x̄]"
-    elif observation[Layers.player, x, y] and observation[Layers.exit, x, y]:
+    elif (
+        observation[Layers.player, pos_x, pos_y]
+        and observation[Layers.exit, pos_x, pos_y]
+    ):
         return "[Ē]"
-    elif observation[Layers.cliff, x, y] == 1:
+    elif observation[Layers.cliff, pos_x, pos_y] == 1:
         return "[X]"
-    elif observation[Layers.exit, x, y] == 1:
+    elif observation[Layers.exit, pos_x, pos_y] == 1:
         return "[E]"
-    elif observation[Layers.player, x, y] == 1:
+    elif observation[Layers.player, pos_x, pos_y] == 1:
         if last_move is not None:
             return f"[{MOVES[last_move]}]"
         return "[S]"
@@ -725,16 +737,16 @@ def parse_grid(path: str):
     start = None
     height, width = 0, 0
     with tf.io.gfile.GFile(path, "r") as reader:
-        for x, line in enumerate(reader):
+        for pos_x, line in enumerate(reader):
             row = line.strip()
             width = max(width, len(row))
-            for y, elem in enumerate(row):
+            for pos_y, elem in enumerate(row):
                 if elem.lower() == "x":
-                    cliffs.append((x, y))
+                    cliffs.append((pos_x, pos_y))
                 elif elem.lower() == "g":
-                    exits.append((x, y))
+                    exits.append((pos_x, pos_y))
                 elif elem.lower() == "s":
-                    start = (x, y)
+                    start = (pos_x, pos_y)
             height += 1
     return (height, width), cliffs, exits, start
 

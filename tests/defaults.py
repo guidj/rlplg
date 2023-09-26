@@ -1,3 +1,8 @@
+"""
+Environments and functions for tests.
+"""
+
+
 import copy
 from typing import Any, Mapping, Optional, Sequence
 
@@ -5,7 +10,7 @@ import gymnasium as gym
 import numpy as np
 
 from rlplg import core, envdesc
-from rlplg.core import InitState, ObsType, TimeStep
+from rlplg.core import InitState, ObsType, RenderType, TimeStep
 from rlplg.learning.tabular import markovdp
 
 GRID_WIDTH = 5
@@ -95,6 +100,10 @@ class CountEnv(gym.Env[np.ndarray, int]):
         self._observation = np.array(0, np.int64)
         return copy.deepcopy(self._observation), {}
 
+    def render(self) -> RenderType:
+        """Render env"""
+        return super().render()
+
 
 class CountEnvMdp(markovdp.Mdp):
     """
@@ -173,7 +182,7 @@ class SingleStateEnv(gym.Env[np.ndarray, int]):
         """
 
         # none
-        if not (0 <= action < self.num_actions):
+        if not 0 <= action < self.num_actions:
             raise ValueError(f"Unknown action {action}")
         return copy.deepcopy(self._observation), 0.0, False, False, {}
 
@@ -186,6 +195,10 @@ class SingleStateEnv(gym.Env[np.ndarray, int]):
         """
         self._observation = np.array(0, np.int64)
         return copy.deepcopy(self._observation), {}
+
+    def render(self) -> RenderType:
+        """Render env"""
+        return super().render()
 
 
 class RoundRobinActionsPolicy(core.PyPolicy):
