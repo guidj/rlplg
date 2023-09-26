@@ -7,7 +7,7 @@ from tests import defaults
 
 def test_dynamic_iterative_policy_evaluation():
     environment = defaults.CountEnv()
-    mdp = defaults.CountEnvMDP()
+    mdp = defaults.CountEnvMdp()
     policy = create_observable_random_policy(
         environment, num_actions=mdp.env_desc().num_actions
     )

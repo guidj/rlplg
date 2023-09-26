@@ -7,7 +7,7 @@ from typing import Any
 from rlplg import envdesc
 
 
-class MDP(abc.ABC):
+class Mdp(abc.ABC):
     """
     Markov Decision Process.
     """

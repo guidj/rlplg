@@ -90,7 +90,7 @@ def test_inferred_mdp_reward_with_undefined_transitions(
 
 def test_collect_mdp_stats():
     environment = defaults.CountEnv()
-    mdp = defaults.CountEnvMDP()
+    mdp = defaults.CountEnvMdp()
     policy = policies.PyRandomPolicy(
         num_actions=mdp.env_desc().num_actions,
     )

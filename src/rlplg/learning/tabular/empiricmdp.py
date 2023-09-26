@@ -54,7 +54,7 @@ class MdpFunctions:
     reward: MdpFn
 
 
-class InferredMdp(markovdp.MDP):
+class InferredMdp(markovdp.Mdp):
     """
     Class for a markov decision process inferred from transitions of a policy pi.
     """

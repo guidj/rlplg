@@ -96,7 +96,7 @@ class CountEnv(gym.Env[np.ndarray, int]):
         return copy.deepcopy(self._observation), {}
 
 
-class CountEnvMDP(markovdp.MDP):
+class CountEnvMdp(markovdp.Mdp):
     """
     Markov decision process definition for CountEnv.
     """
