@@ -63,7 +63,7 @@ class InferredMdp(markovdp.Mdp):
         self._mdp_functions = mdp_functions
         self._env_desc = env_desc
 
-    def transition_probability(self, state: Any, action: Any, next_state: Any) -> float:
+    def transition_probability(self, state: int, action: int, next_state: int) -> float:
         """
         Given a state s, action a, and next state s' returns a transition probability.
         Args:
@@ -77,7 +77,7 @@ class InferredMdp(markovdp.Mdp):
         key = (state, action, next_state)
         return self._mdp_functions.transition.get(key, 0)
 
-    def reward(self, state: Any, action: Any, next_state: Any) -> float:
+    def reward(self, state: int, action: int, next_state: int) -> float:
         """
         Given a state s, action a, and next state s' returns the expected reward.
 

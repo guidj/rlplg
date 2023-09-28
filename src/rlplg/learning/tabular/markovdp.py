@@ -2,18 +2,19 @@
 This module has classes that pertain to markov decision processes.
 """
 import abc
-from typing import Any
+from typing import Any, Generic
 
 from rlplg import envdesc
+from rlplg.core import ObsType, ActType
 
 
-class Mdp(abc.ABC):
+class Mdp:
     """
     Markov Decision Process.
     """
 
     @abc.abstractmethod
-    def transition_probability(self, state: Any, action: Any, next_state: Any) -> float:
+    def transition_probability(self, state: int, action: int, next_state: int) -> float:
         """
         Given a state s, action a, and next state s' returns a transition probability.
         Args:
@@ -26,7 +27,7 @@ class Mdp(abc.ABC):
         """
 
     @abc.abstractmethod
-    def reward(self, state: Any, action: Any, next_state: Any) -> float:
+    def reward(self, state: int, action: int, next_state: int) -> float:
         """
         Given a state s, action a, and next state s' returns the expected reward.
 

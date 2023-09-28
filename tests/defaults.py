@@ -110,7 +110,7 @@ class CountEnvMdp(markovdp.Mdp):
     Markov decision process definition for CountEnv.
     """
 
-    def transition_probability(self, state: Any, action: Any, next_state: Any) -> float:
+    def transition_probability(self, state: int, action: int, next_state: int) -> float:
         """
         Given a state s, action a, and next state s' returns a transition probability.
         Args:
@@ -132,7 +132,7 @@ class CountEnvMdp(markovdp.Mdp):
             return 1.0
         return 0.0
 
-    def reward(self, state: Any, action: Any, next_state: Any) -> float:
+    def reward(self, state: int, action: int, next_state: int) -> float:
         """
         Given a state s, action a, and next state s' returns the expected reward.
 
