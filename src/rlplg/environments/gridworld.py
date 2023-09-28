@@ -657,7 +657,7 @@ def observation_as_image(
                 row.append(_vborder(size=row[-1].shape[0]))
         rows.append(np.hstack(row))
         # horizontal border
-        rows.append(_hborder(size=sum([sprite.shape[1] for sprite in row])))
+        rows.append(_hborder(size=sum(sprite.shape[1] for sprite in row)))
     return np.vstack(rows)
 
 
