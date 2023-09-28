@@ -1,3 +1,7 @@
+"""
+This module implements value function estimation
+with dynamic programming.
+"""
 import copy
 import logging
 

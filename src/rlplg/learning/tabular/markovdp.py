@@ -2,10 +2,9 @@
 This module has classes that pertain to markov decision processes.
 """
 import abc
-from typing import Any, Generic
+from typing import Any
 
 from rlplg import envdesc
-from rlplg.core import ObsType, ActType
 
 
 class Mdp:

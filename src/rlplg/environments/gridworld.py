@@ -219,6 +219,76 @@ class GridWorldMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
+class GridWorldMdp(markovdp.Mdp):
+    """
+    MDP definition for a GridWorld environment.
+    """
+
+    def __init__(self, env_spec: envspec.EnvSpec) -> None:
+        self.__env_spec = env_spec
+        # state reverse; inferer
+        self.__initial_obs, _ = env_spec.environment.reset()
+        states_mapping_ = states_mapping(
+            size=self.__initial_obs["size"], cliffs=self.__initial_obs["cliffs"]
+        )
+        self.__reverse_state_mapping = {
+            value: key for key, value in states_mapping_.items()
+        }
+
+    def transition_probability(self, state: int, action: int, next_state: int) -> float:
+        """
+        Given a state s, action a, and next state s' returns a transition probability.
+        Args:
+            state: starting state
+            action: agent's action
+            next_state: state transition into after taking the action.
+
+        Returns:
+            A transition probability.
+        """
+        state_pos = self.__reverse_state_mapping[state]
+        next_state_pos = self.__reverse_state_mapping[next_state]
+        actual_next_state_pos = _step(self.__observation(state_pos), action)
+        return 1.0 if next_state_pos == actual_next_state_pos else 0.0
+
+    def reward(self, state: int, action: int, next_state: int) -> float:
+        """
+        Given a state s, action a, and next state s' returns the expected reward.
+
+        Args:
+            state: starting state
+            action: agent's action
+            next_state: state transition into after taking the action.
+        Returns
+            A transition probability.
+        """
+        state_pos = self.__reverse_state_mapping[state]
+        next_state_pos = self.__reverse_state_mapping[next_state]
+        actual_next_state_pos = _step(self.__observation(state_pos), action)
+        if next_state_pos == actual_next_state_pos:
+            return _step_reward(self.__observation(state_pos), actual_next_state_pos)
+        return 0.0
+
+    def env_desc(self) -> envdesc.EnvDesc:
+        """
+        Returns:
+            An instance of EnvDesc with properties of the environment.
+        """
+        return self.__env_spec.env_desc
+
+    def __observation(self, pos: Tuple[int, int]) -> Mapping[str, Any]:
+        """
+        Creates an observation from a player's position.
+        """
+        return create_observation(
+            size=self.__initial_obs["size"],
+            start=self.__initial_obs["start"],
+            player=pos,
+            cliffs=self.__initial_obs["cliffs"],
+            exits=self.__initial_obs["exits"],
+        )
+
+
 class GridWorldRenderer:
     """
     Class for handling rendering of the environment
