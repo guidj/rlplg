@@ -21,7 +21,7 @@ import os
 import os.path
 import sys
 import time
-from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Iterator, Mapping, Optional, Sequence, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -227,9 +227,11 @@ class GridWorldMdp(markovdp.Mdp):
     def __init__(self, env_spec: envspec.EnvSpec) -> None:
         self.__env_spec = env_spec
         # state reverse; inferer
+        assert isinstance(env_spec.environment, GridWorld)
         self.__initial_obs, _ = env_spec.environment.reset()
         states_mapping_ = states_mapping(
-            size=self.__initial_obs["size"], cliffs=self.__initial_obs["cliffs"]
+            size=coord_from_array(self.__initial_obs["size"]),
+            cliffs=coords_from_sequence(self.__initial_obs["cliffs"]),
         )
         self.__reverse_state_mapping = {
             value: key for key, value in states_mapping_.items()
@@ -248,8 +250,8 @@ class GridWorldMdp(markovdp.Mdp):
         """
         state_pos = self.__reverse_state_mapping[state]
         next_state_pos = self.__reverse_state_mapping[next_state]
-        actual_next_state_pos = _step(self.__observation(state_pos), action)
-        return 1.0 if next_state_pos == actual_next_state_pos else 0.0
+        next_obs, _ = apply_action(self.__observation(state_pos), action)
+        return 1.0 if np.array_equal(next_obs[Strings.player], next_state_pos) else 0.0
 
     def reward(self, state: int, action: int, next_state: int) -> float:
         """
@@ -264,10 +266,8 @@ class GridWorldMdp(markovdp.Mdp):
         """
         state_pos = self.__reverse_state_mapping[state]
         next_state_pos = self.__reverse_state_mapping[next_state]
-        actual_next_state_pos = _step(self.__observation(state_pos), action)
-        if next_state_pos == actual_next_state_pos:
-            return _step_reward(self.__observation(state_pos), actual_next_state_pos)
-        return 0.0
+        next_obs, reward = apply_action(self.__observation(state_pos), action)
+        return reward if np.array_equal(next_obs[Strings.player], next_state_pos) else 0.0
 
     def env_desc(self) -> envdesc.EnvDesc:
         """
@@ -797,43 +797,49 @@ def position_as_string(
     return "[ ]"
 
 
-def parse_grid(path: str):
+def parse_grid_from_file(path: str):
     """
     Parses grid from text files.
     """
+    with tf.io.gfile.GFile(path, "r") as reader:
+        return parse_grid_from_text(line for line in reader)
 
+
+def parse_grid_from_text(grid: Iterator[str]):
+    """
+    Parses grid from text files.
+    """
     cliffs = []
     exits = []
     start = None
     height, width = 0, 0
-    with tf.io.gfile.GFile(path, "r") as reader:
-        for pos_x, line in enumerate(reader):
-            row = line.strip()
-            width = max(width, len(row))
-            for pos_y, elem in enumerate(row):
-                if elem.lower() == "x":
-                    cliffs.append((pos_x, pos_y))
-                elif elem.lower() == "g":
-                    exits.append((pos_x, pos_y))
-                elif elem.lower() == "s":
-                    start = (pos_x, pos_y)
-            height += 1
+    for pos_x, line in enumerate(grid):
+        row = line.strip()
+        width = max(width, len(row))
+        for pos_y, elem in enumerate(row):
+            if elem.lower() == "x":
+                cliffs.append((pos_x, pos_y))
+            elif elem.lower() == "g":
+                exits.append((pos_x, pos_y))
+            elif elem.lower() == "s":
+                start = (pos_x, pos_y)
+        height += 1
     return (height, width), cliffs, exits, start
 
 
-def create_environment_from_grid(path: str) -> GridWorld:
+def create_envspec_from_grid_file(grid_path: str) -> envspec.EnvSpec:
     """
     Parses a grid file and create an environment from
     the parameters.
     """
-    size, cliffs, exits, start = parse_grid(path)
-    return GridWorld(size=size, cliffs=cliffs, exits=exits, start=start)
+    size, cliffs, exits, start = parse_grid_from_file(grid_path)
+    return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)
 
 
-def create_envspec_from_grid(grid_path: str) -> envspec.EnvSpec:
+def create_envspec_from_grid_text(grid: Iterator[str]) -> envspec.EnvSpec:
     """
     Parses a grid file and create an environment from
     the parameters.
     """
-    size, cliffs, exits, start = parse_grid(grid_path)
+    size, cliffs, exits, start = parse_grid_from_text(grid)
     return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)

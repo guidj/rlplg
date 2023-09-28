@@ -50,7 +50,7 @@ def __environment_spec_constructors() -> Mapping[str, Callable[..., envspec.EnvS
     """
     rlplg_envs: Mapping[str, Callable[..., envspec.EnvSpec]] = {
         abcseq.ENV_NAME: abcseq.create_env_spec,
-        gridworld.ENV_NAME: gridworld.create_envspec_from_grid,
+        gridworld.ENV_NAME: gridworld.create_envspec_from_grid_file,
         randomwalk.ENV_NAME: randomwalk.create_env_spec,
         redgreen.ENV_NAME: redgreen.create_env_spec,
     }
