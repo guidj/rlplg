@@ -150,6 +150,7 @@ class CountEnvMdp(markovdp.Mdp):
             return CountEnv.WRONG_MOVE_REWARD
         return CountEnv.RIGHT_MOVE_REWARD
 
+    @property
     def env_desc(self) -> envdesc.EnvDesc:
         """
         Returns:

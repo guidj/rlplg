@@ -38,6 +38,7 @@ class Mdp:
             A transition probability.
         """
 
+    @property
     @abc.abstractmethod
     def env_desc(self) -> envdesc.EnvDesc:
         """

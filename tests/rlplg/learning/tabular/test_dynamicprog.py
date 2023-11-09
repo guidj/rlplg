@@ -1,4 +1,3 @@
-import gymnasium as gym
 import numpy as np
 
 from rlplg.learning.tabular import dynamicprog, policies
@@ -9,7 +8,7 @@ def test_dynamic_iterative_policy_evaluation():
     environment = defaults.CountEnv()
     mdp = defaults.CountEnvMdp()
     policy = create_observable_random_policy(
-        environment, num_actions=mdp.env_desc().num_actions
+        environment, num_actions=mdp.env_desc.num_actions
     )
     delta = 1e-8
 
@@ -27,7 +26,6 @@ def test_dynamic_iterative_policy_evaluation():
 
 
 def create_observable_random_policy(
-    environment: gym.Env,
     num_actions: int,
     emit_log_probability: bool = False,
 ):

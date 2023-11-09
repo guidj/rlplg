@@ -22,45 +22,45 @@ def iterative_policy_evaluation(
     Vectorized implementation.
     """
     pi_action = np.zeros(
-        (mdp.env_desc().num_states, mdp.env_desc().num_actions), dtype=np.float64
+        (mdp.env_desc.num_states, mdp.env_desc.num_actions), dtype=np.float64
     )
     transition = np.zeros(
         (
-            mdp.env_desc().num_states,
-            mdp.env_desc().num_actions,
-            mdp.env_desc().num_states,
+            mdp.env_desc.num_states,
+            mdp.env_desc.num_actions,
+            mdp.env_desc.num_states,
         ),
         dtype=np.float64,
     )
     reward = np.zeros(
         (
-            mdp.env_desc().num_states,
-            mdp.env_desc().num_actions,
-            mdp.env_desc().num_states,
+            mdp.env_desc.num_states,
+            mdp.env_desc.num_actions,
+            mdp.env_desc.num_states,
         ),
         dtype=np.float64,
     )
 
-    for state in range(mdp.env_desc().num_states):
-        for action in range(mdp.env_desc().num_actions):
+    for state in range(mdp.env_desc.num_states):
+        for action in range(mdp.env_desc.num_actions):
             pi_action[state, action] = policy.action_probability(state, action)
-            for new_state in range(mdp.env_desc().num_states):
+            for new_state in range(mdp.env_desc.num_states):
                 transition[state, action, new_state] = mdp.transition_probability(
                     state, action, new_state
                 )
                 reward[state, action, new_state] = mdp.reward(state, action, new_state)
 
     m_state_values = np.tile(
-        np.zeros(shape=mdp.env_desc().num_states), (mdp.env_desc().num_actions, 1)
+        np.zeros(shape=mdp.env_desc.num_states), (mdp.env_desc.num_actions, 1)
     )
     while True:
-        delta = np.zeros(shape=mdp.env_desc().num_states)
+        delta = np.zeros(shape=mdp.env_desc.num_states)
         current_state_values = copy.deepcopy(m_state_values[0])
         # |S| x |A| x |S'|
         # |S| x |A|
         values = np.sum(transition * (reward + gamma * m_state_values), axis=2)
         new_state_values = np.diag(np.dot(pi_action, np.transpose(values)))
-        m_state_values = np.tile(new_state_values, (mdp.env_desc().num_actions, 1))
+        m_state_values = np.tile(new_state_values, (mdp.env_desc.num_actions, 1))
 
         delta = np.maximum(
             delta,
@@ -76,11 +76,11 @@ def action_values_from_state_values(
     """
     Compute Q(s,a) using V(s)
     """
-    qtable = np.zeros(shape=(mdp.env_desc().num_states, mdp.env_desc().num_actions))
-    for state in range(mdp.env_desc().num_states):
-        for action in range(mdp.env_desc().num_actions):
+    qtable = np.zeros(shape=(mdp.env_desc.num_states, mdp.env_desc.num_actions))
+    for state in range(mdp.env_desc.num_states):
+        for action in range(mdp.env_desc.num_actions):
             cu_value = 0
-            for new_state in range(mdp.env_desc().num_states):
+            for new_state in range(mdp.env_desc.num_states):
                 transition_prob = mdp.transition_probability(state, action, new_state)
                 reward = mdp.reward(state, action, new_state)
                 next_state_value = gamma * state_values[new_state]
