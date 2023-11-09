@@ -267,7 +267,9 @@ class GridWorldMdp(markovdp.Mdp):
         state_pos = self.__reverse_state_mapping[state]
         next_state_pos = self.__reverse_state_mapping[next_state]
         next_obs, reward = apply_action(self.__observation(state_pos), action)
-        return reward if np.array_equal(next_obs[Strings.player], next_state_pos) else 0.0
+        return (
+            reward if np.array_equal(next_obs[Strings.player], next_state_pos) else 0.0
+        )
 
     def env_desc(self) -> envdesc.EnvDesc:
         """
