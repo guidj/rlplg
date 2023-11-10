@@ -7,11 +7,12 @@ import logging
 
 import numpy as np
 
-from rlplg.learning.tabular import markovdp, policies
+from rlplg import core
+from rlplg.learning.tabular import policies
 
 
 def iterative_policy_evaluation(
-    mdp: markovdp.Mdp,
+    mdp: core.Mdp,
     policy: policies.ObservablePolicy,
     gamma: float = 1.0,
     accuracy: float = 1e-8,
@@ -71,7 +72,7 @@ def iterative_policy_evaluation(
 
 
 def action_values_from_state_values(
-    mdp: markovdp.Mdp, state_values: np.ndarray, gamma: float = 1.0
+    mdp: core.Mdp, state_values: np.ndarray, gamma: float = 1.0
 ):
     """
     Compute Q(s,a) using V(s)

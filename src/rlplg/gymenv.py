@@ -1,3 +1,8 @@
+"""
+This module contains utilities for loading
+environment specs from Gymnasium environments.
+"""
+
 import base64
 import hashlib
 from typing import Any, Mapping
@@ -6,7 +11,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, npsci
 from rlplg.learning.tabular import markovdp
 
 
@@ -32,14 +37,14 @@ class GymEnvMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-def create_env_spec(name: str, **kwargs: Mapping[str, Any]) -> envspec.EnvSpec:
+def create_env_spec(name: str, **kwargs: Mapping[str, Any]) -> core.EnvSpec:
     """
     Creates an env spec from a gridworld config.
     """
     environment = gym.make(name, **kwargs)
     discretizer = GymEnvMdpDiscretizer()
     env_desc = parse_gym_env_desc(environment=environment)
-    return envspec.EnvSpec(
+    return core.EnvSpec(
         name=name,
         level=__encode_env(**kwargs),
         environment=environment,
@@ -48,7 +53,7 @@ def create_env_spec(name: str, **kwargs: Mapping[str, Any]) -> envspec.EnvSpec:
     )
 
 
-def parse_gym_env_desc(environment: gym.Env) -> envdesc.EnvDesc:
+def parse_gym_env_desc(environment: gym.Env) -> core.EnvDesc:
     """
     Infers the EnvDesc from a `gym.Env`.
     """
@@ -62,7 +67,7 @@ def parse_gym_env_desc(environment: gym.Env) -> envdesc.EnvDesc:
         if isinstance(environment.action_space, spaces.Discrete)
         else np.inf
     )
-    return envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
+    return core.EnvDesc(num_states=num_states, num_actions=num_actions)
 
 
 def __encode_env(**kwargs: Mapping[str, Any]) -> str:

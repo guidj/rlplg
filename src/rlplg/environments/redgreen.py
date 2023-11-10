@@ -42,9 +42,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, npsci
 from rlplg.core import InitState, RenderType, TimeStep
-from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "RedGreenSeq"
 RED_PILL = 0
@@ -146,7 +145,7 @@ class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
         return self._seed
 
 
-class RedGreenMdpDiscretizer(markovdp.MdpDiscretizer):
+class RedGreenMdpDiscretizer(core.MdpDiscretizer):
     """
     Creates an environment discrete maps for states and actions.
     """
@@ -236,7 +235,7 @@ def is_finished(observation: Mapping[str, Any]) -> bool:
     return observation[OBS_KEY_POSITION] == terminal_state  # type: ignore
 
 
-def create_env_spec(cure: Sequence[str]) -> envspec.EnvSpec:
+def create_env_spec(cure: Sequence[str]) -> core.EnvSpec:
     """
     Creates an env spec from a gridworld config.
     """
@@ -244,8 +243,8 @@ def create_env_spec(cure: Sequence[str]) -> envspec.EnvSpec:
     discretizer = RedGreenMdpDiscretizer()
     num_states = len(cure) + 1
     num_actions = len(ACTIONS)
-    env_desc = envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
-    return envspec.EnvSpec(
+    env_desc = core.EnvDesc(num_states=num_states, num_actions=num_actions)
+    return core.EnvSpec(
         name=ENV_NAME,
         level=__encode_env(cure),
         environment=environment,

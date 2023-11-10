@@ -21,9 +21,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, npsci
 from rlplg.core import InitState, RenderType, TimeStep
-from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "StateRandomWalk"
 GO_LEFT = 0
@@ -154,7 +153,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         return self._seed
 
 
-class StateRandomWalkMdpDiscretizer(markovdp.MdpDiscretizer):
+class StateRandomWalkMdpDiscretizer(core.MdpDiscretizer):
     """
     Creates an environment discrete maps for states and actions.
     """
@@ -237,7 +236,7 @@ def create_env_spec(
     left_end_reward: float = LEFT_REWARD,
     right_end_reward: float = RIGHT_REWARD,
     step_reward: float = STEP_REWARD,
-) -> envspec.EnvSpec:
+) -> core.EnvSpec:
     """
     Creates an env spec from a config.
     """
@@ -250,8 +249,8 @@ def create_env_spec(
     discretizer = StateRandomWalkMdpDiscretizer()
     num_states = steps
     num_actions = len(ACTIONS)
-    env_desc = envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
-    return envspec.EnvSpec(
+    env_desc = core.EnvDesc(num_states=num_states, num_actions=num_actions)
+    return core.EnvSpec(
         name=ENV_NAME,
         level=__encode_env(
             steps=steps,

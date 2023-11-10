@@ -48,9 +48,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, npsci
 from rlplg.core import InitState, RenderType, TimeStep
-from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "ABCSeq"
 MIN_SEQ_LENGTH = 1
@@ -130,7 +129,7 @@ class ABCSeq(gym.Env[np.ndarray, int]):
         return self._seed
 
 
-class ABCSeqMdpDiscretizer(markovdp.MdpDiscretizer):
+class ABCSeqMdpDiscretizer(core.MdpDiscretizer):
     """
     Creates an environment discrete maps for states and actions.
     """
@@ -228,14 +227,14 @@ def is_finished(observation: np.ndarray, action: int) -> bool:
     return np.sum(observation) == observation.size  # type: ignore
 
 
-def create_env_spec(length: int) -> envspec.EnvSpec:
+def create_env_spec(length: int) -> core.EnvSpec:
     """
     Creates an env spec from a gridworld config.
     """
     environment = ABCSeq(length=length)
     discretizer = ABCSeqMdpDiscretizer()
-    env_desc = envdesc.EnvDesc(num_states=length + 1, num_actions=length)
-    return envspec.EnvSpec(
+    env_desc = core.EnvDesc(num_states=length + 1, num_actions=length)
+    return core.EnvSpec(
         name=ENV_NAME,
         level=str(length),
         environment=environment,

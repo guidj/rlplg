@@ -29,9 +29,8 @@ import tensorflow as tf
 from gymnasium import spaces
 from PIL import Image as image
 
-from rlplg import envdesc, envspec, npsci
+from rlplg import core, npsci
 from rlplg.core import InitState, RenderType, TimeStep
-from rlplg.learning.tabular import markovdp
 
 ENV_NAME = "GridWorld"
 CLIFF_PENALTY = -100.0
@@ -191,7 +190,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         return self._seed
 
 
-class GridWorldMdpDiscretizer(markovdp.MdpDiscretizer):
+class GridWorldMdpDiscretizer(core.MdpDiscretizer):
     """
     Creates an environment discrete maps for states and actions.
     """
@@ -219,12 +218,12 @@ class GridWorldMdpDiscretizer(markovdp.MdpDiscretizer):
         return action_
 
 
-class GridWorldMdp(markovdp.Mdp):
+class GridWorldMdp(core.Mdp):
     """
     MDP definition for a GridWorld environment.
     """
 
-    def __init__(self, env_spec: envspec.EnvSpec) -> None:
+    def __init__(self, env_spec: core.EnvSpec) -> None:
         self.__env_spec = env_spec
         # state reverse; inferer
         assert isinstance(env_spec.environment, GridWorld)
@@ -271,7 +270,7 @@ class GridWorldMdp(markovdp.Mdp):
             reward if np.array_equal(next_obs[Strings.player], next_state_pos) else 0.0
         )
 
-    def env_desc(self) -> envdesc.EnvDesc:
+    def env_desc(self) -> core.EnvDesc:
         """
         Returns:
             An instance of EnvDesc with properties of the environment.
@@ -424,7 +423,7 @@ def create_env_spec(
     cliffs: Sequence[Tuple[int, int]],
     exits: Sequence[Tuple[int, int]],
     start: Tuple[int, int],
-) -> envspec.EnvSpec:
+) -> core.EnvSpec:
     """
     Creates an env spec from a gridworld config.
     """
@@ -433,8 +432,8 @@ def create_env_spec(
     height, width = size
     num_states = height * width - len(cliffs)
     num_actions = len(MOVES)
-    env_desc = envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
-    return envspec.EnvSpec(
+    env_desc = core.EnvDesc(num_states=num_states, num_actions=num_actions)
+    return core.EnvSpec(
         name=ENV_NAME,
         level=__encode_env(size=size, cliffs=cliffs, exits=exits, start=start),
         environment=environment,
@@ -829,7 +828,7 @@ def parse_grid_from_text(grid: Iterator[str]):
     return (height, width), cliffs, exits, start
 
 
-def create_envspec_from_grid_file(grid_path: str) -> envspec.EnvSpec:
+def create_envspec_from_grid_file(grid_path: str) -> core.EnvSpec:
     """
     Parses a grid file and create an environment from
     the parameters.
@@ -838,7 +837,7 @@ def create_envspec_from_grid_file(grid_path: str) -> envspec.EnvSpec:
     return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)
 
 
-def create_envspec_from_grid_text(grid: Iterator[str]) -> envspec.EnvSpec:
+def create_envspec_from_grid_text(grid: Iterator[str]) -> core.EnvSpec:
     """
     Parses a grid file and create an environment from
     the parameters.

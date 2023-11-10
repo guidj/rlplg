@@ -9,9 +9,8 @@ from typing import Any, Mapping, Optional, Sequence
 import gymnasium as gym
 import numpy as np
 
-from rlplg import core, envdesc
+from rlplg import core
 from rlplg.core import InitState, ObsType, RenderType, TimeStep
-from rlplg.learning.tabular import markovdp
 
 GRID_WIDTH = 5
 GRID_HEIGHT = 5
@@ -105,7 +104,7 @@ class CountEnv(gym.Env[np.ndarray, int]):
         return super().render()
 
 
-class CountEnvMdp(markovdp.Mdp):
+class CountEnvMdp(core.Mdp):
     """
     Markov decision process definition for CountEnv.
     """
@@ -151,12 +150,12 @@ class CountEnvMdp(markovdp.Mdp):
         return CountEnv.RIGHT_MOVE_REWARD
 
     @property
-    def env_desc(self) -> envdesc.EnvDesc:
+    def env_desc(self) -> core.EnvDesc:
         """
         Returns:
             An instance of EnvDesc with properties of the environment.
         """
-        return envdesc.EnvDesc(num_states=4, num_actions=2)
+        return core.EnvDesc(num_states=4, num_actions=2)
 
 
 class SingleStateEnv(gym.Env[np.ndarray, int]):
@@ -194,6 +193,7 @@ class SingleStateEnv(gym.Env[np.ndarray, int]):
 
         See `reset(self)` docstring for more details
         """
+        del seed, options
         self._observation = np.array(0, np.int64)
         return copy.deepcopy(self._observation), {}
 

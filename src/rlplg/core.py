@@ -5,6 +5,7 @@ import abc
 import dataclasses
 from typing import Any, Mapping, Optional, Sequence, Tuple, Union
 
+import gymnasium as gym
 import numpy as np
 from gymnasium.core import ActType, ObsType, RenderFrame, SupportsFloat
 from numpy.typing import ArrayLike
@@ -105,3 +106,85 @@ class PyPolicy(abc.ABC):
             `state`: A policy state to be fed into the next call to action.
             `info`: Optional side information such as action log probabilities.
         """
+
+
+@dataclasses.dataclass(frozen=True)
+class EnvDesc:
+    """
+    Class contains properties of the environment.
+    """
+
+    num_states: int
+    num_actions: int
+
+
+class Mdp:
+    """
+    Markov Decision Process.
+    """
+
+    @abc.abstractmethod
+    def transition_probability(self, state: int, action: int, next_state: int) -> float:
+        """
+        Given a state s, action a, and next state s' returns a transition probability.
+        Args:
+            state: starting state
+            action: agent's action
+            next_state: state transition into after taking the action.
+
+        Returns:
+            A transition probability.
+        """
+
+    @abc.abstractmethod
+    def reward(self, state: int, action: int, next_state: int) -> float:
+        """
+        Given a state s, action a, and next state s' returns the expected reward.
+
+        Args:
+            state: starting state
+            action: agent's action
+            next_state: state transition into after taking the action.
+        Returns
+            A transition probability.
+        """
+
+    @property
+    @abc.abstractmethod
+    def env_desc(self) -> EnvDesc:
+        """
+        Returns:
+            An instance of EnvDesc with properties of the environment.
+        """
+
+
+class MdpDiscretizer:
+    """
+    Class contains functions to map state and action spaces
+    to discrete range values.
+    """
+
+    @abc.abstractmethod
+    def state(self, observation: Any) -> int:
+        """
+        Maps an observation to a state ID.
+        """
+
+    @abc.abstractmethod
+    def action(self, action: Any) -> int:
+        """
+        Maps an agent action to an action ID.
+        """
+
+
+@dataclasses.dataclass(frozen=True)
+class EnvSpec:
+    """
+    Class holds environment variables.
+    """
+
+    name: str
+    level: str
+    environment: gym.Env
+    discretizer: MdpDiscretizer
+    env_desc: EnvDesc

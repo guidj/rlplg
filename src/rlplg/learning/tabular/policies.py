@@ -1,3 +1,8 @@
+"""
+This module contains implemenation for certain discrete arm policies.
+"""
+
+
 import abc
 import copy
 import dataclasses
@@ -185,7 +190,7 @@ class ObservablePolicy(abc.ABC):
     """
 
     @abc.abstractmethod
-    def action_probability(self, state: Any, action: Any):
+    def action_probability(self, state: Any, action: Any) -> float:
         """
         Given a state and action, it returns a probability
         choosing the action in that state.
@@ -215,10 +220,16 @@ class PyObservableRandomPolicy(ObservablePolicy):
         policy_state: Any = (),
         seed: Optional[int] = None,
     ) -> core.PolicyStep:
+        """
+        Given a state, returns an arm
+        """
         return self._policy.action(
             observation=observation, policy_state=policy_state, seed=seed
         )
 
-    def action_probability(self, state, action):
+    def action_probability(self, state, action) -> float:
+        """
+        Returns the probability of choosing an arm.
+        """
         del state
         return self._probs[action]

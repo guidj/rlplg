@@ -7,7 +7,7 @@ defined in either `rlplg` or gym.
 import functools
 from typing import Any, Callable, Mapping
 
-from rlplg import envspec, gymenv
+from rlplg import core, gymenv
 from rlplg.environments import abcseq, gridworld, randomwalk, redgreen
 
 TAXI = "Taxi-v3"
@@ -19,7 +19,7 @@ SUPPORTED_RLPLG_ENVS = frozenset(
 SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE))
 
 
-def load(name: str, **args) -> envspec.EnvSpec:
+def load(name: str, **args) -> core.EnvSpec:
     """
     Creates an environment with the given arguments.
 
@@ -40,7 +40,7 @@ def load(name: str, **args) -> envspec.EnvSpec:
     return constructors[name](**args)
 
 
-def __environment_spec_constructors() -> Mapping[str, Callable[..., envspec.EnvSpec]]:
+def __environment_spec_constructors() -> Mapping[str, Callable[..., core.EnvSpec]]:
     """
     Creates a mapping of rlplg and gym environment names to their constructors.
 
@@ -48,7 +48,7 @@ def __environment_spec_constructors() -> Mapping[str, Callable[..., envspec.EnvS
         A mapping from a unique string identifier to a constructor.
 
     """
-    rlplg_envs: Mapping[str, Callable[..., envspec.EnvSpec]] = {
+    rlplg_envs: Mapping[str, Callable[..., core.EnvSpec]] = {
         abcseq.ENV_NAME: abcseq.create_env_spec,
         gridworld.ENV_NAME: gridworld.create_envspec_from_grid_file,
         randomwalk.ENV_NAME: randomwalk.create_env_spec,
@@ -62,7 +62,7 @@ def __environment_spec_constructors() -> Mapping[str, Callable[..., envspec.EnvS
 
 def __gym_environment_spec_constructor(
     name: str,
-) -> Callable[..., envspec.EnvSpec]:
+) -> Callable[..., core.EnvSpec]:
     """
     Partially initiatializes a gym environment spec with its name.
 
@@ -76,7 +76,7 @@ def __gym_environment_spec_constructor(
     return functools.partial(__gym_environment_spec, name)
 
 
-def __gym_environment_spec(name: str, **kwargs: Mapping[str, Any]) -> envspec.EnvSpec:
+def __gym_environment_spec(name: str, **kwargs: Mapping[str, Any]) -> core.EnvSpec:
     """
     Creates a gym environment spec.
     """
