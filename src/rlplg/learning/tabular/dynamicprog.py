@@ -25,7 +25,7 @@ def iterative_policy_evaluation(
     pi_action = np.zeros(
         (mdp.env_desc.num_states, mdp.env_desc.num_actions), dtype=np.float64
     )
-    transition = np.zeros(
+    m_transition = np.zeros(
         (
             mdp.env_desc.num_states,
             mdp.env_desc.num_actions,
@@ -33,7 +33,7 @@ def iterative_policy_evaluation(
         ),
         dtype=np.float64,
     )
-    reward = np.zeros(
+    m_reward = np.zeros(
         (
             mdp.env_desc.num_states,
             mdp.env_desc.num_actions,
@@ -42,14 +42,12 @@ def iterative_policy_evaluation(
         dtype=np.float64,
     )
 
-    for state in range(mdp.env_desc.num_states):
-        for action in range(mdp.env_desc.num_actions):
+    for state, action_transitions in mdp.transition.items():
+        for action, transitions in action_transitions.items():
             pi_action[state, action] = policy.action_probability(state, action)
-            for new_state in range(mdp.env_desc.num_states):
-                transition[state, action, new_state] = mdp.transition_probability(
-                    state, action, new_state
-                )
-                reward[state, action, new_state] = mdp.reward(state, action, new_state)
+            for prob, next_state, reward, _ in transitions:
+                m_transition[state, action, next_state] = prob
+                m_reward[state, action, next_state] = reward
 
     m_state_values = np.tile(
         np.zeros(shape=mdp.env_desc.num_states), (mdp.env_desc.num_actions, 1)
@@ -59,7 +57,7 @@ def iterative_policy_evaluation(
         current_state_values = copy.deepcopy(m_state_values[0])
         # |S| x |A| x |S'|
         # |S| x |A|
-        values = np.sum(transition * (reward + gamma * m_state_values), axis=2)
+        values = np.sum(m_transition * (m_reward + gamma * m_state_values), axis=2)
         new_state_values = np.diag(np.dot(pi_action, np.transpose(values)))
         m_state_values = np.tile(new_state_values, (mdp.env_desc.num_actions, 1))
 
@@ -78,22 +76,20 @@ def action_values_from_state_values(
     Compute Q(s,a) using V(s)
     """
     qtable = np.zeros(shape=(mdp.env_desc.num_states, mdp.env_desc.num_actions))
-    for state in range(mdp.env_desc.num_states):
-        for action in range(mdp.env_desc.num_actions):
+    for state, action_transitions in mdp.transition.items():
+        for action, transitions in action_transitions.items():
             cu_value = 0
-            for new_state in range(mdp.env_desc.num_states):
-                transition_prob = mdp.transition_probability(state, action, new_state)
-                reward = mdp.reward(state, action, new_state)
-                next_state_value = gamma * state_values[new_state]
+            for prob, next_state, reward, _ in transitions:
+                next_state_value = gamma * state_values[next_state]
                 logging.debug(
                     "state: %d, action: %d, next_state: %d (prob: %f), reward: %f, next_state_value: %d",
                     state,
                     action,
-                    new_state,
-                    transition_prob,
+                    next_state,
+                    prob,
                     reward,
                     next_state_value,
                 )
-                cu_value += transition_prob * (reward + next_state_value)
+                cu_value += prob * (reward + next_state_value)
             qtable[state, action] = cu_value
     return qtable
