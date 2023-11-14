@@ -304,6 +304,20 @@ def test_state_representation():
     ]
 
 
+@hypothesis.given(
+    cure=st.lists(st.sampled_from(elements=["red", "green", "wait"]), min_size=1)
+)
+def test_create_env_spec(cure: Sequence[str]):
+    env_spec = redgreen.create_env_spec(cure=cure)
+    assert env_spec.name == "RedGreenSeq"
+    assert len(env_spec.level) > 0
+    assert isinstance(env_spec.environment, redgreen.RedGreenSeq)
+    assert isinstance(env_spec.discretizer, redgreen.RedGreenMdpDiscretizer)
+    assert env_spec.mdp.env_desc.num_states == len(cure) + 1
+    assert env_spec.mdp.env_desc.num_actions == 3
+    assert len(env_spec.mdp.transition) == len(cure)
+
+
 def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
     assert_observation(output[0], expected[0])
     assert output[1] == expected[1]

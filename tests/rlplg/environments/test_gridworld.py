@@ -362,6 +362,19 @@ def test_as_grid():
     np.testing.assert_array_equal(output, expected)
 
 
+def test_create_env_spec():
+    env_spec = gridworld.create_env_spec(
+        size=(4, 12), cliffs=[], exits=[], start=(3, 0)
+    )
+    assert env_spec.name == "GridWorld"
+    assert len(env_spec.level) > 0
+    assert isinstance(env_spec.environment, gridworld.GridWorld)
+    assert isinstance(env_spec.discretizer, gridworld.GridWorldMdpDiscretizer)
+    assert env_spec.mdp.env_desc.num_states == 48
+    assert env_spec.mdp.env_desc.num_actions == 4
+    assert len(env_spec.mdp.transition) == 48
+
+
 def assert_observation(output: Any, expected: Any) -> None:
     np.testing.assert_array_equal(output["size"], expected["size"])
     np.testing.assert_array_equal(output["player"], expected["player"])

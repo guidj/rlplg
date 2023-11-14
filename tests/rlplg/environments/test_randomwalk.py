@@ -253,14 +253,13 @@ def test_is_finished(steps: int):
 @hypothesis.given(steps=st.integers(min_value=3, max_value=100))
 def test_create_env_spec(steps: int):
     env_spec = randomwalk.create_env_spec(steps=steps)
-
     assert env_spec.name == "StateRandomWalk"
-    assert isinstance(env_spec.level, str)
     assert len(env_spec.level) > 0
-    assert env_spec.mdp.env_desc.num_states == steps
-    assert env_spec.mdp.env_desc.num_actions == 2
     assert isinstance(env_spec.environment, randomwalk.StateRandomWalk)
     assert isinstance(env_spec.discretizer, randomwalk.StateRandomWalkMdpDiscretizer)
+    assert env_spec.mdp.env_desc.num_states == steps
+    assert env_spec.mdp.env_desc.num_actions == 2
+    assert len(env_spec.mdp.transition) == steps
 
 
 @hypothesis.given(pos=st.integers(min_value=3, max_value=100))

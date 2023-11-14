@@ -184,6 +184,23 @@ def test_state_id():
     assert abcseq.get_state_id([1, 1, 1]) == 2
 
 
+@hypothesis.given(length=st.integers(min_value=1, max_value=15))
+@hypothesis.settings(deadline=None)
+def test_abcseq_create_env_spec(length: int):
+    env_spec = abcseq.create_env_spec(length)
+    assert env_spec.name == "ABCSeq"
+    assert env_spec.level == str(length)
+    assert isinstance(env_spec.environment, abcseq.ABCSeq)
+    assert isinstance(env_spec.discretizer, abcseq.ABCSeqMdpDiscretizer)
+    assert env_spec.environment.action_space == spaces.Discrete(length)
+    assert env_spec.environment.observation_space == spaces.Box(
+        low=0, high=1, shape=(length + 1,), dtype=np.int64
+    )
+    assert env_spec.mdp.env_desc.num_states == length + 1
+    assert env_spec.mdp.env_desc.num_actions == length
+    assert len(env_spec.mdp.transition) == length + 1
+
+
 def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
     np.testing.assert_array_equal(output[0], expected[0])
     assert output[1] == expected[1]
