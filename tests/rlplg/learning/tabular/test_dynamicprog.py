@@ -1,16 +1,14 @@
-import gymnasium as gym
 import numpy as np
 
+from rlplg import core
 from rlplg.learning.tabular import dynamicprog, policies
 from tests import defaults
 
 
 def test_dynamic_iterative_policy_evaluation():
     environment = defaults.CountEnv()
-    mdp = defaults.CountEnvMDP()
-    policy = create_observable_random_policy(
-        environment, num_actions=mdp.env_desc().num_actions
-    )
+    mdp = core.EnvMdp(env_desc=environment.env_desc, transition=environment.transition)
+    policy = create_observable_random_policy(num_actions=mdp.env_desc.num_actions)
     delta = 1e-8
 
     actual_state_values = np.array([-33.0, -22.0, -11.0, 0.0])
@@ -27,7 +25,6 @@ def test_dynamic_iterative_policy_evaluation():
 
 
 def create_observable_random_policy(
-    environment: gym.Env,
     num_actions: int,
     emit_log_probability: bool = False,
 ):

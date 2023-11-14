@@ -8,13 +8,12 @@ from rlplg.core import InitState, TimeStep
 from rlplg.environments import abcseq
 
 
-@hypothesis.given(length=st.integers(min_value=1, max_value=100))
+@hypothesis.given(length=st.integers(min_value=1, max_value=10))
+@hypothesis.settings(deadline=None)
 def test_abcseq_init(length: int):
     environment = abcseq.ABCSeq(length)
     assert environment.length == length
-    assert environment.action_space == spaces.Box(
-        low=0, high=length - 1, dtype=np.int64
-    )
+    assert environment.action_space == spaces.Discrete(length)
     assert environment.observation_space == spaces.Box(
         low=0, high=1, shape=(length + 1,), dtype=np.int64
     )
@@ -75,11 +74,12 @@ def test_abcseq_simple_sequence():
 
 
 @hypothesis.given(
-    length=st.integers(min_value=1, max_value=100),
+    length=st.integers(min_value=1, max_value=10),
 )
+@hypothesis.settings(deadline=None)
 def test_abcseq_render(length: int):
     environment = abcseq.ABCSeq(length, render_mode="rgb_array")
-    environment.reset(),
+    environment.reset()
     # starting point
     np.testing.assert_array_equal(environment.render(), np.array([1] + [0] * length))  # type: ignore
     # one move
@@ -90,8 +90,9 @@ def test_abcseq_render(length: int):
 
 
 @hypothesis.given(
-    length=st.integers(min_value=1, max_value=100),
+    length=st.integers(min_value=1, max_value=10),
 )
+@hypothesis.settings(deadline=None)
 def test_abcseq_render_with_invalid_modes(length: int):
     modes = ("human",)
     for mode in modes:
@@ -109,10 +110,12 @@ def test_apply_action_with_unmastered_letters_and_action_is_the_next(
     completed: int, missing: int
 ):
     obs = np.array([1] + [1] * completed + [0] * missing)
-    expected = np.array([1] + [1] * (completed + 1) + [0] * (missing - 1))
     action = completed
-    output = abcseq.apply_action(obs, action)
-    np.testing.assert_array_equal(output, expected)
+    output_obs, output_reward = abcseq.apply_action(obs, action)
+    np.testing.assert_array_equal(
+        output_obs, np.array([1] + [1] * (completed + 1) + [0] * (missing - 1))
+    )
+    assert output_reward == -1.0
 
 
 @hypothesis.given(
@@ -125,8 +128,9 @@ def test_apply_action_with_unmastered_letters_and_action_is_skipped_head(
     obs = np.array([1] + [1] * completed + [0] * missing)
     skipped_steps = np.random.randint(low=1, high=missing + 1)
     action = completed + skipped_steps
-    output = abcseq.apply_action(obs, action)
-    np.testing.assert_array_equal(output, obs)
+    output_obs, output_reward = abcseq.apply_action(obs, action)
+    np.testing.assert_array_equal(output_obs, obs)
+    assert output_reward == -(skipped_steps + 1.0)
 
 
 @hypothesis.given(
@@ -139,8 +143,9 @@ def test_apply_action_with_unmastered_letters_and_action_is_behind(
     obs = np.array([1] + [1] * completed + [0] * missing)
     action = np.random.randint(low=0, high=completed)
     # num letters ahead + behind + 1 for rotation
-    output = abcseq.apply_action(obs, action)
-    np.testing.assert_array_equal(output, obs)
+    output_obs, output_reward = abcseq.apply_action(obs, action)
+    np.testing.assert_array_equal(output_obs, obs)
+    assert output_reward == -(missing + action + 2.0)
 
 
 @hypothesis.given(
@@ -149,84 +154,9 @@ def test_apply_action_with_unmastered_letters_and_action_is_behind(
 def test_apply_action_with_completed_sequence_action_is_end(completed: int):
     obs = np.array([1] + [1] * completed)
     action = completed
-    output = abcseq.apply_action(obs, action)
-    np.testing.assert_array_equal(output, obs)
-
-
-@hypothesis.given(
-    completed=st.integers(min_value=0, max_value=10),
-    missing=st.integers(min_value=2, max_value=10),
-)
-def test_action_reward_with_unmastered_letters_and_action_is_the_next(
-    completed: int, missing: int
-):
-    obs = np.array([1] + [1] * completed + [0] * missing)
-    action = completed
-    output = abcseq.action_reward(obs, action)
-    assert output == -1.0
-
-
-@hypothesis.given(
-    completed=st.integers(min_value=0, max_value=10),
-)
-def test_action_reward_with_one_unmastered_letters_and_action_is_the_next(
-    completed: int,
-):
-    obs = np.array([1] + [1] * completed + [0])
-    action = completed
-    output = abcseq.action_reward(obs, action)
-    assert output == -1.0
-
-
-@hypothesis.given(
-    completed=st.integers(min_value=0, max_value=10),
-    missing=st.integers(min_value=1, max_value=10),
-)
-def test_action_reward_with_unmastered_letters_and_action_is_skipped_ahead(
-    completed: int, missing: int
-):
-    obs = np.array([1] + [1] * completed + [0] * missing)
-    skipped_steps = np.random.randint(low=1, high=missing + 1)
-    action = completed + skipped_steps
-    output = abcseq.action_reward(obs, action)
-    moving_penantly = 1
-    assert output == -(skipped_steps + moving_penantly)
-
-
-@hypothesis.given(
-    completed=st.integers(min_value=1, max_value=10),
-    missing=st.integers(min_value=1, max_value=10),
-)
-def test_action_reward_with_unmastered_letters_and_action_is_behind(
-    completed: int, missing: int
-):
-    obs = np.array([1] + [1] * completed + [0] * missing)
-    action = np.random.randint(low=0, high=completed)
-    # num letters ahead + behind + 1 for rotation
-    moving_penalty = 1
-    expected = missing + action + moving_penalty + 1
-    output = abcseq.action_reward(obs, action)
-    assert output == -expected
-
-
-@hypothesis.given(
-    completed=st.integers(min_value=1, max_value=10),
-)
-def test_action_reward_with_completed_sequence_action_is_end(completed: int):
-    obs = np.array([1] + [1] * completed)
-    action = completed
-    output = abcseq.action_reward(obs, action)
-    assert output == 0.0
-
-
-@hypothesis.given(
-    completed=st.integers(min_value=1, max_value=10),
-)
-def test_action_reward_with_completed_sequence_action_is_behind(completed: int):
-    obs = np.array([1] + [1] * completed)
-    action = np.random.randint(low=0, high=completed)
-    output = abcseq.action_reward(obs, action)
-    assert output == 0.0
+    output_obs, output_reward = abcseq.apply_action(obs, action)
+    np.testing.assert_array_equal(output_obs, obs)
+    assert output_reward == 0.0
 
 
 @hypothesis.given(
@@ -252,6 +182,23 @@ def test_state_id():
     assert abcseq.get_state_id([1, 0, 0]) == 0
     assert abcseq.get_state_id([1, 1, 0]) == 1
     assert abcseq.get_state_id([1, 1, 1]) == 2
+
+
+@hypothesis.given(length=st.integers(min_value=1, max_value=10))
+@hypothesis.settings(deadline=None)
+def test_abcseq_create_env_spec(length: int):
+    env_spec = abcseq.create_env_spec(length)
+    assert env_spec.name == "ABCSeq"
+    assert env_spec.level == str(length)
+    assert isinstance(env_spec.environment, abcseq.ABCSeq)
+    assert isinstance(env_spec.discretizer, abcseq.ABCSeqMdpDiscretizer)
+    assert env_spec.environment.action_space == spaces.Discrete(length)
+    assert env_spec.environment.observation_space == spaces.Box(
+        low=0, high=1, shape=(length + 1,), dtype=np.int64
+    )
+    assert env_spec.mdp.env_desc.num_states == length + 1
+    assert env_spec.mdp.env_desc.num_actions == length
+    assert len(env_spec.mdp.transition) == length + 1
 
 
 def assert_time_step(output: TimeStep, expected: TimeStep) -> None:

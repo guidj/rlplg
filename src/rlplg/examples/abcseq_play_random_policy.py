@@ -45,7 +45,7 @@ def main(args: Args):
     # init env and policy
     env_spec = envsuite.load(name="ABCSeq", length=args.num_letters)
     policy = policies.PyRandomPolicy(
-        num_actions=env_spec.env_desc.num_actions,
+        num_actions=env_spec.mdp.env_desc.num_actions,
         emit_log_probability=False,
     )
 

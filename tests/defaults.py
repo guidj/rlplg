@@ -1,12 +1,17 @@
+"""
+Environments and functions for tests.
+"""
+
+
 import copy
 from typing import Any, Mapping, Optional, Sequence
 
 import gymnasium as gym
 import numpy as np
+from gymnasium import spaces
 
-from rlplg import core, envdesc
-from rlplg.core import InitState, ObsType, TimeStep
-from rlplg.learning.tabular import markovdp
+from rlplg import core
+from rlplg.core import InitState, MutableEnvTransition, ObsType, RenderType, TimeStep
 
 GRID_WIDTH = 5
 GRID_HEIGHT = 5
@@ -48,6 +53,73 @@ class CountEnv(gym.Env[np.ndarray, int]):
         # env specific
         self._observation: np.ndarray = np.empty(shape=(0,))
         self._seed = None
+        self.action_space = spaces.Discrete(2)
+        self.observation_space = spaces.Discrete(self.MAX_VALUE + 1)
+        self.transition: MutableEnvTransition = {}
+
+        for state in range(self.MAX_VALUE + 1):
+            self.transition[state] = {}
+            for action in range(2):
+                self.transition[state][action] = []
+                if state == CountEnv.MAX_VALUE:
+                    reward = 0.0
+                elif action == CountEnv.ACTION_NOTHING:
+                    reward = CountEnv.WRONG_MOVE_REWARD
+                else:
+                    reward = CountEnv.RIGHT_MOVE_REWARD
+
+                for next_state in range(self.MAX_VALUE + 1):
+                    terminated = (
+                        state == CountEnv.MAX_VALUE - 1
+                        and next_state == CountEnv.MAX_VALUE
+                    )
+                    prob = (
+                        1.0
+                        if (
+                            (
+                                state == CountEnv.MAX_VALUE
+                                and np.array_equal(next_state, state)
+                            )
+                            or (
+                                action == CountEnv.ACTION_NEXT
+                                and np.array_equal(next_state, state + 1)
+                            )
+                            or (
+                                action == CountEnv.ACTION_NOTHING
+                                and np.array_equal(next_state, state)
+                            )
+                        )
+                        else 0.0
+                    )
+                    self.transition[state][action].append(
+                        (prob, next_state, reward, terminated)
+                    )
+
+    def reward(self, state: int, action: int, next_state: int) -> float:
+        """
+        Given a state s, action a, and next state s' returns the expected reward.
+
+        Args:
+            state: starting state
+            action: agent's action
+            next_state: state transition into after taking the action.
+        Returns
+            A transition probability.
+        """
+        del next_state
+        if state == CountEnv.MAX_VALUE:
+            return 0.0
+        elif action == CountEnv.ACTION_NOTHING:
+            return CountEnv.WRONG_MOVE_REWARD
+        return CountEnv.RIGHT_MOVE_REWARD
+
+    @property
+    def env_desc(self) -> core.EnvDesc:
+        """
+        Returns:
+            An instance of EnvDesc with properties of the environment.
+        """
+        return core.EnvDesc(num_states=self.MAX_VALUE + 1, num_actions=2)
 
     def step(self, action: int) -> TimeStep:
         """
@@ -95,58 +167,9 @@ class CountEnv(gym.Env[np.ndarray, int]):
         self._observation = np.array(0, np.int64)
         return copy.deepcopy(self._observation), {}
 
-
-class CountEnvMDP(markovdp.MDP):
-    """
-    Markov decision process definition for CountEnv.
-    """
-
-    def transition_probability(self, state: Any, action: Any, next_state: Any) -> float:
-        """
-        Given a state s, action a, and next state s' returns a transition probability.
-        Args:
-            state: starting state
-            action: agent's action
-            next_state: state transition into after taking the action.
-
-        Returns:
-            A transition probability.
-        """
-        # terminal state
-        if (
-            (state == CountEnv.MAX_VALUE and np.array_equal(next_state, state))
-            or (
-                action == CountEnv.ACTION_NEXT and np.array_equal(next_state, state + 1)
-            )
-            or (action == CountEnv.ACTION_NOTHING and np.array_equal(next_state, state))
-        ):
-            return 1.0
-        return 0.0
-
-    def reward(self, state: Any, action: Any, next_state: Any) -> float:
-        """
-        Given a state s, action a, and next state s' returns the expected reward.
-
-        Args:
-            state: starting state
-            action: agent's action
-            next_state: state transition into after taking the action.
-        Returns
-            A transition probability.
-        """
-        del next_state
-        if state == CountEnv.MAX_VALUE:
-            return 0.0
-        elif action == CountEnv.ACTION_NOTHING:
-            return CountEnv.WRONG_MOVE_REWARD
-        return CountEnv.RIGHT_MOVE_REWARD
-
-    def env_desc(self) -> envdesc.EnvDesc:
-        """
-        Returns:
-            An instance of EnvDesc with properties of the environment.
-        """
-        return envdesc.EnvDesc(num_states=4, num_actions=2)
+    def render(self) -> RenderType:
+        """Render env"""
+        return super().render()
 
 
 class SingleStateEnv(gym.Env[np.ndarray, int]):
@@ -173,7 +196,7 @@ class SingleStateEnv(gym.Env[np.ndarray, int]):
         """
 
         # none
-        if not (0 <= action < self.num_actions):
+        if not 0 <= action < self.num_actions:
             raise ValueError(f"Unknown action {action}")
         return copy.deepcopy(self._observation), 0.0, False, False, {}
 
@@ -184,8 +207,13 @@ class SingleStateEnv(gym.Env[np.ndarray, int]):
 
         See `reset(self)` docstring for more details
         """
+        del seed, options
         self._observation = np.array(0, np.int64)
         return copy.deepcopy(self._observation), {}
+
+    def render(self) -> RenderType:
+        """Render env"""
+        return super().render()
 
 
 class RoundRobinActionsPolicy(core.PyPolicy):

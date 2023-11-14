@@ -21,7 +21,7 @@ import os
 import os.path
 import sys
 import time
-from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Iterator, Mapping, Optional, Sequence, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -29,9 +29,8 @@ import tensorflow as tf
 from gymnasium import spaces
 from PIL import Image as image
 
-from rlplg import envdesc, envspec, npsci
-from rlplg.core import InitState, RenderType, TimeStep
-from rlplg.learning.tabular import markovdp
+from rlplg import core, npsci
+from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "GridWorld"
 CLIFF_PENALTY = -100.0
@@ -97,7 +96,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         self._exits = set(exits)
 
         # left, right, up, down
-        self.action_space = spaces.Box(low=0, high=3, dtype=np.int64)
+        self.action_space = spaces.Discrete(len(MOVES))
         self.observation_space = spaces.Dict(
             {
                 "start": spaces.Box(
@@ -127,7 +126,48 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                 ),
             }
         )
-
+        states_mapping_ = states_mapping(
+            size=self._size,
+            cliffs=tuple(self._cliffs),
+        )
+        num_states = len(states_mapping_)
+        num_actions = len(MOVES)
+        self.__reverse_state_mapping = {
+            value: key for key, value in states_mapping_.items()
+        }
+        self.transition: MutableEnvTransition = {}
+        for state in range(num_states):
+            self.transition[state] = {}
+            state_pos = self.__reverse_state_mapping[state]
+            for action in range(num_actions):
+                self.transition[state][action] = []
+                next_obs, reward = apply_action(
+                    create_observation(
+                        size=self._size,
+                        start=self._start,
+                        player=state_pos,
+                        cliffs=tuple(self._cliffs),
+                        exits=tuple(self._exits),
+                    ),
+                    action,
+                )
+                for next_state in range(num_states):
+                    next_state_pos = self.__reverse_state_mapping[next_state]
+                    prob = (
+                        1.0
+                        if np.array_equal(next_obs[Strings.player], next_state_pos)
+                        else 0.0
+                    )
+                    actual_reward = (
+                        reward
+                        if np.array_equal(next_obs[Strings.player], next_state_pos)
+                        else 0.0
+                    )
+                    # transition to an exit
+                    terminated = state != next_state and (next_state_pos in self._exits)
+                    self.transition[state][action].append(
+                        (prob, next_state, actual_reward, terminated)
+                    )
         # env specific
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
@@ -140,7 +180,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         Args:
             action: A policy's chosen action.
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -173,7 +213,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         Renders a view of the environment's current
         state.
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -191,7 +231,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         return self._seed
 
 
-class GridWorldMdpDiscretizer(markovdp.MdpDiscretizer):
+class GridWorldMdpDiscretizer(core.MdpDiscretizer):
     """
     Creates an environment discrete maps for states and actions.
     """
@@ -352,7 +392,7 @@ def create_env_spec(
     cliffs: Sequence[Tuple[int, int]],
     exits: Sequence[Tuple[int, int]],
     start: Tuple[int, int],
-) -> envspec.EnvSpec:
+) -> core.EnvSpec:
     """
     Creates an env spec from a gridworld config.
     """
@@ -361,13 +401,16 @@ def create_env_spec(
     height, width = size
     num_states = height * width - len(cliffs)
     num_actions = len(MOVES)
-    env_desc = envdesc.EnvDesc(num_states=num_states, num_actions=num_actions)
-    return envspec.EnvSpec(
+    mdp = core.EnvMdp(
+        env_desc=core.EnvDesc(num_states=num_states, num_actions=num_actions),
+        transition=environment.transition,
+    )
+    return core.EnvSpec(
         name=ENV_NAME,
         level=__encode_env(size=size, cliffs=cliffs, exits=exits, start=start),
         environment=environment,
         discretizer=discretizer,
-        env_desc=env_desc,
+        mdp=mdp,
     )
 
 
@@ -636,12 +679,15 @@ def observation_as_image(
     observation: np.ndarray,
     last_move: Optional[Any],
 ) -> np.ndarray:
+    """
+    Converts an observation to an image (matrix).
+    """
     _, height, width = observation.shape
     rows = []
-    for x in range(height):
+    for pos_x in range(height):
         row = []
-        for y in range(width):
-            pos = position_as_string(observation, x, y, last_move)
+        for pos_y in range(width):
+            pos = position_as_string(observation, pos_x, pos_y, last_move)
             if pos in set(["[X]", "[x̄]"]):
                 row.append(sprites.cliff_sprite)
             elif pos in set(["[S]"] + [f"[{move}]" for move in MOVES]):
@@ -650,11 +696,11 @@ def observation_as_image(
             else:
                 row.append(sprites.path_sprite)
             # vertical border; same size as sprite
-            if y < width - 1:
+            if pos_y < width - 1:
                 row.append(_vborder(size=row[-1].shape[0]))
         rows.append(np.hstack(row))
         # horizontal border
-        rows.append(_hborder(size=sum([sprite.shape[1] for sprite in row])))
+        rows.append(_hborder(size=sum(sprite.shape[1] for sprite in row)))
     return np.vstack(rows)
 
 
@@ -669,11 +715,14 @@ def _hborder(size: int) -> np.ndarray:
 
 
 def observation_as_string(observation: np.ndarray, last_move: Optional[Any]) -> str:
+    """
+    Converts an observation to a string.
+    """
     _, height, width = observation.shape
     out = io.StringIO()
-    for x in range(height):
-        for y in range(width):
-            out.write(position_as_string(observation, x, y, last_move))
+    for pos_x in range(height):
+        for pos_y in range(width):
+            out.write(position_as_string(observation, pos_x, pos_y, last_move))
         out.write("\n")
 
     out.write("\n\n")
@@ -684,7 +733,7 @@ def observation_as_string(observation: np.ndarray, last_move: Optional[Any]) -> 
 
 
 def position_as_string(
-    observation: np.ndarray, x: int, y: int, last_move: Optional[Any]
+    observation: np.ndarray, pos_x: int, pos_y: int, last_move: Optional[Any]
 ) -> str:
     """
     Given a position:
@@ -700,58 +749,70 @@ def position_as_string(
      - If the player is on an exit, returns Ē
 
     """
-    if observation[Layers.player, x, y] and observation[Layers.cliff, x, y]:
+    if (
+        observation[Layers.player, pos_x, pos_y]
+        and observation[Layers.cliff, pos_x, pos_y]
+    ):
         return "[x̄]"
-    elif observation[Layers.player, x, y] and observation[Layers.exit, x, y]:
+    elif (
+        observation[Layers.player, pos_x, pos_y]
+        and observation[Layers.exit, pos_x, pos_y]
+    ):
         return "[Ē]"
-    elif observation[Layers.cliff, x, y] == 1:
+    elif observation[Layers.cliff, pos_x, pos_y] == 1:
         return "[X]"
-    elif observation[Layers.exit, x, y] == 1:
+    elif observation[Layers.exit, pos_x, pos_y] == 1:
         return "[E]"
-    elif observation[Layers.player, x, y] == 1:
+    elif observation[Layers.player, pos_x, pos_y] == 1:
         if last_move is not None:
             return f"[{MOVES[last_move]}]"
         return "[S]"
     return "[ ]"
 
 
-def parse_grid(path: str):
+def parse_grid_from_file(path: str):
     """
     Parses grid from text files.
     """
+    with tf.io.gfile.GFile(path, "r") as reader:
+        return parse_grid_from_text(line for line in reader)
 
+
+def parse_grid_from_text(grid: Iterator[str]):
+    """
+    Parses grid from text files.
+    """
     cliffs = []
     exits = []
     start = None
     height, width = 0, 0
-    with tf.io.gfile.GFile(path, "r") as reader:
-        for x, line in enumerate(reader):
-            row = line.strip()
-            width = max(width, len(row))
-            for y, elem in enumerate(row):
-                if elem.lower() == "x":
-                    cliffs.append((x, y))
-                elif elem.lower() == "g":
-                    exits.append((x, y))
-                elif elem.lower() == "s":
-                    start = (x, y)
-            height += 1
+    for pos_x, line in enumerate(grid):
+        row = line.strip()
+        width = max(width, len(row))
+        for pos_y, elem in enumerate(row):
+            if elem.lower() == "x":
+                cliffs.append((pos_x, pos_y))
+            elif elem.lower() == "g":
+                exits.append((pos_x, pos_y))
+            elif elem.lower() == "s":
+                start = (pos_x, pos_y)
+        height += 1
     return (height, width), cliffs, exits, start
 
 
-def create_environment_from_grid(path: str) -> GridWorld:
+def create_envspec_from_grid_file(grid_path: str) -> core.EnvSpec:
     """
     Parses a grid file and create an environment from
     the parameters.
     """
-    size, cliffs, exits, start = parse_grid(path)
-    return GridWorld(size=size, cliffs=cliffs, exits=exits, start=start)
+    size, cliffs, exits, start = parse_grid_from_file(grid_path)
+    return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)
 
 
-def create_envspec_from_grid(grid_path: str) -> envspec.EnvSpec:
+def create_envspec_from_grid_text(grid: Iterator[str]) -> core.EnvSpec:
     """
     Parses a grid file and create an environment from
     the parameters.
     """
-    size, cliffs, exits, start = parse_grid(grid_path)
+    size, cliffs, exits, start = parse_grid_from_text(grid)
     return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)

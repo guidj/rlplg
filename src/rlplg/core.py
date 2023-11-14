@@ -1,10 +1,13 @@
 """
 This module defines core abstractions.
 """
+
+
 import abc
 import dataclasses
-from typing import Any, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
+import gymnasium as gym
 import numpy as np
 from gymnasium.core import ActType, ObsType, RenderFrame, SupportsFloat
 from numpy.typing import ArrayLike
@@ -13,6 +16,9 @@ NestedArray = Union[Mapping, np.ndarray]
 TimeStep = Tuple[ObsType, SupportsFloat, bool, bool, Mapping[str, Any]]
 InitState = Tuple[ObsType, Mapping[str, Any]]
 RenderType = Optional[Union[RenderFrame, Sequence[RenderFrame]]]
+# Type: Mapping[state, Mapping[action, Sequence[Tuple[prob, next_state, reward, terminated]]]]
+EnvTransition = Mapping[int, Mapping[int, Sequence[Tuple[float, int, float, bool]]]]
+MutableEnvTransition = Dict[int, Dict[int, List[Tuple[float, int, float, bool]]]]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -105,3 +111,130 @@ class PyPolicy(abc.ABC):
             `state`: A policy state to be fed into the next call to action.
             `info`: Optional side information such as action log probabilities.
         """
+
+
+@dataclasses.dataclass(frozen=True)
+class EnvDesc:
+    """
+    Class contains properties of the environment.
+    """
+
+    num_states: int
+    num_actions: int
+
+
+class MdpDiscretizer:
+    """
+    Class contains functions to map state and action spaces
+    to discrete range values.
+    """
+
+    @abc.abstractmethod
+    def state(self, observation: Any) -> int:
+        """
+        Maps an observation to a state ID.
+        """
+
+    @abc.abstractmethod
+    def action(self, action: Any) -> int:
+        """
+        Maps an agent action to an action ID.
+        """
+
+
+class Mdp:
+    """
+    Markov Decision Process.
+    """
+
+    @property
+    @abc.abstractmethod
+    def transition(self) -> EnvTransition:
+        """
+        Returns:
+            The mapping of state-action transition.
+        """
+
+    @property
+    @abc.abstractmethod
+    def env_desc(self) -> EnvDesc:
+        """
+        Returns:
+            An instance of EnvDesc with properties of the environment.
+        """
+
+
+@dataclasses.dataclass(frozen=True)
+class EnvSpec:
+    """
+    Class holds environment variables.
+    """
+
+    name: str
+    level: str
+    environment: gym.Env
+    discretizer: MdpDiscretizer
+    mdp: Mdp
+
+
+class EnvMdp(Mdp):
+    """
+    Environment Dynamics for Gynasium environments that are
+    compliant with Toy Text examples.
+    """
+
+    def __init__(self, env_desc: EnvDesc, transition: EnvTransition):
+        """
+        Creates an MDP using transition mapping.
+
+        In some of the environments, there are errors in the implementation
+        for terminal states.
+        We correct them.
+        """
+        self.__env_desc = env_desc
+        self.__transition: MutableEnvTransition = {}
+        # collections.defaultdict(lambda: collections.defaultdict(lambda: (0.0, 0.0)))
+        # Find terminal states
+        terminal_states = set()
+        for _, action_transitions in transition.items():
+            for _, transitions in action_transitions.items():
+                for _, next_state, _, terminated in transitions:
+                    if terminated is True:
+                        terminal_states.add(next_state)
+
+        # Create mapping with correct transition for terminal states
+        # This necessary because `env.P` in Gymnasium toy text
+        # examples are incorrect.
+        for state, action_transitions in transition.items():
+            self.__transition[state] = {}
+            for action, transitions in action_transitions.items():
+                self.__transition[state][action] = []
+                for prob, next_state, reward, terminated in transitions:
+                    # if terminal state, override prob and reward for different states
+                    if state in terminal_states:
+                        prob = 1.0 if state == next_state else 0.0
+                        reward = 0.0
+                    self.__transition[state][action].append(
+                        (
+                            prob,
+                            next_state,
+                            reward,
+                            terminated,
+                        )
+                    )
+
+    @property
+    def env_desc(self) -> EnvDesc:
+        """
+        Returns:
+            An instance of EnvDesc with properties of the environment.
+        """
+        return self.__env_desc
+
+    @property
+    def transition(self) -> EnvTransition:
+        """
+        Returns:
+            The mapping of state-action transition.
+        """
+        return self.__transition
