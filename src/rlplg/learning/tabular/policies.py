@@ -232,4 +232,5 @@ class PyObservableRandomPolicy(ObservablePolicy):
         Returns the probability of choosing an arm.
         """
         del state
-        return self._probs[action]
+        prob: float = self._probs[action]
+        return prob

@@ -128,7 +128,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         )
         states_mapping_ = states_mapping(
             size=self._size,
-            cliffs=self._cliffs,
+            cliffs=tuple(self._cliffs),
         )
         num_states = len(states_mapping_)
         num_actions = len(MOVES)
