@@ -3,7 +3,7 @@ This module contains the definition of the State-Random-Walk problem.
 
 From Barto, Sutton, p.125
 
-"...all episodes start in the center state, C,then proceed either 
+"...all episodes start in the center state, C,then proceed either
 left or right by one state on each step, with equal probability.
 Episodes terminate either on the extreme left or the extreme right.
 When an episode terminates on the right, a reward of +1 occurs; all other rewards are zero."
