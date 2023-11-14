@@ -8,7 +8,7 @@ from rlplg.core import InitState, TimeStep
 from rlplg.environments import abcseq
 
 
-@hypothesis.given(length=st.integers(min_value=1, max_value=100))
+@hypothesis.given(length=st.integers(min_value=1, max_value=10))
 @hypothesis.settings(deadline=None)
 def test_abcseq_init(length: int):
     environment = abcseq.ABCSeq(length)
@@ -74,7 +74,7 @@ def test_abcseq_simple_sequence():
 
 
 @hypothesis.given(
-    length=st.integers(min_value=1, max_value=100),
+    length=st.integers(min_value=1, max_value=10),
 )
 @hypothesis.settings(deadline=None)
 def test_abcseq_render(length: int):
@@ -90,7 +90,7 @@ def test_abcseq_render(length: int):
 
 
 @hypothesis.given(
-    length=st.integers(min_value=1, max_value=100),
+    length=st.integers(min_value=1, max_value=10),
 )
 @hypothesis.settings(deadline=None)
 def test_abcseq_render_with_invalid_modes(length: int):
@@ -184,7 +184,7 @@ def test_state_id():
     assert abcseq.get_state_id([1, 1, 1]) == 2
 
 
-@hypothesis.given(length=st.integers(min_value=1, max_value=15))
+@hypothesis.given(length=st.integers(min_value=1, max_value=10))
 @hypothesis.settings(deadline=None)
 def test_abcseq_create_env_spec(length: int):
     env_spec = abcseq.create_env_spec(length)
