@@ -79,7 +79,7 @@ def __environment_spec_constructors() -> Mapping[str, Callable[..., core.EnvSpec
     """
     rlplg_envs: Mapping[str, Callable[..., core.EnvSpec]] = {
         abcseq.ENV_NAME: abcseq.create_env_spec,
-        gridworld.ENV_NAME: gridworld.create_envspec_from_grid_file,
+        gridworld.ENV_NAME: gridworld.create_envspec_from_grid_text,
         randomwalk.ENV_NAME: randomwalk.create_env_spec,
         redgreen.ENV_NAME: redgreen.create_env_spec,
     }
@@ -111,17 +111,20 @@ def __gym_environment_spec(name: str, **kwargs: Mapping[str, Any]) -> core.EnvSp
     """
     environment = gym.make(name, **kwargs)
     discretizer = GymEnvMdpDiscretizer()
-    env_desc = parse_gym_env_desc(environment=environment)
+    mdp = core.EnvMdp(
+        env_desc=__parse_gym_env_desc(environment=environment),
+        transition=__parse_gym_env_transition(environment),
+    )
     return core.EnvSpec(
         name=name,
         level=__encode_env(**kwargs),
         environment=environment,
         discretizer=discretizer,
-        env_desc=env_desc,
+        mdp=mdp,
     )
 
 
-def parse_gym_env_desc(environment: gym.Env) -> core.EnvDesc:
+def __parse_gym_env_desc(environment: gym.Env) -> core.EnvDesc:
     """
     Infers the EnvDesc from a `gym.Env`.
     """
@@ -138,23 +141,11 @@ def parse_gym_env_desc(environment: gym.Env) -> core.EnvDesc:
     return core.EnvDesc(num_states=num_states, num_actions=num_actions)
 
 
-def parse_gym_env_transition(environment: gym.Env) -> EnvTransition:
+def __parse_gym_env_transition(environment: gym.Env) -> EnvTransition:
     """
     Parses transition data from a `gym.Env`.
     """
-    for key in ("P", "transition"):
-        if hasattr(environment, key):
-            return getattr(environment, key)
-    raise ValueError("No `P` or `transition` attribute in environment")
-
-
-def parse_gym_env_mdp(environment: gym.Env) -> core.Mdp:
-    """
-    Parses an Mdp from a `gym.Env`.
-    """
-    env_desc = parse_gym_env_desc(environment)
-    transition = parse_gym_env_transition(environment)
-    return core.EnvMdp(env_desc=env_desc, transition=transition)
+    return getattr(environment, "P")
 
 
 def __encode_env(**kwargs: Mapping[str, Any]) -> str:

@@ -1,12 +1,13 @@
 import numpy as np
 
-from rlplg import envsuite
+from rlplg import core
 from rlplg.learning.tabular import dynamicprog, policies
 from tests import defaults
 
 
 def test_dynamic_iterative_policy_evaluation():
-    mdp = envsuite.parse_gym_env_mdp(defaults.CountEnv())
+    environment = defaults.CountEnv()
+    mdp = core.EnvMdp(env_desc=environment.env_desc, transition=environment.transition)
     policy = create_observable_random_policy(num_actions=mdp.env_desc.num_actions)
     delta = 1e-8
 

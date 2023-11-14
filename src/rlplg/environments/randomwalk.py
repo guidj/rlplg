@@ -3,7 +3,8 @@ This module contains the definition of the State-Random-Walk problem.
 
 From Barto, Sutton, p.125
 
-"...all episodes start in the center state, C,then proceed eitherleft or right by one state on each step, with equal probability.
+"...all episodes start in the center state, C,then proceed either 
+left or right by one state on each step, with equal probability.
 Episodes terminate either on the extreme left or the extreme right.
 When an episode terminates on the right, a reward of +1 occurs; all other rewards are zero."
 
@@ -22,7 +23,7 @@ import numpy as np
 from gymnasium import spaces
 
 from rlplg import core, npsci
-from rlplg.core import InitState, RenderType, TimeStep
+from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "StateRandomWalk"
 GO_LEFT = 0
@@ -74,7 +75,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         self.right_end_reward = right_end_reward
         self.step_reward = step_reward
         self.render_mode = render_mode
-        self.action_space = spaces.Box(low=0, high=1, dtype=np.int64)
+        self.action_space = spaces.Discrete(len(ACTIONS))
         self.observation_space = spaces.Dict(
             {
                 OBS_KEY_POSITION: spaces.Box(low=0, high=steps - 1, dtype=np.int64),
@@ -90,6 +91,31 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
                 ),
             }
         )
+        self.transition: MutableEnvTransition = {}
+        for state in range(self.steps):
+            self.transition[state] = {}
+            state_obs = state_observation(
+                position=state,
+                steps=self.steps,
+                left_end_reward=self.left_end_reward,
+                right_end_reward=self.right_end_reward,
+                step_reward=self.step_reward,
+            )
+            for action in range(len(ACTIONS)):
+                self.transition[state][action] = []
+                next_state_obs, reward = apply_action(
+                    observation=state_obs, action=action
+                )
+                next_state_id = get_state_id(next_state_obs)
+                for next_state in range(self.steps):
+                    prob = 1.0 if next_state == next_state_id else 0.0
+                    actual_reward = reward if next_state == next_state_id else 0.0
+                    terminated = state != next_state and next_state in set(
+                        [0, self.steps - 1]
+                    )
+                    self.transition[state][action].append(
+                        (prob, next_state, actual_reward, terminated)
+                    )
 
         # env specific
         self._observation: Mapping[str, Any] = {}
@@ -122,7 +148,8 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         """
         del options
         self.seed(seed)
-        self._observation = beginning_state(
+        self._observation = state_observation(
+            position=math.floor(self.steps / 2),
             steps=self.steps,
             left_end_reward=self.left_end_reward,
             right_end_reward=self.right_end_reward,
@@ -182,7 +209,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
         steps: 5
         starting_state: 2
         possible_states: [0, 4]
-        (0 is terminal, 1 is a left step, 3 is a right steps, 6 is a terminal state)
+        (0 is terminal, 1 is a left step, 3 is a right steps, 4 is a terminal state)
     """
     right_terminal_state = observation[OBS_KEY_STEPS] - 1
     terminal_states = set((0, right_terminal_state))
@@ -206,14 +233,18 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     return new_observation, reward + step_reward
 
 
-def beginning_state(
-    steps: int, left_end_reward: float, right_end_reward: float, step_reward: float
+def state_observation(
+    position: int,
+    steps: int,
+    left_end_reward: float,
+    right_end_reward: float,
+    step_reward: float,
 ) -> Mapping[str, Any]:
     """
     Generates the starting state.
     """
     return {
-        OBS_KEY_POSITION: np.array(math.floor(steps / 2), dtype=np.int64),
+        OBS_KEY_POSITION: np.array(position, dtype=np.int64),
         OBS_KEY_STEPS: np.array(steps, dtype=np.int64),
         OBS_KEY_RIGHT_END_REWARD: np.array(right_end_reward, dtype=np.float32),
         OBS_KEY_LEFT_END_REWARD: np.array(left_end_reward, dtype=np.float32),
@@ -249,7 +280,6 @@ def create_env_spec(
     discretizer = StateRandomWalkMdpDiscretizer()
     num_states = steps
     num_actions = len(ACTIONS)
-    env_desc = core.EnvDesc(num_states=num_states, num_actions=num_actions)
     return core.EnvSpec(
         name=ENV_NAME,
         level=__encode_env(
@@ -260,7 +290,10 @@ def create_env_spec(
         ),
         environment=environment,
         discretizer=discretizer,
-        env_desc=env_desc,
+        mdp=core.EnvMdp(
+            env_desc=core.EnvDesc(num_states=num_states, num_actions=num_actions),
+            transition=environment.transition,
+        ),
     )
 
 

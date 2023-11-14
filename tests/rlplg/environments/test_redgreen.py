@@ -18,7 +18,7 @@ def test_redgreen_init(cure: Sequence[str]):
     cure_sequence = [redgreen.ACTION_NAME_MAPPING[step] for step in cure]
     environment = redgreen.RedGreenSeq(cure)
     assert environment.cure_sequence == cure_sequence
-    assert environment.action_space == spaces.Box(low=0, high=2, dtype=np.int64)
+    assert environment.action_space == spaces.Discrete(3)
     assert environment.observation_space == spaces.Dict(
         {
             "cure_sequence": spaces.Box(
@@ -235,16 +235,6 @@ def test_apply_action_with_env_in_terminal_state(
     assert output_reward == 0.0
 
 
-@hypothesis.given(
-    cure_sequence=st.lists(
-        st.sampled_from(elements=list(range(len(redgreen.ACTIONS)))), min_size=2
-    )
-)
-def test_beginning_state(cure_sequence: Sequence[int]):
-    output = redgreen.beginning_state(cure_sequence)
-    assert output == {"cure_sequence": cure_sequence, "position": 0}
-
-
 def test_is_finished():
     assert not redgreen.is_finished({"cure_sequence": [0], "position": 0})
     assert redgreen.is_finished({"cure_sequence": [0], "position": 1})
@@ -261,12 +251,26 @@ def test_get_state_id():
 
 @hypothesis.given(
     cure_sequence=st.lists(
-        st.sampled_from(elements=list(range(len(redgreen.ACTIONS))))
-    ),
-    pos=st.integers(),
+        st.sampled_from(elements=list(range(len(redgreen.ACTIONS)))), min_size=2
+    )
 )
-def test_state_observation(cure_sequence: Sequence[int], pos: int):
-    assert redgreen.state_observation(state_id=pos, cure_sequence=cure_sequence)
+def test_state_observation(cure_sequence: Sequence[int]):
+    pos = random.randint(0, len(cure_sequence))
+    assert redgreen.state_observation(position=pos, cure_sequence=cure_sequence) == {
+        "cure_sequence": cure_sequence,
+        "position": pos,
+    }
+
+
+@hypothesis.given(
+    cure_sequence=st.lists(
+        st.sampled_from(elements=list(range(len(redgreen.ACTIONS)))), min_size=2
+    )
+)
+def test_state_observation_with_invalid_position(cure_sequence: Sequence[int]):
+    pos = random.choice([-1, len(cure_sequence) + 1])
+    with pytest.raises(AssertionError):
+        redgreen.state_observation(cure_sequence, position=pos)
 
 
 def test_state_representation():

@@ -19,7 +19,7 @@ So the number of actions with 4 letters.
 
 Transitions:
   - The agent can only say to have learned a letter if they have go to it after
-  completing the previous one. The first letter is an execption - there is no prior
+  completing the previous one. The first letter is an exception - there is no prior
   letter.
   - If an agent chooses a letter that is further ahead, they get penalized by the distance
   and the state doesn't change.
@@ -42,14 +42,14 @@ Notes:
 """
 
 import copy
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
 from rlplg import core, npsci
-from rlplg.core import InitState, RenderType, TimeStep
+from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "ABCSeq"
 MIN_SEQ_LENGTH = 1
@@ -74,10 +74,25 @@ class ABCSeq(gym.Env[np.ndarray, int]):
             raise ValueError(
                 f"Length must be between {MIN_SEQ_LENGTH} and {NUM_LETTERS}: {length}"
             )
-        self.action_space = spaces.Box(low=0, high=length - 1, dtype=np.int64)
+        self.action_space = spaces.Discrete(self.length)
         self.observation_space = spaces.Box(
             low=0, high=1, shape=(length + 1,), dtype=np.int64
         )
+        self.transition: MutableEnvTransition = {}
+        for state in range(self.length + 1):
+            self.transition[state] = {}
+            state_obs = state_observation(state, self.length)
+            for action in range(self.length):
+                self.transition[state][action] = []
+                next_state_obs, reward = apply_action(state_obs, action)
+                next_state_id = get_state_id(next_state_obs)
+                for next_state in range(self.length + 1):
+                    prob = 1.0 if next_state == next_state_id else 0.0
+                    actual_reward = reward if next_state == next_state_id else 0.0
+                    terminated = state != next_state and next_state == self.length
+                    self.transition[state][action].append(
+                        (prob, next_state, actual_reward, terminated)
+                    )
 
         # env specific
         self._observation: np.ndarray = np.empty(shape=(0,))
@@ -92,8 +107,7 @@ class ABCSeq(gym.Env[np.ndarray, int]):
             action: A policy's chosen action.
 
         """
-        new_observation = apply_action(self._observation, action)
-        reward = action_reward(self._observation, action)
+        new_observation, reward = apply_action(self._observation, action)
         finished = is_finished(new_observation, action)
         self._observation = new_observation
         return copy.deepcopy(self._observation), reward, finished, False, {}
@@ -150,7 +164,17 @@ class ABCSeqMdpDiscretizer(core.MdpDiscretizer):
         return action_
 
 
-def apply_action(observation: np.ndarray, action: int) -> np.ndarray:
+def apply_action(observation: np.ndarray, action: int) -> Tuple[np.ndarray, float]:
+    """
+    Takes an action in a given state.
+
+    Returns:
+        New observation and reward
+    """
+    return _step_observation(observation, action), _step_reward(observation, action)
+
+
+def _step_observation(observation: np.ndarray, action: int) -> np.ndarray:
     """
     Transitions:
         - The agent can only say to have learned a letter if they go to it after
@@ -175,7 +199,7 @@ def apply_action(observation: np.ndarray, action: int) -> np.ndarray:
     return new_observation
 
 
-def action_reward(observation: np.ndarray, action: int) -> float:
+def _step_reward(observation: np.ndarray, action: int) -> float:
     """
     One penalty per turn and one for the distance - except
     in the terminal state.
@@ -233,13 +257,16 @@ def create_env_spec(length: int) -> core.EnvSpec:
     """
     environment = ABCSeq(length=length)
     discretizer = ABCSeqMdpDiscretizer()
-    env_desc = core.EnvDesc(num_states=length + 1, num_actions=length)
+    mdp = core.EnvMdp(
+        env_desc=core.EnvDesc(num_states=length + 1, num_actions=length),
+        transition=environment.transition,
+    )
     return core.EnvSpec(
         name=ENV_NAME,
         level=str(length),
         environment=environment,
         discretizer=discretizer,
-        env_desc=env_desc,
+        mdp=mdp,
     )
 
 

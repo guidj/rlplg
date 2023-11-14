@@ -1,6 +1,8 @@
 """
 This module defines core abstractions.
 """
+
+
 import abc
 import dataclasses
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -140,19 +142,6 @@ class MdpDiscretizer:
         """
 
 
-@dataclasses.dataclass(frozen=True)
-class EnvSpec:
-    """
-    Class holds environment variables.
-    """
-
-    name: str
-    level: str
-    environment: gym.Env
-    discretizer: MdpDiscretizer
-    env_desc: EnvDesc
-
-
 class Mdp:
     """
     Markov Decision Process.
@@ -173,6 +162,19 @@ class Mdp:
         Returns:
             An instance of EnvDesc with properties of the environment.
         """
+
+
+@dataclasses.dataclass(frozen=True)
+class EnvSpec:
+    """
+    Class holds environment variables.
+    """
+
+    name: str
+    level: str
+    environment: gym.Env
+    discretizer: MdpDiscretizer
+    mdp: Mdp
 
 
 class EnvMdp(Mdp):

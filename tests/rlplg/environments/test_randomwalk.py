@@ -17,7 +17,7 @@ def test_state_randomwalk_init(steps: int):
     assert environment.left_end_reward == 0
     assert environment.right_end_reward == 1
     assert environment.step_reward == 0
-    assert environment.action_space == spaces.Box(low=0, high=1, dtype=np.int64)
+    assert environment.action_space == spaces.Discrete(2)
     assert environment.observation_space == spaces.Dict(
         {
             "position": spaces.Box(low=0, high=steps - 1, dtype=np.int64),
@@ -257,8 +257,8 @@ def test_create_env_spec(steps: int):
     assert env_spec.name == "StateRandomWalk"
     assert isinstance(env_spec.level, str)
     assert len(env_spec.level) > 0
-    assert env_spec.env_desc.num_states == steps
-    assert env_spec.env_desc.num_actions == 2
+    assert env_spec.mdp.env_desc.num_states == steps
+    assert env_spec.mdp.env_desc.num_actions == 2
     assert isinstance(env_spec.environment, randomwalk.StateRandomWalk)
     assert isinstance(env_spec.discretizer, randomwalk.StateRandomWalkMdpDiscretizer)
 

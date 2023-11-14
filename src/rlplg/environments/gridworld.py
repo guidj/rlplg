@@ -30,7 +30,7 @@ from gymnasium import spaces
 from PIL import Image as image
 
 from rlplg import core, npsci
-from rlplg.core import InitState, RenderType, TimeStep
+from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "GridWorld"
 CLIFF_PENALTY = -100.0
@@ -96,7 +96,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         self._exits = set(exits)
 
         # left, right, up, down
-        self.action_space = spaces.Box(low=0, high=3, dtype=np.int64)
+        self.action_space = spaces.Discrete(len(MOVES))
         self.observation_space = spaces.Dict(
             {
                 "start": spaces.Box(
@@ -126,7 +126,48 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                 ),
             }
         )
-
+        states_mapping_ = states_mapping(
+            size=self._size,
+            cliffs=self._cliffs,
+        )
+        num_states = len(states_mapping_)
+        num_actions = len(MOVES)
+        self.__reverse_state_mapping = {
+            value: key for key, value in states_mapping_.items()
+        }
+        self.transition: MutableEnvTransition = {}
+        for state in range(num_states):
+            self.transition[state] = {}
+            state_pos = self.__reverse_state_mapping[state]
+            for action in range(num_actions):
+                self.transition[state][action] = []
+                next_obs, reward = apply_action(
+                    create_observation(
+                        size=self._size,
+                        start=self._start,
+                        player=state_pos,
+                        cliffs=tuple(self._cliffs),
+                        exits=tuple(self._exits),
+                    ),
+                    action,
+                )
+                for next_state in range(num_states):
+                    next_state_pos = self.__reverse_state_mapping[next_state]
+                    prob = (
+                        1.0
+                        if np.array_equal(next_obs[Strings.player], next_state_pos)
+                        else 0.0
+                    )
+                    actual_reward = (
+                        reward
+                        if np.array_equal(next_obs[Strings.player], next_state_pos)
+                        else 0.0
+                    )
+                    # transition to an exit
+                    terminated = state != next_state and (next_state_pos in self._exits)
+                    self.transition[state][action].append(
+                        (prob, next_state, actual_reward, terminated)
+                    )
         # env specific
         self._observation: Mapping[str, Any] = {}
         self._seed: Optional[int] = None
@@ -216,78 +257,6 @@ class GridWorldMdpDiscretizer(core.MdpDiscretizer):
         del self
         action_: int = npsci.item(action)
         return action_
-
-
-class GridWorldMdp(core.Mdp):
-    """
-    MDP definition for a GridWorld environment.
-    """
-
-    def __init__(self, env_spec: core.EnvSpec) -> None:
-        self.__env_spec = env_spec
-        # state reverse; inferer
-        assert isinstance(env_spec.environment, GridWorld)
-        self.__initial_obs, _ = env_spec.environment.reset()
-        states_mapping_ = states_mapping(
-            size=coord_from_array(self.__initial_obs["size"]),
-            cliffs=coords_from_sequence(self.__initial_obs["cliffs"]),
-        )
-        self.__reverse_state_mapping = {
-            value: key for key, value in states_mapping_.items()
-        }
-
-    def transition_probability(self, state: int, action: int, next_state: int) -> float:
-        """
-        Given a state s, action a, and next state s' returns a transition probability.
-        Args:
-            state: starting state
-            action: agent's action
-            next_state: state transition into after taking the action.
-
-        Returns:
-            A transition probability.
-        """
-        state_pos = self.__reverse_state_mapping[state]
-        next_state_pos = self.__reverse_state_mapping[next_state]
-        next_obs, _ = apply_action(self.__observation(state_pos), action)
-        return 1.0 if np.array_equal(next_obs[Strings.player], next_state_pos) else 0.0
-
-    def reward(self, state: int, action: int, next_state: int) -> float:
-        """
-        Given a state s, action a, and next state s' returns the expected reward.
-
-        Args:
-            state: starting state
-            action: agent's action
-            next_state: state transition into after taking the action.
-        Returns
-            A transition probability.
-        """
-        state_pos = self.__reverse_state_mapping[state]
-        next_state_pos = self.__reverse_state_mapping[next_state]
-        next_obs, reward = apply_action(self.__observation(state_pos), action)
-        return (
-            reward if np.array_equal(next_obs[Strings.player], next_state_pos) else 0.0
-        )
-
-    def env_desc(self) -> core.EnvDesc:
-        """
-        Returns:
-            An instance of EnvDesc with properties of the environment.
-        """
-        return self.__env_spec.env_desc
-
-    def __observation(self, pos: Tuple[int, int]) -> Mapping[str, Any]:
-        """
-        Creates an observation from a player's position.
-        """
-        return create_observation(
-            size=self.__initial_obs["size"],
-            start=self.__initial_obs["start"],
-            player=pos,
-            cliffs=self.__initial_obs["cliffs"],
-            exits=self.__initial_obs["exits"],
-        )
 
 
 class GridWorldRenderer:
@@ -432,13 +401,16 @@ def create_env_spec(
     height, width = size
     num_states = height * width - len(cliffs)
     num_actions = len(MOVES)
-    env_desc = core.EnvDesc(num_states=num_states, num_actions=num_actions)
+    mdp = core.EnvMdp(
+        env_desc=core.EnvDesc(num_states=num_states, num_actions=num_actions),
+        transition=environment.transition,
+    )
     return core.EnvSpec(
         name=ENV_NAME,
         level=__encode_env(size=size, cliffs=cliffs, exits=exits, start=start),
         environment=environment,
         discretizer=discretizer,
-        env_desc=env_desc,
+        mdp=mdp,
     )
 
 

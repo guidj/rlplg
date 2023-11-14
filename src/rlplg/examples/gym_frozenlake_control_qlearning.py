@@ -50,8 +50,8 @@ def main(args: Args):
         num_episodes=args.num_episodes,
         state_id_fn=npsci.item,
         initial_qtable=factories.initialize_action_values(
-            num_states=env_spec.env_desc.num_states,
-            num_actions=env_spec.env_desc.num_actions,
+            num_states=env_spec.mdp.env_desc.num_states,
+            num_actions=env_spec.mdp.env_desc.num_actions,
         ),
         epsilon=0.5,
         gamma=1.0,
@@ -77,7 +77,7 @@ def main(args: Args):
                 break
 
             steps += 1
-            if steps > env_spec.env_desc.num_states * 10:
+            if steps > env_spec.mdp.env_desc.num_states * 10:
                 logging.warning(
                     "Stopping game play - policy doesn't solve the problem!"
                 )

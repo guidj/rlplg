@@ -13,7 +13,7 @@ from tests.rlplg.environments import grids
 
 def test_gridworld_init():
     environment = gridworld.GridWorld(size=(4, 12), cliffs=[], exits=[], start=(3, 0))
-    assert environment.action_space == spaces.Box(low=0, high=3, dtype=np.int64)
+    assert environment.action_space == spaces.Discrete(4)
     assert environment.observation_space == spaces.Dict(
         {
             "start": spaces.Box(
@@ -159,6 +159,7 @@ def test_gridworld_seed():
 
 
 @hypothesis.given(seed=st.integers(min_value=0, max_value=2**32 - 1))
+@hypothesis.settings(deadline=None)
 def test_gridworld_seed_with_value_provided(seed: int):
     environment = gridworld.GridWorld(size=(4, 12), cliffs=[], exits=[], start=(3, 0))
     assert environment.seed(seed) == seed

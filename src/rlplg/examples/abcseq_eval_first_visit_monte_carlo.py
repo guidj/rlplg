@@ -47,7 +47,7 @@ def main(args: Args):
     env_spec = envsuite.load(name="ABCSeq", length=args.num_letters)
     gamma = 0.99
     policy = policies.PyRandomPolicy(
-        num_actions=env_spec.env_desc.num_actions,
+        num_actions=env_spec.mdp.env_desc.num_actions,
         emit_log_probability=False,
     )
 
@@ -58,7 +58,7 @@ def main(args: Args):
         gamma=gamma,
         state_id_fn=env_spec.discretizer.state,
         initial_values=factories.initialize_state_values(
-            num_states=env_spec.env_desc.num_states,
+            num_states=env_spec.mdp.env_desc.num_states,
         ),
     )
 
