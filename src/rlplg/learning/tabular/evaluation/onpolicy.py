@@ -60,7 +60,6 @@ def first_visit_monte_carlo_action_values(
     def visit_key(experience) -> Tuple[int, int]:
         return state_id_fn(experience.observation), action_id_fn(experience.action)
 
-    # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
     state_action_updates: DefaultDict[Tuple[int, int], int] = collections.defaultdict(
         int
@@ -151,19 +150,18 @@ def sarsa_action_values(
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
-    # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
     steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, 1))
-        for steps_counter in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[steps_counter].observation)
-            action_id = action_id_fn(experiences[steps_counter].action)
-            reward = experiences[steps_counter].reward
+        for step in range(len(experiences) - 1):
+            state_id = state_id_fn(experiences[step].observation)
+            action_id = action_id_fn(experiences[step].action)
+            reward = experiences[step].reward
 
-            next_state_id = state_id_fn(experiences[steps_counter + 1].observation)
-            next_action_id = action_id_fn(experiences[steps_counter + 1].action)
+            next_state_id = state_id_fn(experiences[step + 1].observation)
+            next_action_id = action_id_fn(experiences[step + 1].action)
             alpha = lrs(episode=episode, step=steps_counter)
             qtable[state_id, action_id] += alpha * (
                 reward
@@ -218,7 +216,6 @@ def first_visit_monte_carlo_state_values(
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
-    # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
     state_updates: DefaultDict[int, int] = collections.defaultdict(int)
     state_visits: DefaultDict[int, int] = collections.defaultdict(int)
@@ -298,21 +295,21 @@ def one_step_td_state_values(
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
-    # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
+    steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, 1))
         for step in range(len(experiences) - 1):
             state_id = state_id_fn(experiences[step].observation)
             next_state_id = state_id_fn(experiences[step + 1].observation)
-            alpha = lrs(episode=episode, step=step)
+            alpha = lrs(episode=episode, step=steps_counter)
             values[state_id] += alpha * (
                 experiences[step].reward
                 + gamma * values[next_state_id]
                 - values[state_id]
             )
-            step += 1
+            steps_counter += 1
 
         # need to copy values because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(values)
