@@ -173,6 +173,9 @@ def nstep_sarsa_action_values(
     Off-policy n-step Sarsa Prediction.
     Estimates Q (table) for a fixed policy pi.
 
+    The algorithm assumes the starting states is a non-terminal
+    state.
+
     Args:
         policy: A target policy, pi, whose value function we wish to evaluate.
         collect_policy: A behavior policy, used to generate episodes.
@@ -214,21 +217,24 @@ def nstep_sarsa_action_values(
             if step < final_step:
                 # we don't need to transition because we already collected the experience
                 # a better way to determine the next state is terminal one
-                if experiences[step].terminated or experiences[step].truncated:
+                if experiences[step + 1].terminated or experiences[step + 1].truncated:
                     final_step = step + 1
 
             tau = step - nstep + 1
             if tau >= 0:
                 min_idx = tau + 1
-                max_idx = min(tau + nstep, final_step - 1)
+                max_idx = min(tau + nstep, final_step)
                 rho = 1.0
                 returns = 0.0
 
                 for i in range(min_idx, max_idx + 1):
-                    rho *= policy_probability_fn(
-                        policy, experiences[i]
-                    ) / collect_policy_probability_fn(collect_policy, experiences[i])
-                    returns += (gamma ** (i - tau - 1)) * experiences[i - 1].reward
+                    if i < max_idx:
+                        rho *= policy_probability_fn(
+                            policy, experiences[i]
+                        ) / collect_policy_probability_fn(
+                            collect_policy, experiences[i]
+                        )
+                    returns += (gamma ** (i - tau - 1)) * experiences[i].reward
                 if tau + nstep < final_step:
                     returns += (gamma**nstep) * qtable[
                         state_id_fn(experiences[tau + nstep].observation),
