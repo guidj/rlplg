@@ -225,11 +225,11 @@ def first_visit_monte_carlo_state_values(
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        _experiences = list(generate_episodes(environment, policy, 1))
+        experiences_ = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
         experiences: List[core.TrajectoryStep] = []
-        while len(_experiences) > 0:
-            experience = _experiences.pop()
+        while len(experiences_) > 0:
+            experience = experiences_.pop()
             state_visits[state_id_fn(experience.observation)] += 1
             experiences.append(experience)
 
@@ -300,20 +300,19 @@ def one_step_td_state_values(
     """
     # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
-    steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, 1))
-        for steps_counter in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[steps_counter].observation)
-            next_state_id = state_id_fn(experiences[steps_counter + 1].observation)
-            alpha = lrs(episode=episode, step=steps_counter)
+        for step in range(len(experiences) - 1):
+            state_id = state_id_fn(experiences[step].observation)
+            next_state_id = state_id_fn(experiences[step + 1].observation)
+            alpha = lrs(episode=episode, step=step)
             values[state_id] += alpha * (
-                experiences[steps_counter].reward
+                experiences[step].reward
                 + gamma * values[next_state_id]
                 - values[state_id]
             )
-            steps_counter += 1
+            step += 1
 
         # need to copy values because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(values)
