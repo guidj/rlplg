@@ -205,7 +205,7 @@ def nstep_sarsa_action_values(
         A tuple of steps (count) and q-table.
 
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
-    So index wise, we subtract them all by one.
+    So index wise, we subtract reward access references by one.
     """
     if nstep < 1:
         raise ValueError(f"nstep must be > 1: {nstep}")
@@ -237,7 +237,7 @@ def nstep_sarsa_action_values(
                         ) / collect_policy_probability_fn(
                             collect_policy, experiences[i]
                         )
-                    returns += (gamma ** (i - tau - 1)) * experiences[i].reward
+                    returns += (gamma ** (i - tau - 1)) * experiences[i - 1].reward
                 if tau + nstep < final_step:
                     returns += (gamma**nstep) * qtable[
                         state_id_fn(experiences[tau + nstep].observation),

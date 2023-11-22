@@ -167,7 +167,7 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
     steps, qtable = next(iter(output))
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[0, -0.1], [0, -0.1], [0, 0.0], [0, 0]])
+        qtable, np.array([[0.0, -0.1], [0.0, -0.1], [0.0, -0.1], [0.0, 0.0]])
     )
 
 
@@ -201,12 +201,12 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
     steps, qtable = next(output_iter)
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[0, -0.195], [0, -0.1], [0, 0], [0, 0]])
+        qtable, np.array([[0.0, -0.195], [0.0, -0.195], [0.0, -0.1], [0.0, 0.0]])
     )
     steps, qtable = next(output_iter)
     assert steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[0, -0.3705], [0, -0.19], [0, 0], [0, 0]])
+        qtable, np.array([[0.0, -0.379525], [0.0, -0.3705], [0.0, -0.19], [0.0, 0.0]])
     )
 
 
@@ -244,7 +244,7 @@ def test_nstep_sarsa_action_values_with_one_nstep_and_one_episode_covering_every
     steps, qtable = next(iter(output))
     assert steps == 7
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[-0.1, -1.0], [-0.1, -1.0], [-0.1, 0.0], [0.0, 0.0]])
+        qtable, np.array([[-1.0, -0.1], [-1.0, -0.1], [-1.0, -0.1], [0.0, 0.0]])
     )
 
 
@@ -281,7 +281,7 @@ def test_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_covering_ever
     steps, qtable = next(iter(output))
     assert steps == 7
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[-2.1, 0], [-2.1, 0], [-0.2, 0.0], [0, 0]])
+        qtable, np.array([[-2.19, 0.0], [-2.19, 0.0], [-2.19, -0.1], [0.0, 0.0]])
     )
 
 
