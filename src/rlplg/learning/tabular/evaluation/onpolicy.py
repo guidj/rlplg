@@ -41,14 +41,12 @@ def first_visit_monte_carlo_action_values(
         alpha: The learning rate.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
+            the Q(s,a) table.
         action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates trajectories from a given trajectory step.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.identity_replay`.
+            the Q(s,a) table.
+        initial_qtable: Initial action-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and q-table.
@@ -135,14 +133,12 @@ def sarsa_action_values(
         lrs: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
+            the Q(s,a) table.
         action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates a trajectory from a given trajectory steps.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.identity_replay`.
+            the Q(s,a) table.
+        initial_qtable: Initial action-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and q-table.
@@ -201,14 +197,10 @@ def first_visit_monte_carlo_state_values(
         num_episodes: The number of episodes to generate for evaluation.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
-        action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates trajectories from a given trajectory.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.identity_replay`.
+            the V(s) table.
+        initial_values: Initial state-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and v-table.
@@ -280,14 +272,10 @@ def one_step_td_state_values(
         lrs: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
-        action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates trajectories from a given trajectory.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.identity_replay`.
+            the V(s) table.
+        initial_values: Initial state-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and v-table.

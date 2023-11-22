@@ -54,16 +54,19 @@ def monte_carlo_action_values(
         event_buffer: A buffer to store episode steps.
         num_episodes: The number of episodes to generate for evaluation.
         gamma: The discount rate.
+        policy_probability_fn: a mapper of the probability
+            of a given action in a state for the target
+            policy.
+        collect_policy_probability_fn: a mapper of the probability
+            of a given action in a state for the collection
+            policy.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
+            the Q(s,a) table.
         action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-            Initialized to randomly if None.
-        collect_episodes: A function that generates trajectories.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.collect_episodes`.
+            the Q(s,a) table.
+        initial_qtable: Initial action-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and q-table.
@@ -183,20 +186,20 @@ def nstep_sarsa_action_values(
         num_episodes: The number of episodes to generate for evaluation.
         lrs: The learning rate schedule.
         gamma: The discount rate.
-        nstep: The number of steps before value updates in the MDP sequence.
-        policy_probability_fn: returns action propensity for the target policy,
-            given a trajectory step.
-        collect_policy_probability_fn: returns action propensity for the collect policy,
-            given a trajectory step.
+        nstep: The number of steps used in TD updates.
+        policy_probability_fn: a mapper of the probability
+            of a given action in a state for the target
+            policy.
+        collect_policy_probability_fn: a mapper of the probability
+            of a given action in a state for the collection
+            policy.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
+            the Q(s,a) table.
         action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        generate_episodes: A function that generates trajectories.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.collect_episodes`.
+            the Q(s,a) table.
+        initial_qtable: Initial action-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and q-table.
