@@ -41,14 +41,12 @@ def first_visit_monte_carlo_action_values(
         alpha: The learning rate.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
+            the Q(s,a) table.
         action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates trajectories from a given trajectory step.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.identity_replay`.
+            the Q(s,a) table.
+        initial_qtable: Initial action-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and q-table.
@@ -60,7 +58,6 @@ def first_visit_monte_carlo_action_values(
     def visit_key(experience) -> Tuple[int, int]:
         return state_id_fn(experience.observation), action_id_fn(experience.action)
 
-    # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
     state_action_updates: DefaultDict[Tuple[int, int], int] = collections.defaultdict(
         int
@@ -136,14 +133,12 @@ def sarsa_action_values(
         lrs: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
+            the Q(s,a) table.
         action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates a trajectory from a given trajectory steps.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.identity_replay`.
+            the Q(s,a) table.
+        initial_qtable: Initial action-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and q-table.
@@ -151,19 +146,18 @@ def sarsa_action_values(
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
-    # first state and reward come from env reset
     qtable = copy.deepcopy(initial_qtable)
     steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, 1))
-        for steps_counter in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[steps_counter].observation)
-            action_id = action_id_fn(experiences[steps_counter].action)
-            reward = experiences[steps_counter].reward
+        for step in range(len(experiences) - 1):
+            state_id = state_id_fn(experiences[step].observation)
+            action_id = action_id_fn(experiences[step].action)
+            reward = experiences[step].reward
 
-            next_state_id = state_id_fn(experiences[steps_counter + 1].observation)
-            next_action_id = action_id_fn(experiences[steps_counter + 1].action)
+            next_state_id = state_id_fn(experiences[step + 1].observation)
+            next_action_id = action_id_fn(experiences[step + 1].action)
             alpha = lrs(episode=episode, step=steps_counter)
             qtable[state_id, action_id] += alpha * (
                 reward
@@ -203,14 +197,10 @@ def first_visit_monte_carlo_state_values(
         num_episodes: The number of episodes to generate for evaluation.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
-        action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates trajectories from a given trajectory.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.identity_replay`.
+            the V(s) table.
+        initial_values: Initial state-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and v-table.
@@ -218,18 +208,17 @@ def first_visit_monte_carlo_state_values(
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
-    # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
     state_updates: DefaultDict[int, int] = collections.defaultdict(int)
     state_visits: DefaultDict[int, int] = collections.defaultdict(int)
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        _experiences = list(generate_episodes(environment, policy, 1))
+        experiences_ = list(generate_episodes(environment, policy, 1))
         # reverse list and ammortize state visits
         experiences: List[core.TrajectoryStep] = []
-        while len(_experiences) > 0:
-            experience = _experiences.pop()
+        while len(experiences_) > 0:
+            experience = experiences_.pop()
             state_visits[state_id_fn(experience.observation)] += 1
             experiences.append(experience)
 
@@ -283,14 +272,10 @@ def one_step_td_state_values(
         lrs: The learning rate schedule.
         gamma: The discount rate.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
-        action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        event_mapper: A function that generates trajectories from a given trajectory.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.identity_replay`.
+            the V(s) table.
+        initial_values: Initial state-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and v-table.
@@ -298,22 +283,92 @@ def one_step_td_state_values(
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
-    # first state and reward come from env reset
     values = copy.deepcopy(initial_values)
     steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences = list(generate_episodes(environment, policy, 1))
-        for steps_counter in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[steps_counter].observation)
-            next_state_id = state_id_fn(experiences[steps_counter + 1].observation)
+        for step in range(len(experiences) - 1):
+            state_id = state_id_fn(experiences[step].observation)
+            next_state_id = state_id_fn(experiences[step + 1].observation)
             alpha = lrs(episode=episode, step=steps_counter)
             values[state_id] += alpha * (
-                experiences[steps_counter].reward
+                experiences[step].reward
                 + gamma * values[next_state_id]
                 - values[state_id]
             )
             steps_counter += 1
 
         # need to copy values because it's a mutable numpy array
+        yield len(experiences), copy.deepcopy(values)
+
+
+def nstep_td_state_values(
+    policy: core.PyPolicy,
+    environment: gym.Env,
+    num_episodes: int,
+    lrs: schedules.LearningRateSchedule,
+    gamma: float,
+    nstep: int,
+    state_id_fn: Callable[[Any], int],
+    initial_values: np.ndarray,
+    generate_episodes: Callable[
+        [
+            gym.Env,
+            core.PyPolicy,
+            int,
+        ],
+        Generator[core.TrajectoryStep, None, None],
+    ] = envplay.generate_episodes,
+) -> Generator[Tuple[int, np.ndarray], None, None]:
+    """
+    n-step TD learning.
+    Estimates V(s) for a fixed policy pi.
+    Source: https://en.wikipedia.org/wiki/Temporal_difference_learning
+
+    Args:
+        policy: A target policy, pi, whose value function we wish to evaluate.
+        environment: The environment used to generate episodes for evaluation.
+        num_episodes: The number of episodes to generate for evaluation.
+        lrs: The learning rate schedule.
+        gamma: The discount rate.
+        state_id_fn: A function that maps observations to an int ID for
+            the V(s) table.
+        initial_values: Initial state-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
+
+    Yields:
+        A tuple of steps (count) and v-table.
+
+    Note: the first reward (in the book) is R_{1} for R_{0 + 1};
+    So index wise, we subtract reward access references by one.
+    """
+    values = copy.deepcopy(initial_values)
+    steps_counter = 0
+    for episode in range(num_episodes):
+        # This can be memory intensive, for long episodes and large state/action representations.
+        experiences = list(generate_episodes(environment, policy, 1))
+        final_step = np.iinfo(np.int64).max
+        for step, _ in enumerate(experiences):
+            if step < final_step:
+                if experiences[step + 1].terminated or experiences[step + 1].truncated:
+                    final_step = step + 1
+            tau = step - nstep + 1
+            if tau >= 0:
+                min_idx = tau + 1
+                max_idx = min(tau + nstep, final_step)
+                returns = 0.0
+
+                for i in range(min_idx, max_idx + 1):
+                    returns += (gamma ** (i - tau - 1)) * experiences[i - 1].reward
+                if tau + nstep < final_step:
+                    returns += (gamma**nstep) * values[
+                        state_id_fn(experiences[tau + nstep].observation),
+                    ]
+                state_id = state_id_fn(experiences[tau].observation)
+                alpha = lrs(episode=episode, step=steps_counter)
+                values[state_id] += alpha * (returns - values[state_id])
+            steps_counter += 1
+        # need to copy qtable because it's a mutable numpy array
         yield len(experiences), copy.deepcopy(values)

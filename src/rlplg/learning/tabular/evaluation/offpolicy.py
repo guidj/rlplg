@@ -54,16 +54,19 @@ def monte_carlo_action_values(
         event_buffer: A buffer to store episode steps.
         num_episodes: The number of episodes to generate for evaluation.
         gamma: The discount rate.
+        policy_probability_fn: a mapper of the probability
+            of a given action in a state for the target
+            policy.
+        collect_policy_probability_fn: a mapper of the probability
+            of a given action in a state for the collection
+            policy.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
+            the Q(s,a) table.
         action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-            Initialized to randomly if None.
-        collect_episodes: A function that generates trajectories.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.collect_episodes`.
+            the Q(s,a) table.
+        initial_qtable: Initial action-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and q-table.
@@ -173,6 +176,9 @@ def nstep_sarsa_action_values(
     Off-policy n-step Sarsa Prediction.
     Estimates Q (table) for a fixed policy pi.
 
+    The algorithm assumes the starting states is a non-terminal
+    state.
+
     Args:
         policy: A target policy, pi, whose value function we wish to evaluate.
         collect_policy: A behavior policy, used to generate episodes.
@@ -180,26 +186,26 @@ def nstep_sarsa_action_values(
         num_episodes: The number of episodes to generate for evaluation.
         lrs: The learning rate schedule.
         gamma: The discount rate.
-        nstep: The number of steps before value updates in the MDP sequence.
-        policy_probability_fn: returns action propensity for the target policy,
-            given a trajectory step.
-        collect_policy_probability_fn: returns action propensity for the collect policy,
-            given a trajectory step.
+        nstep: The number of steps used in TD updates.
+        policy_probability_fn: a mapper of the probability
+            of a given action in a state for the target
+            policy.
+        collect_policy_probability_fn: a mapper of the probability
+            of a given action in a state for the collection
+            policy.
         state_id_fn: A function that maps observations to an int ID for
-            the Q(S, A) table.
+            the Q(s,a) table.
         action_id_fn: A function that maps actions to an int ID for
-            the Q(S, A) table.
-        initial_qtable: A prior belief of Q(S, A) estimates.
-        generate_episodes: A function that generates trajectories.
-            This is useful in cases where the caller whishes to apply
-            a transformation to experience logs.
-            Defautls to `envplay.collect_episodes`.
+            the Q(s,a) table.
+        initial_qtable: Initial action-value estimates.
+        generate_episodes: A function that generates episodic
+            trajectories given an environment and policy.
 
     Yields:
         A tuple of steps (count) and q-table.
 
     Note: the first reward (in the book) is R_{1} for R_{0 + 1};
-    So index wise, we subtract them all by one.
+    So index wise, we subtract reward access references by one.
     """
     if nstep < 1:
         raise ValueError(f"nstep must be > 1: {nstep}")
@@ -214,20 +220,23 @@ def nstep_sarsa_action_values(
             if step < final_step:
                 # we don't need to transition because we already collected the experience
                 # a better way to determine the next state is terminal one
-                if experiences[step].terminated or experiences[step].truncated:
+                if experiences[step + 1].terminated or experiences[step + 1].truncated:
                     final_step = step + 1
 
             tau = step - nstep + 1
             if tau >= 0:
                 min_idx = tau + 1
-                max_idx = min(tau + nstep, final_step - 1)
+                max_idx = min(tau + nstep, final_step)
                 rho = 1.0
                 returns = 0.0
 
                 for i in range(min_idx, max_idx + 1):
-                    rho *= policy_probability_fn(
-                        policy, experiences[i]
-                    ) / collect_policy_probability_fn(collect_policy, experiences[i])
+                    if i < max_idx:
+                        rho *= policy_probability_fn(
+                            policy, experiences[i]
+                        ) / collect_policy_probability_fn(
+                            collect_policy, experiences[i]
+                        )
                     returns += (gamma ** (i - tau - 1)) * experiences[i - 1].reward
                 if tau + nstep < final_step:
                     returns += (gamma**nstep) * qtable[
