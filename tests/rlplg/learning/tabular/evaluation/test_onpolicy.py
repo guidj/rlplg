@@ -328,6 +328,194 @@ def test_one_step_td_state_values_with_two_episodes(
     np.testing.assert_allclose(values, [-0.2, -0.2, -0.19, 0])
 
 
+def test_nstep_td_state_values_with_one_nstep_and_one_episode(
+    environment: gym.Env,
+    policy: core.PyPolicy,
+):
+    """
+    Every (state, action) pair is updated, since
+    the behavior and target policies match on every step.
+
+    Trajectory: (0, 1), (1, 1), (2, 1), (3, 1)
+    Rewards: -1, -1, -1, 0
+    """
+
+    results = onpolicy.nstep_td_state_values(
+        policy=policy,
+        environment=environment,
+        num_episodes=1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
+        gamma=1.0,
+        nstep=1,
+        state_id_fn=defaults.item,
+        initial_values=np.zeros(shape=[4], dtype=np.float32),
+    )
+
+    output = list(results)
+    assert len(output) == 1
+    steps, values = next(iter(output))
+    assert steps == 4
+    np.testing.assert_allclose(values, [-0.1, -0.1, -0.1, 0])
+
+
+def test_nstep_td_state_values_with_one_nstep_and_two_episodes(
+    environment: gym.Env,
+    policy: core.PyPolicy,
+):
+    """
+    Every (state, action) pair is updated, since
+    the behavior and target policies match on every step.
+
+    Since the rewards are the same at each episode,
+    the average should be the same.
+
+    Trajectory: (0, 1), (1, 1), (2, 1), (3, 1)
+    Rewards: -1, -1, -1, 0
+
+    Episode 1:
+    V(s) = V(s) + alpha * (r + gamma * V(s') - V(s))
+    V(0) = V(0) + 0.1 * (-1 + 1.0 * V(1) - V(0))
+    V(0) = 0 + 0.1 * (-1 + 1.0 * 0 - 0)
+    V(0) = 0 + (-0.1) = -0.1
+    ..
+    V(1) = -0.1
+    ...
+    V(2) = V(2) + 0.1 * (-1 + 1.0 * V(3) - V(2))
+    V(2) = 0 + 0.1 * (-1 + 1.0 * 0 - 0)
+    V(2) = -0.1
+
+    Episode 2:
+    V(0) = V(0) + 0.1 * (-1 + 1.0 * V(1) - V(0))
+    V(0) = -0.1 + 0.1 * (-1 + 1.0 * -0.1 - (-0.1))
+    V(0) = -0.2
+    ...
+    V(2) = V(2) + 0.1 * (-1 + 1.0 * V(3) - V(2))
+    V(2) = -0.1 + 0.1 * (-1 + 1.0 * 0 - (-0.1))
+    V(2) = -0.19
+    """
+
+    results = onpolicy.nstep_td_state_values(
+        policy=policy,
+        environment=environment,
+        num_episodes=2,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
+        gamma=1.0,
+        nstep=1,
+        state_id_fn=defaults.item,
+        initial_values=np.zeros(shape=[4], dtype=np.float32),
+    )
+
+    output = list(results)
+    assert len(output) == 2
+    output_iter = iter(output)
+    steps, values = next(output_iter)
+    assert steps == 4
+    np.testing.assert_allclose(values, [-0.1, -0.1, -0.1, 0])
+    steps, values = next(output_iter)
+    assert steps == 4
+    np.testing.assert_allclose(values, [-0.2, -0.2, -0.19, 0])
+
+
+def test_nstep_td_state_values_with_two_nstep_and_one_episode(
+    environment: gym.Env,
+    policy: core.PyPolicy,
+):
+    """
+    Every (state, action) pair is updated, since
+    the behavior and target policies match on every step.
+
+    Trajectory: (0, 1), (1, 1), (2, 1), (3, 1)
+    Rewards: -1, -1, -1, 0
+    """
+
+    results = onpolicy.nstep_td_state_values(
+        policy=policy,
+        environment=environment,
+        num_episodes=1,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
+        gamma=1.0,
+        nstep=2,
+        state_id_fn=defaults.item,
+        initial_values=np.zeros(shape=[4], dtype=np.float32),
+    )
+
+    output = list(results)
+    assert len(output) == 1
+    steps, values = next(iter(output))
+    assert steps == 4
+    np.testing.assert_allclose(values, [-0.2, -0.2, -0.1, 0])
+
+
+def test_nstep_td_state_values_with_two_nstep_and_two_episodes(
+    environment: gym.Env,
+    policy: core.PyPolicy,
+):
+    """
+    Every (state, action) pair is updated, since
+    the behavior and target policies match on every step.
+
+    Since the rewards are the same at each episode,
+    the average should be the same.
+
+    Trajectory: (0, 1), (1, 1), (2, 1), (3, 1)
+    Rewards: -1, -1, -1, 0
+
+    Episode 1:'
+    G = n-step discounted rewards + discounted value
+        of next state (if there is one)
+    V(s_{tau}) = V(s_{tau}) + alpha * (G - V(s_{tau}))
+    V(0) = V(0) + 0.1 * (-2 - V(0)) | G = -2 + 0
+    V(0) = 0 + 0.1 * (-2 - 0)
+    V(0) = 0 + (-0.2) = -0.2
+    ..
+    V(1) = -0.2 | G = -2
+    ...
+    V(2) = V(2) + 0.1 * (-1 - V(2)) | G = -1 + 0
+    V(2) = 0 + 0.1 * -1
+    V(2) = -0.1
+
+    Episode 2:
+    V(0) = V(0) + 0.1 * (G - V(0)) | G = -2 + -0.1
+    V(0) = -0.2 + 0.1 * (-2.1 - (-0.2))
+    V(0) = -0.2 + 0.1 * (-1.9)
+    V(0) = -0.39
+    ...
+    V(2) = V(2) + 0.1 * (G - V(2)) | G = -1 + 0
+    V(2) = -0.1 + 0.1 * (-1 - (-0.1))
+    V(2) = -0.1 + 0.1 * (-0.9)
+    V(2) = -0.19
+    """
+
+    results = onpolicy.nstep_td_state_values(
+        policy=policy,
+        environment=environment,
+        num_episodes=2,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=constant_learning_rate
+        ),
+        gamma=1.0,
+        nstep=2,
+        state_id_fn=defaults.item,
+        initial_values=np.zeros(shape=[4], dtype=np.float32),
+    )
+
+    output = list(results)
+    assert len(output) == 2
+    output_iter = iter(output)
+    steps, values = next(output_iter)
+    assert steps == 4
+    np.testing.assert_allclose(values, [-0.2, -0.2, -0.1, 0])
+    steps, values = next(output_iter)
+    assert steps == 4
+    np.testing.assert_allclose(values, [-0.39, -0.38, -0.19, 0.0])
+
+
 def constant_learning_rate(initial_lr: float, episode: int, step: int):
     del episode
     del step
