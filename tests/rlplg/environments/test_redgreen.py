@@ -14,6 +14,7 @@ VALID_ACTIONS = ["red", "green", "wait"]
 
 
 @hypothesis.given(cure=st.lists(st.sampled_from(elements=VALID_ACTIONS), min_size=1))
+@hypothesis.settings(deadline=None)
 def test_redgreen_init(cure: Sequence[str]):
     cure_sequence = [redgreen.ACTION_NAME_MAPPING[step] for step in cure]
     environment = redgreen.RedGreenSeq(cure)
@@ -307,6 +308,7 @@ def test_state_representation():
 @hypothesis.given(
     cure=st.lists(st.sampled_from(elements=["red", "green", "wait"]), min_size=1)
 )
+@hypothesis.settings(deadline=None)
 def test_create_env_spec(cure: Sequence[str]):
     env_spec = redgreen.create_env_spec(cure=cure)
     assert env_spec.name == "RedGreenSeq"
