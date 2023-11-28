@@ -139,16 +139,14 @@ def test_experiment_logger():
             log_dir=tempdir, name=name, params=params
         ) as experiment_logger:
             experiment_logger.log(episode=1, steps=10, returns=100)
-            experiment_logger.log(
-                episode=2, steps=4, returns=40, metadata={"error": 0.123}
-            )
+            experiment_logger.log(episode=2, steps=4, returns=40, info={"error": 0.123})
 
         with open(
             os.path.join(tempdir, tracking.ExperimentLogger.PARAM_FILE_NAME)
         ) as readable:
-            output_metadata = json.load(readable)
-            expected_medata = {**params, "name": name}
-            assert output_metadata == expected_medata
+            output_params = json.load(readable)
+            expected_params = {**params, "name": name}
+            assert output_params == expected_params
 
         with open(
             os.path.join(tempdir, tracking.ExperimentLogger.LOG_FILE_NAME)
@@ -158,9 +156,9 @@ def test_experiment_logger():
                     "episode": 1,
                     "steps": 10,
                     "returns": 100,
-                    "metadata": {},
+                    "info": {},
                 },
-                {"episode": 2, "steps": 4, "returns": 40, "metadata": {"error": 0.123}},
+                {"episode": 2, "steps": 4, "returns": 40, "info": {"error": 0.123}},
             ]
             output_logs = [json.loads(line) for line in readable]
             assert output_logs == expected_output
@@ -187,16 +185,14 @@ def test_experiment_logger_with_nonexisitng_dir():
             log_dir=log_dir, name=name, params=params
         ) as experiment_logger:
             experiment_logger.log(episode=1, steps=10, returns=100)
-            experiment_logger.log(
-                episode=2, steps=4, returns=40, metadata={"error": 0.123}
-            )
+            experiment_logger.log(episode=2, steps=4, returns=40, info={"error": 0.123})
 
         with open(
             os.path.join(log_dir, tracking.ExperimentLogger.PARAM_FILE_NAME)
         ) as readable:
-            output_metadata = json.load(readable)
-            expected_medata = {**params, "name": name}
-            assert output_metadata == expected_medata
+            output_params = json.load(readable)
+            expected_params = {**params, "name": name}
+            assert output_params == expected_params
 
         with open(
             os.path.join(log_dir, tracking.ExperimentLogger.LOG_FILE_NAME)
@@ -206,9 +202,9 @@ def test_experiment_logger_with_nonexisitng_dir():
                     "episode": 1,
                     "steps": 10,
                     "returns": 100,
-                    "metadata": {},
+                    "info": {},
                 },
-                {"episode": 2, "steps": 4, "returns": 40, "metadata": {"error": 0.123}},
+                {"episode": 2, "steps": 4, "returns": 40, "info": {"error": 0.123}},
             ]
             output_logs = [json.loads(line) for line in readable]
             assert output_logs == expected_output

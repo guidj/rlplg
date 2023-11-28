@@ -128,7 +128,7 @@ class ExperimentLogger(contextlib.AbstractContextManager):
         episode: int,
         steps: int,
         returns: float,
-        metadata: Optional[Mapping[str, Any]] = None,
+        info: Optional[Mapping[str, Any]] = None,
     ):
         """
         Logs an experiment entry for an episode.
@@ -137,7 +137,7 @@ class ExperimentLogger(contextlib.AbstractContextManager):
             "episode": episode,
             "steps": steps,
             "returns": returns,
-            "metadata": metadata if metadata is not None else {},
+            "info": info if info is not None else {},
         }
 
         if self._writer is None:
