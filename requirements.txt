@@ -4,136 +4,31 @@
 #
 #    pip-compile --no-emit-find-links --no-emit-index-url --no-emit-options requirements.in
 #
-absl-py==1.4.0
-    # via
-    #   tensorboard
-    #   tensorflow
-astunparse==1.6.3
-    # via tensorflow
-cachetools==5.3.0
-    # via google-auth
-certifi==2022.12.7
-    # via requests
-charset-normalizer==3.1.0
-    # via requests
 cloudpickle==2.2.1
     # via gymnasium
 farama-notifications==0.0.4
     # via gymnasium
-flatbuffers==23.3.3
-    # via tensorflow
 future==0.18.3
     # via pyglet
-gast==0.4.0
-    # via tensorflow
-google-auth==2.16.2
-    # via
-    #   google-auth-oauthlib
-    #   tensorboard
-google-auth-oauthlib==0.4.6
-    # via tensorboard
-google-pasta==0.2.0
-    # via tensorflow
-grpcio==1.51.3
-    # via
-    #   tensorboard
-    #   tensorflow
 gymnasium==0.28.1
     # via -r requirements.in
-h5py==3.1.0
-    # via tensorflow
-idna==3.4
-    # via requests
 importlib-metadata==6.0.0
-    # via
-    #   gymnasium
-    #   markdown
+    # via gymnasium
 jax-jumpy==1.0.0
     # via gymnasium
-keras==2.11.0
-    # via tensorflow
-libclang==15.0.6.1
-    # via tensorflow
-markdown==3.4.1
-    # via tensorboard
-markupsafe==2.1.2
-    # via werkzeug
 numpy==1.23.5
     # via
     #   -r requirements.in
     #   gymnasium
-    #   h5py
     #   jax-jumpy
-    #   opt-einsum
     #   scipy
-    #   tensorboard
-    #   tensorflow
-oauthlib==3.2.2
-    # via requests-oauthlib
-opt-einsum==3.3.0
-    # via tensorflow
-packaging==23.0
-    # via tensorflow
 pillow==8.1.0
     # via -r requirements.in
-protobuf==3.19.6
-    # via
-    #   tensorboard
-    #   tensorflow
-pyasn1==0.4.8
-    # via
-    #   pyasn1-modules
-    #   rsa
-pyasn1-modules==0.2.8
-    # via google-auth
 pyglet==1.5.0
     # via -r requirements.in
-requests==2.28.2
-    # via
-    #   requests-oauthlib
-    #   tensorboard
-requests-oauthlib==1.3.1
-    # via google-auth-oauthlib
-rsa==4.9
-    # via google-auth
 scipy==1.5.4
     # via -r requirements.in
-six==1.16.0
-    # via
-    #   astunparse
-    #   google-auth
-    #   google-pasta
-    #   tensorflow
-tensorboard==2.11.2
-    # via tensorflow
-tensorboard-data-server==0.6.1
-    # via tensorboard
-tensorboard-plugin-wit==1.8.1
-    # via tensorboard
-tensorflow==2.11.0
-    # via -r requirements.in
-tensorflow-estimator==2.11.0
-    # via tensorflow
-tensorflow-io-gcs-filesystem==0.31.0
-    # via tensorflow
-termcolor==2.2.0
-    # via tensorflow
 typing-extensions==4.5.0
-    # via
-    #   gymnasium
-    #   tensorflow
-urllib3==1.26.15
-    # via requests
-werkzeug==2.2.3
-    # via tensorboard
-wheel==0.38.4
-    # via
-    #   astunparse
-    #   tensorboard
-wrapt==1.15.0
-    # via tensorflow
+    # via gymnasium
 zipp==3.15.0
     # via importlib-metadata
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
