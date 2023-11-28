@@ -80,7 +80,7 @@ class ExperimentLogger(contextlib.AbstractContextManager):
     Logs info for an experiment for given episodes.
     """
 
-    LOG_FILE_NAME = "experiment-logs.json"
+    LOG_FILE_NAME = "experiment-logs.jsonl"
     PARAM_FILE_NAME = "experiment-params.json"
 
     def __init__(

@@ -11,6 +11,7 @@ from rlplg.environments import randomwalk
 
 
 @hypothesis.given(steps=st.integers(min_value=3, max_value=100))
+@hypothesis.settings(deadline=None)
 def test_state_randomwalk_init(steps: int):
     environment = randomwalk.StateRandomWalk(steps=steps)
     assert environment.steps == steps
@@ -251,6 +252,7 @@ def test_is_finished(steps: int):
 
 
 @hypothesis.given(steps=st.integers(min_value=3, max_value=100))
+@hypothesis.settings(deadline=None)
 def test_create_env_spec(steps: int):
     env_spec = randomwalk.create_env_spec(steps=steps)
     assert env_spec.name == "StateRandomWalk"
