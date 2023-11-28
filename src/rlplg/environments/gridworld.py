@@ -25,7 +25,6 @@ from typing import Any, Callable, Iterator, Mapping, Optional, Sequence, Tuple
 
 import gymnasium as gym
 import numpy as np
-import tensorflow as tf
 from gymnasium import spaces
 from PIL import Image as image
 
@@ -770,14 +769,6 @@ def position_as_string(
     return "[ ]"
 
 
-def parse_grid_from_file(path: str):
-    """
-    Parses grid from text files.
-    """
-    with tf.io.gfile.GFile(path, "r") as reader:
-        return parse_grid_from_text(line for line in reader)
-
-
 def parse_grid_from_text(grid: Iterator[str]):
     """
     Parses grid from text files.
@@ -798,15 +789,6 @@ def parse_grid_from_text(grid: Iterator[str]):
                 start = (pos_x, pos_y)
         height += 1
     return (height, width), cliffs, exits, start
-
-
-def create_envspec_from_grid_file(grid_path: str) -> core.EnvSpec:
-    """
-    Parses a grid file and create an environment from
-    the parameters.
-    """
-    size, cliffs, exits, start = parse_grid_from_file(grid_path)
-    return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)
 
 
 def create_envspec_from_grid_text(grid: Iterator[str]) -> core.EnvSpec:

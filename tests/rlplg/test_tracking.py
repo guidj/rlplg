@@ -1,10 +1,6 @@
-import json
-import os.path
-import tempfile
 from typing import Sequence, Tuple
 
 import hypothesis
-import pytest
 from hypothesis import strategies as st
 
 from rlplg import tracking
@@ -129,86 +125,3 @@ def test_episode_stats_with_different_variations(
             str(stats)
             == f"Episode: {episode + 1}, Episode(r): 0.0, Total(r): {expected_total_rewards}, Successful Attempts: {expected_success}"
         )
-
-
-def test_experiment_logger():
-    with tempfile.TemporaryDirectory() as tempdir:
-        name = "EXP-1"
-        params = {"param-1": 1, "param-2": "z"}
-        with tracking.ExperimentLogger(
-            log_dir=tempdir, name=name, params=params
-        ) as experiment_logger:
-            experiment_logger.log(episode=1, steps=10, returns=100)
-            experiment_logger.log(
-                episode=2, steps=4, returns=40, metadata={"error": 0.123}
-            )
-
-        with open(
-            os.path.join(tempdir, tracking.ExperimentLogger.PARAM_FILE_NAME)
-        ) as readable:
-            output_metadata = json.load(readable)
-            expected_medata = {**params, "name": name}
-            assert output_metadata == expected_medata
-
-        with open(
-            os.path.join(tempdir, tracking.ExperimentLogger.LOG_FILE_NAME)
-        ) as readable:
-            expected_output = [
-                {
-                    "episode": 1,
-                    "steps": 10,
-                    "returns": 100,
-                    "metadata": {},
-                },
-                {"episode": 2, "steps": 4, "returns": 40, "metadata": {"error": 0.123}},
-            ]
-            output_logs = [json.loads(line) for line in readable]
-            assert output_logs == expected_output
-
-
-def test_experiment_logger_with_logging_uninitialized():
-    with tempfile.TemporaryDirectory() as tempdir:
-        name = "EXP-1"
-        params = {"param-1": 1, "param-2": "z"}
-        experiment_logger = tracking.ExperimentLogger(
-            log_dir=tempdir, name=name, params=params
-        )
-
-        with pytest.raises(RuntimeError):
-            experiment_logger.log(episode=1, steps=10, returns=100)
-
-
-def test_experiment_logger_with_nonexisitng_dir():
-    with tempfile.TemporaryDirectory() as tempdir:
-        name = "EXP-1"
-        params = {"param-1": 1, "param-2": "z"}
-        log_dir = os.path.join(tempdir, "subdir")
-        with tracking.ExperimentLogger(
-            log_dir=log_dir, name=name, params=params
-        ) as experiment_logger:
-            experiment_logger.log(episode=1, steps=10, returns=100)
-            experiment_logger.log(
-                episode=2, steps=4, returns=40, metadata={"error": 0.123}
-            )
-
-        with open(
-            os.path.join(log_dir, tracking.ExperimentLogger.PARAM_FILE_NAME)
-        ) as readable:
-            output_metadata = json.load(readable)
-            expected_medata = {**params, "name": name}
-            assert output_metadata == expected_medata
-
-        with open(
-            os.path.join(log_dir, tracking.ExperimentLogger.LOG_FILE_NAME)
-        ) as readable:
-            expected_output = [
-                {
-                    "episode": 1,
-                    "steps": 10,
-                    "returns": 100,
-                    "metadata": {},
-                },
-                {"episode": 2, "steps": 4, "returns": 40, "metadata": {"error": 0.123}},
-            ]
-            output_logs = [json.loads(line) for line in readable]
-            assert output_logs == expected_output
