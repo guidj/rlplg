@@ -8,8 +8,6 @@ cloudpickle==2.2.1
     # via gymnasium
 farama-notifications==0.0.4
     # via gymnasium
-future==0.18.3
-    # via pyglet
 gymnasium==0.28.1
     # via -r requirements.in
 importlib-metadata==6.0.0
@@ -24,9 +22,7 @@ numpy==1.23.5
     #   scipy
 pillow==8.1.0
     # via -r requirements.in
-pyglet==1.5.0
-    # via -r requirements.in
-scipy==1.5.4
+scipy==1.10.1
     # via -r requirements.in
 typing-extensions==4.5.0
     # via gymnasium
