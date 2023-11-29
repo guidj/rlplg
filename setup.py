@@ -77,5 +77,4 @@ setup(
     zip_safe=False,
     install_requires=read_requirements("requirements.in"),
     test_suite="tests",
-    tests_require=read_requirements("test-requirements.in"),
 )
