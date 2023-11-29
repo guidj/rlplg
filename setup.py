@@ -75,7 +75,7 @@ setup(
     include_package_data=True,
     classifiers=CLASSIFIERS,
     zip_safe=False,
-    install_requires=read_requirements("requirements.txt"),
+    install_requires=read_requirements("requirements.in"),
     test_suite="tests",
-    tests_require=read_requirements("test-requirements.txt"),
+    tests_require=read_requirements("test-requirements.in"),
 )
