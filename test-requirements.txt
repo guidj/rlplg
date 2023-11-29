@@ -5,14 +5,16 @@
 #    pip-compile --no-emit-find-links --no-emit-index-url --no-emit-options test-requirements.in
 #
 attrs==22.2.0
-    # via
-    #   hypothesis
-    #   pytest
-coverage[toml]==6.3.2
+    # via hypothesis
+coverage[toml]==7.3.2
     # via
     #   -r test-requirements.in
     #   pytest-cov
-hypothesis==6.45.0
+exceptiongroup==1.2.0
+    # via
+    #   hypothesis
+    #   pytest
+hypothesis==6.91.0
     # via -r test-requirements.in
 iniconfig==2.0.0
     # via pytest
@@ -20,13 +22,11 @@ packaging==23.0
     # via pytest
 pluggy==1.0.0
     # via pytest
-py==1.11.0
-    # via pytest
-pytest==7.1.2
+pytest==7.4.3
     # via
     #   -r test-requirements.in
     #   pytest-cov
-pytest-cov==3.0.0
+pytest-cov==4.1.0
     # via -r test-requirements.in
 sortedcontainers==2.4.0
     # via hypothesis
