@@ -3,10 +3,9 @@ This module contains implemenation for certain discrete arm policies.
 """
 
 
-import abc
 import copy
 import dataclasses
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Protocol
 
 import numpy as np
 
@@ -14,7 +13,19 @@ from rlplg import core
 from rlplg.core import ObsType
 
 
-class PyRandomPolicy(core.PyPolicy):
+class SupportsStateActionProbability(Protocol):
+    """
+    An interface for policies that can emit the probability for state action pair.
+    """
+
+    def state_action_prob(self, state: Any, action: Any) -> float:
+        """
+        Given a state and action, it returns a probability
+        choosing the action in that state.
+        """
+
+
+class PyRandomPolicy(core.PyPolicy, SupportsStateActionProbability):
     """
     A policy that chooses actions with equal probability.
     """
@@ -59,6 +70,14 @@ class PyRandomPolicy(core.PyPolicy):
             state=policy_state,
             info=policy_info,
         )
+
+    def state_action_prob(self, state, action) -> float:
+        """
+        Returns the probability of choosing an arm.
+        """
+        del state
+        del action
+        return self._uniform_chance.item()  # type: ignore
 
 
 class PyQGreedyPolicy(core.PyPolicy):
@@ -182,55 +201,3 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
             return dataclasses.replace(policy_step_, info=policy_info)
 
         return policy_step_
-
-
-class ObservablePolicy(abc.ABC):
-    """
-    An interface for policies that can emit the probability for state action pair.
-    """
-
-    @abc.abstractmethod
-    def action_probability(self, state: Any, action: Any) -> float:
-        """
-        Given a state and action, it returns a probability
-        choosing the action in that state.
-        """
-
-
-class PyObservableRandomPolicy(ObservablePolicy):
-    """
-    Implements an observable random policy.
-    """
-
-    def __init__(
-        self,
-        num_actions: int,
-        emit_log_probability: bool = False,
-    ):
-        self._policy = PyRandomPolicy(
-            num_actions=num_actions,
-            emit_log_probability=emit_log_probability,
-        )
-        prob = 1.0 / num_actions
-        self._probs = np.ones(shape=num_actions) * prob
-
-    def action(
-        self,
-        observation: ObsType,
-        policy_state: Any = (),
-        seed: Optional[int] = None,
-    ) -> core.PolicyStep:
-        """
-        Given a state, returns an arm
-        """
-        return self._policy.action(
-            observation=observation, policy_state=policy_state, seed=seed
-        )
-
-    def action_probability(self, state, action) -> float:
-        """
-        Returns the probability of choosing an arm.
-        """
-        del state
-        prob: float = self._probs[action]
-        return prob

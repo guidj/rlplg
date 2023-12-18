@@ -13,7 +13,7 @@ from rlplg.learning.tabular import policies
 
 def iterative_policy_evaluation(
     mdp: core.Mdp,
-    policy: policies.ObservablePolicy,
+    policy: policies.SupportsStateActionProbability,
     gamma: float = 1.0,
     accuracy: float = 1e-8,
 ):
@@ -44,7 +44,7 @@ def iterative_policy_evaluation(
 
     for state, action_transitions in mdp.transition.items():
         for action, transitions in action_transitions.items():
-            pi_action[state, action] = policy.action_probability(state, action)
+            pi_action[state, action] = policy.state_action_prob(state, action)
             for prob, next_state, reward, _ in transitions:
                 m_transition[state, action, next_state] = prob
                 m_reward[state, action, next_state] = reward

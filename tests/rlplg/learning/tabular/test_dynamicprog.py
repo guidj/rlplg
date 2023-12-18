@@ -28,7 +28,7 @@ def create_observable_random_policy(
     num_actions: int,
     emit_log_probability: bool = False,
 ):
-    return policies.PyObservableRandomPolicy(
+    return policies.PyRandomPolicy(
         num_actions=num_actions,
         emit_log_probability=emit_log_probability,
     )
