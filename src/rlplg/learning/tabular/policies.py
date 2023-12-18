@@ -77,8 +77,7 @@ class PyRandomPolicy(core.PyPolicy, SupportsStateActionProbability):
         """
         del state
         del action
-        prob: float = self._uniform_chance
-        return prob
+        return self._uniform_chance.item()  # type: ignore
 
 
 class PyQGreedyPolicy(core.PyPolicy):
