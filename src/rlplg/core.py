@@ -45,6 +45,7 @@ class TrajectoryStep:
     terminated: bool
     truncated: bool
     reward: float
+    info: Mapping[str, Any]
 
     @staticmethod
     def from_transition(
@@ -65,6 +66,7 @@ class TrajectoryStep:
             terminated=terminated,
             truncated=truncated,
             reward=next_reward,
+            info={},
         )
 
 
