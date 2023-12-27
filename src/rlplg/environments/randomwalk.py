@@ -312,7 +312,7 @@ def get_state_id(observation: Mapping[str, Any]) -> int:
     """
     Computes an integer ID that represents that state.
     """
-    state_id: int = observation[OBS_KEY_POSITION]
+    state_id: int = observation[OBS_KEY_POSITION].item()
     return state_id
 
 
