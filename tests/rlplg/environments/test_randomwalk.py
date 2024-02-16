@@ -44,7 +44,9 @@ def test_state_randomwalk_reset(steps: int):
     assert_observation(
         obs,
         {
-            "position": np.array(steps // 2, dtype=np.int64),
+            "position": np.array(
+                steps // 2 - 1 if steps % 2 == 0 else steps // 2, dtype=np.int64
+            ),
             "steps": np.array(steps, dtype=np.int64),
             "right_end_reward": np.array(1.0, dtype=np.float32),
             "left_end_reward": np.array(0.0, dtype=np.float32),

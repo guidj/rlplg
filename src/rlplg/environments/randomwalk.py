@@ -148,8 +148,9 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         """
         del options
         self.seed(seed)
+        middle = math.floor(self.steps / 2)
         self._observation = state_observation(
-            position=math.floor(self.steps / 2),
+            position=middle - 1 if self.steps % 2 == 0 else middle,
             steps=self.steps,
             left_end_reward=self.left_end_reward,
             right_end_reward=self.right_end_reward,
