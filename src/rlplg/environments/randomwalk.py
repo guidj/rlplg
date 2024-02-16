@@ -8,7 +8,7 @@ left or right by one state on each step, with equal probability.
 Episodes terminate either on the extreme left or the extreme right.
 When an episode terminates on the right, a reward of +1 occurs; all other rewards are zero."
 
-A distiction is that we introduce agent actions - going left of right.
+A distiction is that we introduce agent actions - going left or right.
 Combined with a random policy, it should produce the same effect.
 """
 

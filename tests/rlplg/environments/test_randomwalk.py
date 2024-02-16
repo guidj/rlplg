@@ -188,6 +188,24 @@ def test_state_randomwalk_end_right_sequence():
         ),
     )
 
+    # go right - remain in terminal state
+    assert_time_step(
+        environment.step(1),
+        (
+            {
+                "position": np.array(4, dtype=np.int64),
+                "steps": np.array(5, dtype=np.int64),
+                "right_end_reward": np.array(1.0, dtype=np.float32),
+                "left_end_reward": np.array(0.0, dtype=np.float32),
+                "step_reward": np.array(0.0, dtype=np.float32),
+            },
+            0.0,
+            True,
+            False,
+            {},
+        ),
+    )
+
 
 def test_state_randomwalk_render():
     environment = randomwalk.StateRandomWalk(steps=3, render_mode="rgb_array")
@@ -242,7 +260,7 @@ def test_is_finished(steps: int):
             "steps": np.array(steps, dtype=np.int64),
         }
     )
-    for step in range(0 + 1, steps - 1):
+    for step in range(1, steps - 1):
         assert not randomwalk.is_finished(
             {
                 "position": np.array(step, dtype=np.int64),
