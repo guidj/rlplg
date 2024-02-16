@@ -36,6 +36,24 @@ def test_state_randomwalk_with_invalid_steps(steps: int):
         randomwalk.StateRandomWalk(steps=steps)
 
 
+@hypothesis.given(steps=st.integers(min_value=3, max_value=100))
+@hypothesis.settings(deadline=None)
+def test_state_randomwalk_reset(steps: int):
+    environment = randomwalk.StateRandomWalk(steps=steps)
+    obs, info = environment.reset()
+    assert_observation(
+        obs,
+        {
+            "position": np.array(steps // 2, dtype=np.int64),
+            "steps": np.array(steps, dtype=np.int64),
+            "right_end_reward": np.array(1.0, dtype=np.float32),
+            "left_end_reward": np.array(0.0, dtype=np.float32),
+            "step_reward": np.array(0.0, dtype=np.float32),
+        },
+    )
+    assert info == {}
+
+
 def test_state_randomwalk_end_left_sequence():
     environment = randomwalk.StateRandomWalk(5)
     obs, info = environment.reset()
