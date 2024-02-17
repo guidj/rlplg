@@ -7,12 +7,13 @@ defined in either `rlplg` or gymnasium.
 import base64
 import functools
 import hashlib
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, SupportsFloat
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
+from gymnasium.core import ObsType, ActType
 from rlplg import core, npsci
 from rlplg.core import EnvTransition
 from rlplg.environments import abcseq, gridworld, randomwalk, redgreen
@@ -20,14 +21,15 @@ from rlplg.environments import abcseq, gridworld, randomwalk, redgreen
 TAXI = "Taxi-v3"
 FROZEN_LAKE = "FrozenLake-v1"
 CLIFF_WALKING = "CliffWalking-v0"
+TARIFF_FROZEN_LAKE = "TariffFrozenLake-v1"
 
 SUPPORTED_RLPLG_ENVS = frozenset(
     (abcseq.ENV_NAME, gridworld.ENV_NAME, randomwalk.ENV_NAME, redgreen.ENV_NAME)
 )
-SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE, CLIFF_WALKING))
+SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE, CLIFF_WALKING, TARIFF_FROZEN_LAKE))
 
 
-class GymEnvMdpDiscretizer(core.MdpDiscretizer):
+class DefaultGymEnvMdpDiscretizer(core.MdpDiscretizer):
     """
     Creates an environment discrete maps for states and actions.
     """
@@ -47,6 +49,31 @@ class GymEnvMdpDiscretizer(core.MdpDiscretizer):
         del self
         action_: int = npsci.item(action)
         return action_
+    
+
+class ShiftReward(gym.RewardWrapper):
+    def __init__(self, env: gym.Env[ObsType, ActType], delta: float):
+        """Constructor for the Reward wrapper."""
+        super().__init__(env)
+        self.delta = delta
+        self.reward_range = (env.reward_range[0] + delta, env.reward_range[1] + delta)
+
+        # Update transition data, if existing
+        if hasattr(self.env, "P"):
+            transitions = getattr(self.env, "P")
+            new_transitions = {}
+            for state, action_transitions in transitions.items():
+                new_transitions[state] = {}
+                for action, transitions in action_transitions.items():
+                    new_transitions[state][action] = []
+                    for prob, next_state, reward, done in transitions:
+                        new_transitions[state][action].append(
+                            (prob, next_state, reward + self.delta, done)
+                        )
+            setattr(self.env, "P", new_transitions)
+    
+    def reward(self, reward: SupportsFloat) -> SupportsFloat:
+        return reward + self.delta
 
 
 def load(name: str, **args) -> core.EnvSpec:
@@ -110,8 +137,8 @@ def __gym_environment_spec(name: str, **kwargs: Mapping[str, Any]) -> core.EnvSp
     """
     Creates a gym environment spec.
     """
-    environment = gym.make(name, **kwargs)
-    discretizer = GymEnvMdpDiscretizer()
+    environment = __make_gym_environment(name, **kwargs)
+    discretizer = __gym_environment_discretizer(name)
     mdp = core.EnvMdp(
         env_desc=__parse_gym_env_desc(environment=environment),
         transition=__parse_gym_env_transition(environment),
@@ -123,6 +150,15 @@ def __gym_environment_spec(name: str, **kwargs: Mapping[str, Any]) -> core.EnvSp
         discretizer=discretizer,
         mdp=mdp,
     )
+
+def __make_gym_environment(name: str, **kwargs: Mapping[str, Any]) -> gym.Env:
+    """
+    Creates discretizers for supported environments.
+    """
+    environment = gym.make(name, **kwargs)
+    if name == TARIFF_FROZEN_LAKE:
+        return ShiftReward(environment, delta = -1.0)
+    return environment
 
 
 def __parse_gym_env_desc(environment: gym.Env) -> core.EnvDesc:
@@ -148,6 +184,14 @@ def __parse_gym_env_transition(environment: gym.Env) -> EnvTransition:
     """
     transition: EnvTransition = getattr(environment, "P")
     return transition
+
+
+def __gym_environment_discretizer(name: str) -> core.MdpDiscretizer:
+    """
+    Creates discretizers for supported environments.
+    """
+    del name
+    return DefaultGymEnvMdpDiscretizer()
 
 
 def __encode_env(**kwargs: Mapping[str, Any]) -> str:
