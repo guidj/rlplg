@@ -33,9 +33,7 @@ assumptions we're making: our policy knows better
 Teacher policy: optimize to make as fewer changes on the student policy
 """
 
-import base64
 import copy
-import hashlib
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import gymnasium as gym
@@ -256,7 +254,7 @@ def create_env_spec(cure: Sequence[str]) -> core.EnvSpec:
     num_actions = len(ACTIONS)
     return core.EnvSpec(
         name=ENV_NAME,
-        level=__encode_env(cure),
+        level=core.encode_env(cure),
         environment=environment,
         discretizer=discretizer,
         mdp=core.EnvMdp(
@@ -264,12 +262,6 @@ def create_env_spec(cure: Sequence[str]) -> core.EnvSpec:
             transition=environment.transition,
         ),
     )
-
-
-def __encode_env(cure: Sequence[str]) -> str:
-    hash_key = tuple(cure)
-    hashing = hashlib.sha512(str(hash_key).encode("UTF-8"))
-    return base64.b32encode(hashing.digest()).decode("UTF-8")
 
 
 def get_state_id(observation: Mapping[str, Any]) -> int:

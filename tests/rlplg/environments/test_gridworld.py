@@ -43,6 +43,7 @@ def test_gridworld_init():
             ),
         }
     )
+    assert len(environment.transition) == 4 * 12
 
 
 def test_gridworld_reset():

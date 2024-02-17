@@ -12,9 +12,7 @@ A distiction is that we introduce agent actions - going left or right.
 Combined with a random policy, it should produce the same effect.
 """
 
-import base64
 import copy
-import hashlib
 import math
 from typing import Any, Mapping, Optional, Tuple
 
@@ -67,7 +65,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
             right_reward: reward for terminating on the right.
             step_reward: reward for any other move.
         """
-        if steps > 2:
+        if steps < 2:
             raise ValueError(f"Steps must be greater than 2. Got {steps}")
         super().__init__()
 
@@ -284,12 +282,7 @@ def create_env_spec(
     num_actions = len(ACTIONS)
     return core.EnvSpec(
         name=ENV_NAME,
-        level=__encode_env(
-            steps=steps,
-            left_end_reward=left_end_reward,
-            right_end_reward=right_end_reward,
-            step_reward=step_reward,
-        ),
+        level=core.encode_env((steps, left_end_reward, right_end_reward, step_reward)),
         environment=environment,
         discretizer=discretizer,
         mdp=core.EnvMdp(
@@ -297,17 +290,6 @@ def create_env_spec(
             transition=environment.transition,
         ),
     )
-
-
-def __encode_env(
-    steps: int,
-    left_end_reward: float,
-    right_end_reward: float,
-    step_reward: float,
-) -> str:
-    hash_key = tuple((steps, left_end_reward, right_end_reward, step_reward))
-    hashing = hashlib.sha512(str(hash_key).encode("UTF-8"))
-    return base64.b32encode(hashing.digest()).decode("UTF-8")
 
 
 def get_state_id(observation: Mapping[str, Any]) -> int:

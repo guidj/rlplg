@@ -4,7 +4,9 @@ This module defines core abstractions.
 
 
 import abc
+import base64
 import dataclasses
+import hashlib
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import gymnasium as gym
@@ -240,3 +242,9 @@ class EnvMdp(Mdp):
             The mapping of state-action transition.
         """
         return self.__transition
+
+
+def encode_env(signature: Sequence[Any]) -> str:
+    hash_key = tuple(signature)
+    hashing = hashlib.sha512(str(hash_key).encode("UTF-8"))
+    return base64.b32encode(hashing.digest()).decode("UTF-8")

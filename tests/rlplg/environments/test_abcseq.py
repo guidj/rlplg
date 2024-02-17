@@ -17,6 +17,7 @@ def test_abcseq_init(length: int):
     assert environment.observation_space == spaces.Box(
         low=0, high=1, shape=(length + 1,), dtype=np.int64
     )
+    assert len(environment.transition) == length + 1
 
 
 def test_abcseq_simple_sequence():

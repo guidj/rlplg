@@ -12,8 +12,8 @@ from typing import Any, Callable, Mapping, SupportsFloat
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
+from gymnasium.core import ActType, ObsType
 
-from gymnasium.core import ObsType, ActType
 from rlplg import core, npsci
 from rlplg.core import EnvTransition
 from rlplg.environments import abcseq, gridworld, randomwalk, redgreen
@@ -49,7 +49,7 @@ class DefaultGymEnvMdpDiscretizer(core.MdpDiscretizer):
         del self
         action_: int = npsci.item(action)
         return action_
-    
+
 
 class ShiftRewardWrapper(gym.RewardWrapper):
     def __init__(self, env: gym.Env[ObsType, ActType], delta: float):
@@ -71,7 +71,7 @@ class ShiftRewardWrapper(gym.RewardWrapper):
                             (prob, next_state, reward + self.delta, done)
                         )
             setattr(self.env, "P", new_transitions)
-    
+
     def reward(self, reward: SupportsFloat) -> SupportsFloat:
         return reward + self.delta
 
@@ -151,13 +151,14 @@ def __gym_environment_spec(name: str, **kwargs: Mapping[str, Any]) -> core.EnvSp
         mdp=mdp,
     )
 
+
 def __make_gym_environment(name: str, **kwargs: Mapping[str, Any]) -> gym.Env:
     """
     Creates discretizers for supported environments.
     """
     environment = gym.make(name, **kwargs)
     if name == TARIFF_FROZEN_LAKE:
-        return ShiftRewardWrapper(environment, delta = -1.0)
+        return ShiftRewardWrapper(environment, delta=-1.0)
     return environment
 
 

@@ -30,6 +30,7 @@ def test_redgreen_init(cure: Sequence[str]):
             "position": spaces.Box(low=0, high=len(cure), dtype=np.int64),
         }
     )
+    assert len(environment.transition) == len(cure_sequence)
 
 
 def test_redgreen_simple_sequence():

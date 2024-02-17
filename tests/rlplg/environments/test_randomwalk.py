@@ -28,6 +28,7 @@ def test_state_randomwalk_init(steps: int):
             "step_reward": spaces.Box(low=0, high=0, dtype=np.float32),
         }
     )
+    assert len(environment.transition) == steps
 
 
 @hypothesis.given(steps=st.integers(max_value=2))

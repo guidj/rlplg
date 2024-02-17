@@ -12,10 +12,8 @@ So an agent needs to learn the value of every state from scratch.
 """
 
 import abc
-import base64
 import contextlib
 import copy
-import hashlib
 import io
 import os
 import os.path
@@ -406,22 +404,11 @@ def create_env_spec(
     )
     return core.EnvSpec(
         name=ENV_NAME,
-        level=__encode_env(size=size, cliffs=cliffs, exits=exits, start=start),
+        level=core.encode_env((size, sorted(cliffs), sorted(exits), start)),
         environment=environment,
         discretizer=discretizer,
         mdp=mdp,
     )
-
-
-def __encode_env(
-    size: Tuple[int, int],
-    cliffs: Sequence[Tuple[int, int]],
-    exits: Sequence[Tuple[int, int]],
-    start: Tuple[int, int],
-) -> str:
-    hash_key = (size, cliffs, exits, start)
-    hashing = hashlib.sha512(str(hash_key).encode("UTF-8"))
-    return base64.b32encode(hashing.digest()).decode("UTF-8")
 
 
 def states_mapping(
