@@ -51,7 +51,7 @@ class DefaultGymEnvMdpDiscretizer(core.MdpDiscretizer):
         return action_
     
 
-class ShiftReward(gym.RewardWrapper):
+class ShiftRewardWrapper(gym.RewardWrapper):
     def __init__(self, env: gym.Env[ObsType, ActType], delta: float):
         """Constructor for the Reward wrapper."""
         super().__init__(env)
@@ -157,7 +157,7 @@ def __make_gym_environment(name: str, **kwargs: Mapping[str, Any]) -> gym.Env:
     """
     environment = gym.make(name, **kwargs)
     if name == TARIFF_FROZEN_LAKE:
-        return ShiftReward(environment, delta = -1.0)
+        return ShiftRewardWrapper(environment, delta = -1.0)
     return environment
 
 
