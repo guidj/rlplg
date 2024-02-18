@@ -4,9 +4,7 @@ defined in either `rlplg` or gymnasium.
 """
 
 
-import base64
 import functools
-import hashlib
 from typing import Any, Callable, Mapping, SupportsFloat
 
 import gymnasium as gym
@@ -24,7 +22,14 @@ CLIFF_WALKING = "CliffWalking-v0"
 TARIFF_FROZEN_LAKE = "TariffFrozenLake-v1"
 
 SUPPORTED_RLPLG_ENVS = frozenset(
-    (abcseq.ENV_NAME, gridworld.ENV_NAME, randomwalk.ENV_NAME, redgreen.ENV_NAME, towerhanoi.ENV_NAME, TARIFF_FROZEN_LAKE)
+    (
+        abcseq.ENV_NAME,
+        gridworld.ENV_NAME,
+        randomwalk.ENV_NAME,
+        redgreen.ENV_NAME,
+        towerhanoi.ENV_NAME,
+        TARIFF_FROZEN_LAKE,
+    )
 )
 SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE, CLIFF_WALKING, TARIFF_FROZEN_LAKE))
 
