@@ -3,6 +3,7 @@ import random
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
+
 from rlplg import combinatorics
 
 
@@ -28,14 +29,16 @@ def test_interger_to_sequence(space_size: int, sequence_length: int):
 @hypothesis.settings(deadline=None)
 def test_sequence_to_integer(space_size: int, sequence_length: int, samples: int):
     for _ in range(samples):
-        sequence = tuple(np.random.randint(0, space_size, size=sequence_length).tolist())
+        sequence = tuple(
+            np.random.randint(0, space_size, size=sequence_length).tolist()
+        )
         index = combinatorics.sequence_to_integer(space_size, sequence=sequence)
         assert 0 <= index < space_size**sequence_length
 
     # largest sequence
     sequence = tuple([space_size - 1] * sequence_length)
     index = combinatorics.sequence_to_integer(space_size, sequence=sequence)
-    assert 0 <= index < (space_size**sequence_length)
+    assert index == (space_size**sequence_length) - 1
 
 
 @hypothesis.given(

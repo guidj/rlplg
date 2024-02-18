@@ -19,7 +19,7 @@ def sequence_to_integer(space_size: int, sequence: Sequence[int]) -> int:
         index: the index of the unique sequence.
     """
     id = 0
-    for idx, value_index in enumerate(sequence):
+    for idx, value_index in enumerate(reversed(sequence)):
         id = id + value_index * int(pow(space_size, idx))
     return id
 
@@ -47,4 +47,4 @@ def interger_to_sequence(
             digit = math.floor(index / mult)
             xs.append(digit)
             index = index % mult
-    return tuple(reversed(xs))
+    return tuple(xs)
