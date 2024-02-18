@@ -70,7 +70,7 @@ class ABCSeq(gym.Env[np.ndarray, int]):
         super().__init__()
         self.length = length
         self.render_mode = render_mode
-        if NUM_LETTERS < length < MIN_SEQ_LENGTH:
+        if length > NUM_LETTERS or length < MIN_SEQ_LENGTH:
             raise ValueError(
                 f"Length must be between {MIN_SEQ_LENGTH} and {NUM_LETTERS}: {length}"
             )

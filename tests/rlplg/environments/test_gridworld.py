@@ -503,7 +503,7 @@ def test_hborder_with_unit_size():
 
 
 def test_hborder_with_non_positive_size():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         gridworld._hborder(0)
 
 
@@ -517,7 +517,7 @@ def test_vborder_with_unit_size():
 
 
 def test_vborder_with_non_positive_size():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         gridworld._vborder(0)
 
 

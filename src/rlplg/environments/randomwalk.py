@@ -65,7 +65,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
             right_reward: reward for terminating on the right.
             step_reward: reward for any other move.
         """
-        if steps < 2:
+        if steps <= 2:
             raise ValueError(f"Steps must be greater than 2. Got {steps}")
         super().__init__()
 

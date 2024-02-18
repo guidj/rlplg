@@ -33,7 +33,7 @@ def test_state_randomwalk_init(steps: int):
 
 @hypothesis.given(steps=st.integers(max_value=2))
 def test_state_randomwalk_with_invalid_steps(steps: int):
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         randomwalk.StateRandomWalk(steps=steps)
 
 

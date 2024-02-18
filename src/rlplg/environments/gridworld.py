@@ -83,8 +83,8 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         render_mode: str = "rgb_array",
     ):
         super().__init__()
-        assert_dimensions(size=size, start=start, cliffs=cliffs, exits=exits)
-        assert_starting_grid(start=start, cliffs=cliffs, exits=exits)
+        validate_dimensions(size=size, start=start, cliffs=cliffs, exits=exits)
+        validate_starting_grid(start=start, cliffs=cliffs, exits=exits)
         self.render_mode = render_mode
         self._height, self._width = size
         self._size = size
@@ -286,7 +286,8 @@ class GridWorldRenderer:
             caption: string write on rendered Window
             sleep: time between rendering frames
         """
-        assert mode in self.metadata["render.modes"]
+        if mode not in self.metadata["render.modes"]:
+            raise ValueError(f"Unsupported mode: {mode}")
         if sleep is not None and sleep > 0:
             time.sleep(sleep)
         if mode == "raw":
@@ -508,7 +509,7 @@ def create_observation(
     }
 
 
-def assert_dimensions(
+def validate_dimensions(
     size: Tuple[int, int],
     start: Tuple[int, int],
     cliffs: Sequence[Tuple[int, int]],
@@ -521,30 +522,36 @@ def assert_dimensions(
     height, width = size
     start_x, start_y = start
     for pos_x, pos_y in cliffs:
-        assert (
-            0 <= pos_x <= height
-        ), f"Cliff has invalid coordinates, ({pos_x}, _), limits [0, {height})"
-        assert (
-            0 <= pos_y <= width
-        ), f"Cliff has invalid coordinates, (_, {pos_y}), limits [0, {width})"
+        if not (0 <= pos_x <= height):
+            raise ValueError(
+                f"Cliff has invalid coordinates, ({pos_x}, _), limits [0, {height})"
+            )
+        if not (0 <= pos_y <= width):
+            raise ValueError(
+                f"Cliff has invalid coordinates, (_, {pos_y}), limits [0, {width})"
+            )
 
     for pos_x, pos_y in exits:
-        assert (
-            0 <= pos_x <= height
-        ), f"Exit has invalid coordinates, ({pos_x}, _), limits [0, {height})"
-        assert (
-            0 <= pos_y <= width
-        ), f"Exit has invalid coordinates, (_, {pos_y}), limits [0, {width})"
+        if not (0 <= pos_x <= height):
+            raise ValueError(
+                f"Exit has invalid coordinates, ({pos_x}, _), limits [0, {height})"
+            )
+        if not (0 <= pos_y <= width):
+            raise ValueError(
+                f"Exit has invalid coordinates, (_, {pos_y}), limits [0, {width})"
+            )
 
-    assert (
-        0 <= start_x <= height
-    ), f"Starting position has invalid coordinates, ({start_x}, _), limits [0, {height})"
-    assert (
-        0 <= start_y <= width
-    ), f"Starting position has invalid coordinates, (_, {start_y}), limits [0, {width})"
+    if not (0 <= start_x <= height):
+        raise ValueError(
+            f"Starting position has invalid coordinates, ({start_x}, _), limits [0, {height})"
+        )
+    if not (0 <= start_y <= width):
+        raise ValueError(
+            f"Starting position has invalid coordinates, (_, {start_y}), limits [0, {width})"
+        )
 
 
-def assert_starting_grid(
+def validate_starting_grid(
     start: Tuple[int, int],
     cliffs: Sequence[Tuple[int, int]],
     exits: Sequence[Tuple[int, int]],
@@ -553,12 +560,16 @@ def assert_starting_grid(
     Verifies starting grid is sensible - there is no overlap between elements.
     """
     for cliff in cliffs:
-        assert cliff != start, f"Starting on a cliff: ({cliff})"
+        if cliff == start:
+            raise ValueError(f"Starting on a cliff: ({cliff})")
 
         for exit_ in exits:
-            assert cliff != exit_, f"Exit and cliff overlap: ({cliff})"
+            if cliff == exit_:
+                raise ValueError(f"Exit and cliff overlap: ({cliff})")
+
             # this only needs to run once really
-            assert exit_ != start, f"Starting on an exit: ({exit_})"
+            if exit_ == start:
+                raise ValueError(f"Starting on an exit: ({exit_})")
 
 
 def create_state_id_fn(
@@ -691,12 +702,14 @@ def observation_as_image(
 
 
 def _vborder(size: int) -> np.ndarray:
-    assert size > 0, "vertical border size must be positve"
+    if size < 1:
+        raise ValueError("vertical border size must be positve")
     return np.array([[COLOR_SILVER]] * size, dtype=np.uint8)
 
 
 def _hborder(size: int) -> np.ndarray:
-    assert size > 0, "horizontal border size must be positive"
+    if size < 1:
+        raise ValueError("horizontal border size must be positive")
     return np.array([[COLOR_SILVER] * size], dtype=np.uint8)
 
 

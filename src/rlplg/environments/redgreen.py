@@ -283,7 +283,10 @@ def state_observation(cure_sequence: Sequence[int], position: int) -> Mapping[st
     Returns:
         A mapping with the cure sequence and the current state.
     """
-    assert 0 <= position <= len(cure_sequence)
+    if not 0 <= position <= len(cure_sequence):
+        raise ValueError(
+            f"Position must be in range [0, {len(cure_sequence)}]. Got {position}"
+        )
     return {
         OBS_KEY_CURE_SEQUENCE: cure_sequence,
         OBS_KEY_POSITION: position,
