@@ -16,7 +16,7 @@ from gymnasium.core import ActType, ObsType
 
 from rlplg import core, npsci
 from rlplg.core import EnvTransition
-from rlplg.environments import abcseq, gridworld, randomwalk, redgreen
+from rlplg.environments import abcseq, gridworld, randomwalk, redgreen, towerhanoi
 
 TAXI = "Taxi-v3"
 FROZEN_LAKE = "FrozenLake-v1"
@@ -24,7 +24,7 @@ CLIFF_WALKING = "CliffWalking-v0"
 TARIFF_FROZEN_LAKE = "TariffFrozenLake-v1"
 
 SUPPORTED_RLPLG_ENVS = frozenset(
-    (abcseq.ENV_NAME, gridworld.ENV_NAME, randomwalk.ENV_NAME, redgreen.ENV_NAME)
+    (abcseq.ENV_NAME, gridworld.ENV_NAME, randomwalk.ENV_NAME, redgreen.ENV_NAME, towerhanoi.ENV_NAME, TARIFF_FROZEN_LAKE)
 )
 SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE, CLIFF_WALKING, TARIFF_FROZEN_LAKE))
 
@@ -110,6 +110,7 @@ def __environment_spec_constructors() -> Mapping[str, Callable[..., core.EnvSpec
         gridworld.ENV_NAME: gridworld.create_envspec_from_grid_text,
         randomwalk.ENV_NAME: randomwalk.create_env_spec,
         redgreen.ENV_NAME: redgreen.create_env_spec,
+        towerhanoi.ENV_NAME: towerhanoi.create_env_spec,
     }
     gym_envs = {
         name: __gym_environment_spec_constructor(name) for name in SUPPORTED_GYM_ENVS
@@ -156,10 +157,9 @@ def __make_gym_environment(name: str, **kwargs: Mapping[str, Any]) -> gym.Env:
     """
     Creates discretizers for supported environments.
     """
-    environment = gym.make(name, **kwargs)
     if name == TARIFF_FROZEN_LAKE:
-        return ShiftRewardWrapper(environment, delta=-1.0)
-    return environment
+        return ShiftRewardWrapper(gym.make(FROZEN_LAKE, **kwargs), delta=-1.0)
+    return gym.make(name, **kwargs)
 
 
 def __parse_gym_env_desc(environment: gym.Env) -> core.EnvDesc:
@@ -206,5 +206,4 @@ def __encode_env(**kwargs: Mapping[str, Any]) -> str:
         values.append(value)
 
     hash_key = tuple(keys) + tuple(values)
-    hashing = hashlib.sha512(str(hash_key).encode("UTF-8"))
-    return base64.b32encode(hashing.digest()).decode("UTF-8")
+    return core.encode_env(signature=hash_key)
