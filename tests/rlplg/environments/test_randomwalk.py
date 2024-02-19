@@ -9,7 +9,7 @@ from gymnasium import spaces
 from rlplg import core
 from rlplg.core import TimeStep
 from rlplg.environments import randomwalk
-from tests.rlplg.environments import dynamics
+from tests.rlplg import dynamics
 
 
 @hypothesis.given(steps=st.integers(min_value=3, max_value=10))

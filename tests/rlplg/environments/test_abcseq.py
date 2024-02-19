@@ -7,7 +7,7 @@ from gymnasium import spaces
 from rlplg import core
 from rlplg.core import InitState, TimeStep
 from rlplg.environments import abcseq
-from tests.rlplg.environments import dynamics
+from tests.rlplg import dynamics
 
 
 @hypothesis.given(length=st.integers(min_value=1, max_value=10))

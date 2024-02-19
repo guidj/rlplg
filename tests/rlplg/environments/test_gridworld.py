@@ -9,7 +9,8 @@ from PIL import Image as image
 
 from rlplg import core
 from rlplg.environments import gridworld
-from tests.rlplg.environments import dynamics, grids
+from tests.rlplg import dynamics
+from tests.rlplg.environments import grids
 
 
 def test_gridworld_init():

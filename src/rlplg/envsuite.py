@@ -83,6 +83,8 @@ class ShiftRewardWrapper(gym.RewardWrapper):
             setattr(self.env, "P", new_transitions)
 
     def reward(self, reward: SupportsFloat) -> SupportsFloat:
+        # TODO: This is also wrong; need to know the current state
+        # of the env;
         return float(reward) + self.delta
 
 

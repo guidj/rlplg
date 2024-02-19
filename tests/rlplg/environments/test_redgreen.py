@@ -10,7 +10,7 @@ from gymnasium import spaces
 from rlplg import core
 from rlplg.core import TimeStep
 from rlplg.environments import redgreen
-from tests.rlplg.environments import dynamics
+from tests.rlplg import dynamics
 
 VALID_ACTIONS = ["red", "green", "wait"]
 
