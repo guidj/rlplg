@@ -26,7 +26,7 @@ Code based on https://github.com/xadahiya/toh-gym.
 
 import copy
 import functools
-from typing import Any, Callable, Mapping, Optional, Tuple
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -99,7 +99,7 @@ class TowerOfHanoi(gym.Env[Mapping[str, Any], int]):
                         state_id != next_state_id and next_state_id == terminal_state
                     )
                     self.transition[state_id][action].append(
-                        (prob, reward, actual_reward, terminated)
+                        (prob, next_state_id, reward, terminated)
                     )
 
         # env specific
@@ -221,7 +221,9 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
 
     # if the top disk on any peg isn't the smallest
     # the state is invalid.
-    pegs = {peg: [] for peg in range(observation[OBS_KEY_NUM_PEGS])}
+    pegs: Mapping[int, List[int]] = {
+        peg: [] for peg in range(observation[OBS_KEY_NUM_PEGS])
+    }
     for idx in range(num_disks):
         pegs[state[idx]].append(idx)
 
@@ -309,7 +311,7 @@ def create_state_id_to_state_fn(
     return state_id_to_state
 
 
-def state_observation(num_pegs: int, state: Tuple) -> Mapping[str, Any]:
+def state_observation(num_pegs: int, state: Sequence[int]) -> Mapping[str, Any]:
     """
     Generates a state observation, given an interger Id and the number
     of disks.

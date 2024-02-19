@@ -12,7 +12,7 @@ from gymnasium import spaces
 from gymnasium.core import ActType, ObsType
 
 from rlplg import core, npsci
-from rlplg.core import EnvTransition
+from rlplg.core import EnvTransition, MutableEnvTransition
 from rlplg.environments import abcseq, gridworld, randomwalk, redgreen, towerhanoi
 
 TAXI = "Taxi-v3"
@@ -65,7 +65,7 @@ class ShiftRewardWrapper(gym.RewardWrapper):
         # Update transition data, if existing
         if hasattr(self.env, "P"):
             transitions = getattr(self.env, "P")
-            new_transitions = {}
+            new_transitions: MutableEnvTransition = {}
             for state, action_transitions in transitions.items():
                 new_transitions[state] = {}
                 for action, transitions in action_transitions.items():
@@ -77,7 +77,7 @@ class ShiftRewardWrapper(gym.RewardWrapper):
             setattr(self.env, "P", new_transitions)
 
     def reward(self, reward: SupportsFloat) -> SupportsFloat:
-        return reward + self.delta
+        return float(reward) + self.delta
 
 
 def load(name: str, **args) -> core.EnvSpec:
