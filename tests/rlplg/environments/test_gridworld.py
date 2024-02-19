@@ -23,7 +23,7 @@ def test_gridworld_init():
                 high=np.array([3, 11]),
                 dtype=np.int64,
             ),
-            "player": spaces.Box(
+            "agent": spaces.Box(
                 low=np.array([0, 0]),
                 high=np.array([3, 11]),
                 dtype=np.int64,
@@ -59,7 +59,7 @@ def test_gridworld_reset():
         obs,
         {
             "start": np.array((3, 0), dtype=np.int64),
-            "player": np.array((3, 0), dtype=np.int64),
+            "agent": np.array((3, 0), dtype=np.int64),
             "cliffs": np.array([], dtype=np.int64),
             "exits": np.array([(3, 11)], dtype=np.int64),
             "size": np.array((4, 12), dtype=np.int64),
@@ -78,7 +78,7 @@ def test_gridworld_transition_step():
         obs,
         {
             "start": np.array((3, 0), dtype=np.int64),
-            "player": np.array((2, 0), dtype=np.int64),
+            "agent": np.array((2, 0), dtype=np.int64),
             "cliffs": np.array([], dtype=np.int64),
             "exits": np.array([(3, 11)], dtype=np.int64),
             "size": np.array((4, 12), dtype=np.int64),
@@ -100,7 +100,7 @@ def test_gridworld_transition_into_cliff():
         obs,
         {
             "start": np.array((3, 0), dtype=np.int64),
-            "player": np.array((3, 0), dtype=np.int64),  # sent back to the start
+            "agent": np.array((3, 0), dtype=np.int64),  # sent back to the start
             "cliffs": np.array([(3, 1)], dtype=np.int64),
             "exits": np.array([(3, 11)], dtype=np.int64),
             "size": np.array((4, 12), dtype=np.int64),
@@ -122,7 +122,7 @@ def test_gridworld_final_step():
         obs,
         {
             "start": np.array((3, 0), dtype=np.int64),
-            "player": np.array((3, 1), dtype=np.int64),
+            "agent": np.array((3, 1), dtype=np.int64),
             "cliffs": np.array([], dtype=np.int64),
             "exits": np.array([(3, 1)], dtype=np.int64),
             "size": np.array((4, 12), dtype=np.int64),
@@ -161,13 +161,12 @@ def test_gridworld_seed():
         size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
     )
     assert environment.seed() is None
-
-
-@hypothesis.given(seed=st.integers(min_value=0, max_value=2**32 - 1))
-@hypothesis.settings(deadline=None)
-def test_gridworld_seed_with_value_provided(seed: int):
-    environment = gridworld.GridWorld(size=(4, 12), cliffs=[], exits=[], start=(3, 0))
-    assert environment.seed(seed) == seed
+    assert environment.seed(1) == 1
+    assert environment.seed() == 1
+    assert environment.seed(213) == 213
+    assert environment.seed() == 213
+    assert environment.seed(117) == 117
+    assert environment.seed() == 117
 
 
 def test_states_mapping():
@@ -185,7 +184,7 @@ def test_states_mapping():
 def test_apply_action_going_up(x: int, y: int):
     obs = {
         "start": np.array((0, 0), dtype=np.int64),
-        "player": np.array((x, y), dtype=np.int64),
+        "agent": np.array((x, y), dtype=np.int64),
         "cliffs": np.array([], dtype=np.int64),
         "exits": np.array([], dtype=np.int64),
         "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
@@ -193,7 +192,7 @@ def test_apply_action_going_up(x: int, y: int):
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.UP)
     expected = {
         "start": np.array((0, 0), dtype=np.int64),
-        "player": np.array((max(x - 1, 0), y), dtype=np.int64),
+        "agent": np.array((max(x - 1, 0), y), dtype=np.int64),
         "cliffs": np.array([], dtype=np.int64),
         "exits": np.array([], dtype=np.int64),
         "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
@@ -209,7 +208,7 @@ def test_apply_action_going_up(x: int, y: int):
 def test_apply_action_going_down(x: int, y: int):
     obs = {
         "start": np.array((0, 0), dtype=np.int64),
-        "player": np.array((x, y), dtype=np.int64),
+        "agent": np.array((x, y), dtype=np.int64),
         "cliffs": np.array([], dtype=np.int64),
         "exits": np.array([], dtype=np.int64),
         "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
@@ -217,7 +216,7 @@ def test_apply_action_going_down(x: int, y: int):
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.DOWN)
     expected_observation = {
         "start": np.array((0, 0), dtype=np.int64),
-        "player": np.array((min(x + 1, grids.GRID_HEIGHT - 1), y), dtype=np.int64),
+        "agent": np.array((min(x + 1, grids.GRID_HEIGHT - 1), y), dtype=np.int64),
         "cliffs": np.array([], dtype=np.int64),
         "exits": np.array([], dtype=np.int64),
         "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
@@ -234,7 +233,7 @@ def test_apply_action_going_down(x: int, y: int):
 def test_apply_action_going_left(x: int, y: int):
     obs = {
         "start": np.array((0, 0), dtype=np.int64),
-        "player": np.array((x, y), dtype=np.int64),
+        "agent": np.array((x, y), dtype=np.int64),
         "cliffs": np.array([], dtype=np.int64),
         "exits": np.array([], dtype=np.int64),
         "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
@@ -242,7 +241,7 @@ def test_apply_action_going_left(x: int, y: int):
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.LEFT)
     expected = {
         "start": np.array((0, 0), dtype=np.int64),
-        "player": np.array((x, max(0, y - 1)), dtype=np.int64),
+        "agent": np.array((x, max(0, y - 1)), dtype=np.int64),
         "cliffs": np.array([], dtype=np.int64),
         "exits": np.array([], dtype=np.int64),
         "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
@@ -258,7 +257,7 @@ def test_apply_action_going_left(x: int, y: int):
 def test_apply_action_going_right(x: int, y: int):
     obs = {
         "start": np.array((0, 0), dtype=np.int64),
-        "player": np.array((x, y), dtype=np.int64),
+        "agent": np.array((x, y), dtype=np.int64),
         "cliffs": np.array([], dtype=np.int64),
         "exits": np.array([], dtype=np.int64),
         "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
@@ -266,7 +265,7 @@ def test_apply_action_going_right(x: int, y: int):
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.RIGHT)
     expected = {
         "start": np.array((0, 0), dtype=np.int64),
-        "player": np.array((x, min(y + 1, grids.GRID_WIDTH - 1)), dtype=np.int64),
+        "agent": np.array((x, min(y + 1, grids.GRID_WIDTH - 1)), dtype=np.int64),
         "cliffs": np.array([], dtype=np.int64),
         "exits": np.array([], dtype=np.int64),
         "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
@@ -301,13 +300,13 @@ def test_create_observation(
     output = gridworld.create_observation(
         size=(100, 100),
         start=starting_pos,
-        player=starting_pos,
+        agent=starting_pos,
         cliffs=cliffs,
         exits=exits,
     )
     expected = {
         "start": np.array(starting_pos, dtype=np.int64),
-        "player": np.array(starting_pos, dtype=np.int64),
+        "agent": np.array(starting_pos, dtype=np.int64),
         "cliffs": np.array(cliffs, dtype=np.int64),
         "exits": np.array(exits, dtype=np.int64),
         "size": np.array((100, 100), dtype=np.int64),
@@ -328,7 +327,7 @@ def test_create_state_id_fn(states: Sequence[Tuple[int, int]]):
     state_id_fn = gridworld.create_state_id_fn(states_mapping)
     for state, _id in states_mapping.items():
         # duck type an observation
-        assert state_id_fn({"player": np.array(state, dtype=np.int64)}) == _id
+        assert state_id_fn({"agent": np.array(state, dtype=np.int64)}) == _id
 
 
 @hypothesis.given(
@@ -352,7 +351,7 @@ def test_as_grid():
     # soxo
     # ooog
     observation = gridworld.create_observation(
-        size=(2, 4), start=(0, 0), player=(0, 0), cliffs=[(0, 2)], exits=[(1, 3)]
+        size=(2, 4), start=(0, 0), agent=(0, 0), cliffs=[(0, 2)], exits=[(1, 3)]
     )
 
     output = gridworld.as_grid(observation)
@@ -382,7 +381,7 @@ def test_create_env_spec():
 
 def assert_observation(output: Any, expected: Any) -> None:
     np.testing.assert_array_equal(output["size"], expected["size"])
-    np.testing.assert_array_equal(output["player"], expected["player"])
+    np.testing.assert_array_equal(output["agent"], expected["agent"])
     np.testing.assert_array_equal(output["start"], expected["start"])
     np.testing.assert_array_equal(output["cliffs"], expected["cliffs"])
     np.testing.assert_array_equal(output["exits"], expected["exits"])
@@ -605,7 +604,7 @@ def test_observation_as_string_with_exits(x: int, y: int):
     x=st.integers(min_value=0, max_value=grids.GRID_HEIGHT - 1),
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
 )
-def test_observation_as_string_with_player_and_no_last_move(x: int, y: int):
+def test_observation_as_string_with_agent_and_no_last_move(x: int, y: int):
     obs = grids.grid(x, y)
     obs[0, x, y] = 1
     expected = [
@@ -625,7 +624,7 @@ def test_observation_as_string_with_player_and_no_last_move(x: int, y: int):
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
     last_move=st.integers(min_value=0, max_value=len(gridworld.MOVES) - 1),
 )
-def test_observation_as_string_with_player_and_last_move(
+def test_observation_as_string_with_agent_and_last_move(
     x: int,
     y: int,
     last_move: int,
@@ -647,7 +646,7 @@ def test_observation_as_string_with_player_and_last_move(
     x=st.integers(min_value=0, max_value=grids.GRID_HEIGHT - 1),
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
 )
-def test_observation_as_string_with_player_in_cliff_and_no_last_move(
+def test_observation_as_string_with_agent_in_cliff_and_no_last_move(
     x: int,
     y: int,
 ):
@@ -669,7 +668,7 @@ def test_observation_as_string_with_player_in_cliff_and_no_last_move(
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
     last_move=st.integers(min_value=0, max_value=len(gridworld.MOVES) - 1),
 )
-def test_observation_as_string_with_player_in_cliff_and_last_move(
+def test_observation_as_string_with_agent_in_cliff_and_last_move(
     x: int, y: int, last_move: int
 ):
     obs = grids.grid(x, y, cliffs=[(x, y)])
@@ -689,7 +688,7 @@ def test_observation_as_string_with_player_in_cliff_and_last_move(
     x=st.integers(min_value=0, max_value=grids.GRID_HEIGHT - 1),
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
 )
-def test_observation_as_string_with_player_in_exit_and_no_last_move(
+def test_observation_as_string_with_agent_in_exit_and_no_last_move(
     x: int,
     y: int,
 ):
@@ -711,7 +710,7 @@ def test_observation_as_string_with_player_in_exit_and_no_last_move(
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
     last_move=st.integers(min_value=0, max_value=len(gridworld.MOVES) - 1),
 )
-def test_observation_as_string_with_player_in_exit_and_last_move(
+def test_observation_as_string_with_agent_in_exit_and_last_move(
     x: int, y: int, last_move: int
 ):
     obs = grids.grid(x, y, exits=[(x, y)])
@@ -727,7 +726,7 @@ def test_observation_as_string_with_player_in_exit_and_last_move(
     assert gridworld.observation_as_string(obs, last_move) == grid_as_string(expected)
 
 
-def test_position_as_string_in_starting_position_with_player_and_no_last_move():
+def test_position_as_string_in_starting_position_with_agent_and_no_last_move():
     x, y = grids.GRID_HEIGHT - 1, 0
     obs = grids.grid(x, y)
     assert gridworld.position_as_string(obs, x, y, None) == "[S]"
@@ -737,7 +736,7 @@ def test_position_as_string_in_starting_position_with_player_and_no_last_move():
     x=st.integers(min_value=0, max_value=grids.GRID_HEIGHT - 1),
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
 )
-def test_position_as_string_on_safe_position_with_player_and_no_last_move(
+def test_position_as_string_on_safe_position_with_agent_and_no_last_move(
     x: int, y: int
 ):
     obs = grids.grid(x, y)
@@ -749,7 +748,7 @@ def test_position_as_string_on_safe_position_with_player_and_no_last_move(
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
     last_move=st.integers(min_value=0, max_value=len(gridworld.MOVES) - 1),
 )
-def test_position_as_string_on_safe_position_with_player_and_last_move(
+def test_position_as_string_on_safe_position_with_agent_and_last_move(
     x: int, y: int, last_move: int
 ):
     obs = grids.grid(x, y)
@@ -763,7 +762,7 @@ def test_position_as_string_on_safe_position_with_player_and_last_move(
     x=st.integers(min_value=0, max_value=grids.GRID_HEIGHT - 1),
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
 )
-def test_position_as_string_on_cliff_position_with_player_and_no_last_move(
+def test_position_as_string_on_cliff_position_with_agent_and_no_last_move(
     x: int, y: int
 ):
     obs = grids.grid(x, y, cliffs=[(x, y)])
@@ -775,7 +774,7 @@ def test_position_as_string_on_cliff_position_with_player_and_no_last_move(
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
     last_move=st.integers(min_value=0, max_value=len(gridworld.MOVES) - 1),
 )
-def test_position_as_string_on_cliff_position_with_player_and_last_move(
+def test_position_as_string_on_cliff_position_with_agent_and_last_move(
     x: int, y: int, last_move: int
 ):
     x = grids.GRID_HEIGHT - 1
@@ -787,8 +786,8 @@ def test_position_as_string_on_cliff_position_with_player_and_last_move(
     x=st.integers(min_value=0, max_value=grids.GRID_HEIGHT - 1),
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
 )
-def test_position_as_string_on_cliff_position_without_player(x: int, y: int):
-    # no player on the grid
+def test_position_as_string_on_cliff_position_without_agent(x: int, y: int):
+    # no agent on the grid
     obs = grids.empty_grid()
     obs[1, x, y] = 1
     assert gridworld.position_as_string(obs, x, y, None) == "[X]"
@@ -799,10 +798,10 @@ def test_position_as_string_on_cliff_position_without_player(x: int, y: int):
     y=st.integers(min_value=0, max_value=grids.GRID_WIDTH - 1),
     last_move=st.integers(min_value=0, max_value=len(gridworld.MOVES) - 1),
 )
-def test_position_as_string_on_cliff_position_without_player_and_after_move(
+def test_position_as_string_on_cliff_position_without_agent_and_after_move(
     x: int, y: int, last_move: int
 ):
-    # no player on the grid
+    # no agent on the grid
     obs = grids.empty_grid()
     obs[1, x, y] = 1
     assert gridworld.position_as_string(obs, x, y, last_move) == "[X]"

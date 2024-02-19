@@ -1,14 +1,10 @@
 """
-The objective of the environment is simple: from a starting point, with a final state.
-There can be cliffs, and if the player goes to a cliff, the reward is -100,
+The objective of the environment is simple: go from a starting point to a goal state.
+There can be cliffs, and if the agent falls into one, the reward is -100,
 and they go back to the starting position.
-The player can go up, down, left and right.
-If an action takes the player outside the grid, they stay in the same position.
+The agent can go up, down, left and right.
+If an action takes the agent outside the grid, they stay in the same position.
 The reward for every action is -1.
-
-In the current implementation, the observation provides no information about
-cliffs, the starting point, or exit.
-So an agent needs to learn the value of every state from scratch.
 """
 
 import abc
@@ -50,7 +46,7 @@ class Layers:
     Layers spec.
     """
 
-    player = 0
+    agent = 0
     cliff = 1
     exit = 2
 
@@ -61,7 +57,7 @@ class Strings:
     """
 
     size = "size"
-    player = "player"
+    agent = "agent"
     cliffs = "cliffs"
     exits = "exits"
     start = "start"
@@ -101,7 +97,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                     high=np.array([self._height - 1, self._width - 1]),
                     dtype=np.int64,
                 ),
-                "player": spaces.Box(
+                "agent": spaces.Box(
                     low=np.array([0, 0]),
                     high=np.array([self._height - 1, self._width - 1]),
                     dtype=np.int64,
@@ -142,7 +138,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                     create_observation(
                         size=self._size,
                         start=self._start,
-                        player=state_pos,
+                        agent=state_pos,
                         cliffs=tuple(self._cliffs),
                         exits=tuple(self._exits),
                     ),
@@ -152,12 +148,12 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                     next_state_pos = self.__reverse_state_mapping[next_state]
                     prob = (
                         1.0
-                        if np.array_equal(next_obs[Strings.player], next_state_pos)
+                        if np.array_equal(next_obs[Strings.agent], next_state_pos)
                         else 0.0
                     )
                     actual_reward = (
                         reward
-                        if np.array_equal(next_obs[Strings.player], next_state_pos)
+                        if np.array_equal(next_obs[Strings.agent], next_state_pos)
                         else 0.0
                     )
                     # transition to an exit
@@ -183,7 +179,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
             )
         next_observation, reward = apply_action(self._observation, action)
         self._observation = next_observation
-        finished = coord_from_array(self._observation[Strings.player]) in self._exits
+        finished = coord_from_array(self._observation[Strings.agent]) in self._exits
         return copy.deepcopy(self._observation), reward, finished, False, {}
 
     def reset(
@@ -199,7 +195,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         self._observation = create_observation(
             size=self._size,
             start=self._start,
-            player=self._start,
+            agent=self._start,
             cliffs=tuple(self._cliffs),
             exits=tuple(self._exits),
         )
@@ -452,18 +448,18 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
         # send back to the beginning
         next_position = coord_from_array(observation[Strings.start])
     next_observation = dict(**copy.deepcopy(observation))
-    next_observation[Strings.player] = np.array(next_position, dtype=np.int64)
+    next_observation[Strings.agent] = np.array(next_position, dtype=np.int64)
     return next_observation, reward
 
 
 def _step(observation: Mapping[str, Any], action: int) -> Tuple[int, int]:
     # If in exit, stay
-    if coord_from_array(observation[Strings.player]) in coords_from_sequence(
+    if coord_from_array(observation[Strings.agent]) in coords_from_sequence(
         observation[Strings.exits]
     ):
-        pos: np.ndarray = copy.deepcopy(observation[Strings.player])
+        pos: np.ndarray = copy.deepcopy(observation[Strings.agent])
         return coord_from_array(pos)
-    pos_x, pos_y = observation[Strings.player]
+    pos_x, pos_y = observation[Strings.agent]
     height, width = observation[Strings.size]
     if action == LEFT:
         pos_y = max(pos_y - 1, 0)
@@ -480,7 +476,7 @@ def _step_reward(
     observation: Mapping[str, Any], next_position: Tuple[int, int]
 ) -> float:
     # terminal state (current pos)
-    if coord_from_array(observation[Strings.player]) in coords_from_sequence(
+    if coord_from_array(observation[Strings.agent]) in coords_from_sequence(
         observation[Strings.exits]
     ):
         return TERMINAL_REWARD
@@ -492,7 +488,7 @@ def _step_reward(
 def create_observation(
     size: Tuple[int, int],
     start: Tuple[int, int],
-    player: Tuple[int, int],
+    agent: Tuple[int, int],
     cliffs: Sequence[Tuple[int, int]],
     exits: Sequence[Tuple[int, int]],
 ) -> Mapping[str, Any]:
@@ -502,7 +498,7 @@ def create_observation(
     """
     return {
         Strings.start: np.array(start, dtype=np.int64),
-        Strings.player: np.array(player, dtype=np.int64),
+        Strings.agent: np.array(agent, dtype=np.int64),
         Strings.cliffs: np.array(cliffs, dtype=np.int64),
         Strings.exits: np.array(exits, dtype=np.int64),
         Strings.size: np.array(size, dtype=np.int64),
@@ -593,7 +589,7 @@ def create_state_id_fn(
         Returns:
             An integer state ID.
         """
-        return states[coord_from_array(observation[Strings.player])]
+        return states[coord_from_array(observation[Strings.agent])]
 
     return state_id
 
@@ -633,17 +629,17 @@ def as_grid(observation: Mapping[str, Any]) -> np.ndarray:
         A stack of 2D grids, with binary flags to indicate the presence layer elements.
     """
 
-    player = np.zeros(shape=observation[Strings.size], dtype=np.int64)
+    agent = np.zeros(shape=observation[Strings.size], dtype=np.int64)
     cliff = np.zeros(shape=observation[Strings.size], dtype=np.int64)
     exit_ = np.zeros(shape=observation[Strings.size], dtype=np.int64)
     # Place agent at the start.
     # There is only one (x, y) pair.
-    player[coord_from_array(observation[Strings.player])] = 1
+    agent[coord_from_array(observation[Strings.agent])] = 1
     for pos_x, pos_y in observation[Strings.cliffs]:
         cliff[pos_x, pos_y] = 1
     for pos_x, pos_y in observation[Strings.exits]:
         exit_[pos_x, pos_y] = 1
-    return np.stack([player, cliff, exit_])
+    return np.stack([agent, cliff, exit_])
 
 
 def coord_from_array(array: np.ndarray) -> Tuple[int, int]:
@@ -737,24 +733,24 @@ def position_as_string(
     """
     Given a position:
 
-     - If the player is in a starting position -
+     - If the agent is in a starting position -
         returns the representation for starting position - S
-     - If the player is on the position and they made a move to get there,
+     - If the agent is on the position and they made a move to get there,
         returns the representation of the move they made: L, R, U, D
-     - If there is no player, and it's a cliff, returns the X
-     - If the player is on the cliff returns x̄ (x-bar)
-     - If there is no player and it's a safe zone, returns " "
-     - If there is no player on an exit, returns E
-     - If the player is on an exit, returns Ē
+     - If there is no agent, and it's a cliff, returns the X
+     - If the agent is on the cliff returns x̄ (x-bar)
+     - If there is no agent and it's a safe zone, returns " "
+     - If there is no agent on an exit, returns E
+     - If the agent is on an exit, returns Ē
 
     """
     if (
-        observation[Layers.player, pos_x, pos_y]
+        observation[Layers.agent, pos_x, pos_y]
         and observation[Layers.cliff, pos_x, pos_y]
     ):
         return "[x̄]"
     elif (
-        observation[Layers.player, pos_x, pos_y]
+        observation[Layers.agent, pos_x, pos_y]
         and observation[Layers.exit, pos_x, pos_y]
     ):
         return "[Ē]"
@@ -762,7 +758,7 @@ def position_as_string(
         return "[X]"
     elif observation[Layers.exit, pos_x, pos_y] == 1:
         return "[E]"
-    elif observation[Layers.player, pos_x, pos_y] == 1:
+    elif observation[Layers.agent, pos_x, pos_y] == 1:
         if last_move is not None:
             return f"[{MOVES[last_move]}]"
         return "[S]"
