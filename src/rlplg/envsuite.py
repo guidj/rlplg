@@ -63,8 +63,6 @@ class ShiftRewardWrapper(gym.RewardWrapper):
         self.reward_range = (env.reward_range[0] + delta, env.reward_range[1] + delta)
 
         # Update transition data, if existing
-        # TODO: reward for terminal states shouldn't change.
-        # max(nrow) * max(ncol) - 1
         if hasattr(self.env, "P"):
             transitions = getattr(self.env, "P")
             terminal_states = core.infer_env_terminal_states(transitions)
