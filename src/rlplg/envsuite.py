@@ -78,7 +78,7 @@ class ShiftRewardWrapper(gym.RewardWrapper):
                         else:
                             reward = reward + self.delta
                         new_transitions[state][action].append(
-                            (prob, next_state, reward + self.delta, done)
+                            (prob, next_state, reward, done)
                         )
             setattr(self.env, "P", new_transitions)
 
