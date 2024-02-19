@@ -2,7 +2,6 @@
 This module defines core abstractions.
 """
 
-
 import abc
 import base64
 import dataclasses

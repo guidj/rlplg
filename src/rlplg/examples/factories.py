@@ -1,6 +1,7 @@
 """
 Factory functions for examples.
 """
+
 import numpy as np
 
 

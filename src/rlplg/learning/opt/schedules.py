@@ -2,7 +2,6 @@
 This module contains schedules for learning algorithms.
 """
 
-
 import dataclasses
 from typing import Callable
 

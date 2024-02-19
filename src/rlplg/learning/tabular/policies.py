@@ -2,7 +2,6 @@
 This module contains implemenation for certain discrete arm policies.
 """
 
-
 import copy
 import dataclasses
 from typing import Any, Callable, Optional, Protocol

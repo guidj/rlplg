@@ -21,9 +21,7 @@ def test_greedy_actions_mask():
     max_permutation_size=st.integers(min_value=1, max_value=4),
 )
 def test_nsize_permutations(num_values: int, max_permutation_size: int):
-    expected_size = sum(
-        [num_values**exp for exp in range(1, max_permutation_size + 1)]
-    )
+    expected_size = sum([num_values**exp for exp in range(1, max_permutation_size + 1)])
     expected_elems = [-1] * int(max_permutation_size > 1) + list(range(num_values))
     output = tools.nsize_permutations(
         num_values=num_values, max_permutation_size=max_permutation_size

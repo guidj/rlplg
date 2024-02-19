@@ -3,7 +3,6 @@ This module has utilities to load environments,
 defined in either `rlplg` or gymnasium.
 """
 
-
 import functools
 from typing import Any, Callable, Mapping, SupportsFloat
 
