@@ -17,9 +17,11 @@ NestedArray = Union[Mapping, np.ndarray]
 TimeStep = Tuple[ObsType, SupportsFloat, bool, bool, Mapping[str, Any]]
 InitState = Tuple[ObsType, Mapping[str, Any]]
 RenderType = Optional[Union[RenderFrame, Sequence[RenderFrame]]]
+StateTransition = Mapping[int, Sequence[Tuple[float, int, float, bool]]]
 # Type: Mapping[state, Mapping[action, Sequence[Tuple[prob, next_state, reward, terminated]]]]
-EnvTransition = Mapping[int, Mapping[int, Sequence[Tuple[float, int, float, bool]]]]
-MutableEnvTransition = Dict[int, Dict[int, List[Tuple[float, int, float, bool]]]]
+EnvTransition = Mapping[int, StateTransition]
+MutableStateTransition = Dict[int, List[Tuple[float, int, float, bool]]]
+MutableEnvTransition = Dict[int, MutableStateTransition]
 
 
 @dataclasses.dataclass(frozen=True)

@@ -7,8 +7,9 @@ from gymnasium import spaces
 from hypothesis import strategies as st
 from PIL import Image as image
 
+from rlplg import core
 from rlplg.environments import gridworld
-from tests.rlplg.environments import grids
+from tests.rlplg.environments import dynamics, grids
 
 
 def test_gridworld_init():
@@ -43,7 +44,9 @@ def test_gridworld_init():
             ),
         }
     )
-    assert len(environment.transition) == 4 * 12
+    dynamics.assert_transition_mapping(
+        environment.transition, env_desc=core.EnvDesc(num_states=4 * 12, num_actions=4)
+    )
 
 
 def test_gridworld_reset():

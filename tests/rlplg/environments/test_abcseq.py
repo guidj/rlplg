@@ -4,8 +4,10 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
+from rlplg import core
 from rlplg.core import InitState, TimeStep
 from rlplg.environments import abcseq
+from tests.rlplg.environments import dynamics
 
 
 @hypothesis.given(length=st.integers(min_value=1, max_value=10))
@@ -17,7 +19,10 @@ def test_abcseq_init(length: int):
     assert environment.observation_space == spaces.Box(
         low=0, high=1, shape=(length + 1,), dtype=np.int64
     )
-    assert len(environment.transition) == length + 1
+    dynamics.assert_transition_mapping(
+        environment.transition,
+        env_desc=core.EnvDesc(num_states=length + 1, num_actions=length),
+    )
 
 
 @hypothesis.given(length=st.integers(min_value=27, max_value=100))
