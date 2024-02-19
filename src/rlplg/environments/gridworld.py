@@ -34,7 +34,6 @@ RIGHT = 1
 UP = 2
 DOWN = 3
 MOVES = ["L", "R", "U", "D"]
-MOVE_SYMBOLS = ["←", "→", "↑", "↓"]
 COLOR_SILVER = (192, 192, 192)
 PATH_BG = "path-bg.png"
 CLIFF_BG = "cliff-bg.png"
@@ -92,25 +91,21 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         self.action_space = spaces.Discrete(len(MOVES))
         self.observation_space = spaces.Dict(
             {
-                "start": spaces.Box(
-                    low=np.array([0, 0]),
-                    high=np.array([self._height - 1, self._width - 1]),
-                    dtype=np.int64,
+                "start": spaces.Tuple(
+                    (spaces.Discrete(self._height), spaces.Discrete(self._width))
                 ),
-                "agent": spaces.Box(
-                    low=np.array([0, 0]),
-                    high=np.array([self._height - 1, self._width - 1]),
-                    dtype=np.int64,
+                "agent": spaces.Tuple(
+                    (spaces.Discrete(self._height), spaces.Discrete(self._width))
                 ),
-                "cliffs": spaces.Box(
-                    low=np.array([0, 0, 0]),
-                    high=np.array([0, self._height - 1, self._width - 1]),
-                    dtype=np.int64,
+                "cliffs": spaces.Sequence(
+                    spaces.Tuple(
+                        (spaces.Discrete(self._height), spaces.Discrete(self._width))
+                    )
                 ),
-                "exits": spaces.Box(
-                    low=np.array([0, 0, 0]),
-                    high=np.array([0, self._height - 1, self._width - 1]),
-                    dtype=np.int64,
+                "exits": spaces.Sequence(
+                    spaces.Tuple(
+                        (spaces.Discrete(self._height), spaces.Discrete(self._width))
+                    )
                 ),
                 "size": spaces.Box(
                     low=np.array([self._height - 1, self._width - 1]),
@@ -148,12 +143,12 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                     next_state_pos = self.__reverse_state_mapping[next_state]
                     prob = (
                         1.0
-                        if np.array_equal(next_obs[Strings.agent], next_state_pos)
+                        if next_obs[Strings.agent] == next_state_pos
                         else 0.0
                     )
                     actual_reward = (
                         reward
-                        if np.array_equal(next_obs[Strings.agent], next_state_pos)
+                        if next_obs[Strings.agent] == next_state_pos
                         else 0.0
                     )
                     # transition to an exit
@@ -179,7 +174,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
             )
         next_observation, reward = apply_action(self._observation, action)
         self._observation = next_observation
-        finished = coord_from_array(self._observation[Strings.agent]) in self._exits
+        finished = self._observation[Strings.agent] in self._exits
         return copy.deepcopy(self._observation), reward, finished, False, {}
 
     def reset(
@@ -444,21 +439,19 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
 
     next_position = _step(observation, action)
     reward = _step_reward(observation, next_position=next_position)
-    if next_position in coords_from_sequence(observation[Strings.cliffs]):
+    if next_position in observation[Strings.cliffs]:
         # send back to the beginning
-        next_position = coord_from_array(observation[Strings.start])
+        next_position = observation[Strings.start]
     next_observation = dict(**copy.deepcopy(observation))
-    next_observation[Strings.agent] = np.array(next_position, dtype=np.int64)
+    next_observation[Strings.agent] = next_position
     return next_observation, reward
 
 
 def _step(observation: Mapping[str, Any], action: int) -> Tuple[int, int]:
     # If in exit, stay
-    if coord_from_array(observation[Strings.agent]) in coords_from_sequence(
-        observation[Strings.exits]
-    ):
-        pos: np.ndarray = copy.deepcopy(observation[Strings.agent])
-        return coord_from_array(pos)
+    if observation[Strings.agent] in observation[Strings.exits]:
+        pos: Tuple[int, int] = copy.deepcopy(observation[Strings.agent])
+        return pos
     pos_x, pos_y = observation[Strings.agent]
     height, width = observation[Strings.size]
     if action == LEFT:
@@ -476,11 +469,9 @@ def _step_reward(
     observation: Mapping[str, Any], next_position: Tuple[int, int]
 ) -> float:
     # terminal state (current pos)
-    if coord_from_array(observation[Strings.agent]) in coords_from_sequence(
-        observation[Strings.exits]
-    ):
+    if observation[Strings.agent] in observation[Strings.exits]:
         return TERMINAL_REWARD
-    if next_position in coords_from_sequence(observation[Strings.cliffs]):
+    if next_position in observation[Strings.cliffs]:
         return CLIFF_PENALTY
     return MOVE_PENALTY
 
@@ -497,11 +488,11 @@ def create_observation(
     and other information.
     """
     return {
-        Strings.start: np.array(start, dtype=np.int64),
-        Strings.agent: np.array(agent, dtype=np.int64),
-        Strings.cliffs: np.array(cliffs, dtype=np.int64),
-        Strings.exits: np.array(exits, dtype=np.int64),
-        Strings.size: np.array(size, dtype=np.int64),
+        Strings.start: start,
+        Strings.agent: agent,
+        Strings.cliffs: cliffs,
+        Strings.exits: exits,
+        Strings.size: size,
     }
 
 
@@ -589,7 +580,7 @@ def create_state_id_fn(
         Returns:
             An integer state ID.
         """
-        return states[coord_from_array(observation[Strings.agent])]
+        return states[observation[Strings.agent]]
 
     return state_id
 
@@ -634,27 +625,12 @@ def as_grid(observation: Mapping[str, Any]) -> np.ndarray:
     exit_ = np.zeros(shape=observation[Strings.size], dtype=np.int64)
     # Place agent at the start.
     # There is only one (x, y) pair.
-    agent[coord_from_array(observation[Strings.agent])] = 1
+    agent[observation[Strings.agent]] = 1
     for pos_x, pos_y in observation[Strings.cliffs]:
         cliff[pos_x, pos_y] = 1
     for pos_x, pos_y in observation[Strings.exits]:
         exit_[pos_x, pos_y] = 1
     return np.stack([agent, cliff, exit_])
-
-
-def coord_from_array(array: np.ndarray) -> Tuple[int, int]:
-    """
-    Converts a coordinate from an arry to a 2-tuple.
-    """
-    coord_x, coord_y = array.tolist()
-    return coord_x, coord_y
-
-
-def coords_from_sequence(array: np.ndarray) -> Sequence[Tuple[int, int]]:
-    """
-    Converts a sequence of coordinates from an 2-D array to a sequence of 2-tuples.
-    """
-    return [coord_from_array(element) for element in array]
 
 
 def image_as_array(img: image.Image) -> np.ndarray:

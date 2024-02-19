@@ -18,26 +18,10 @@ def test_gridworld_init():
     assert environment.action_space == spaces.Discrete(4)
     assert environment.observation_space == spaces.Dict(
         {
-            "start": spaces.Box(
-                low=np.array([0, 0]),
-                high=np.array([3, 11]),
-                dtype=np.int64,
-            ),
-            "agent": spaces.Box(
-                low=np.array([0, 0]),
-                high=np.array([3, 11]),
-                dtype=np.int64,
-            ),
-            "cliffs": spaces.Box(
-                low=np.array([0, 0, 0]),
-                high=np.array([0, 3, 11]),
-                dtype=np.int64,
-            ),
-            "exits": spaces.Box(
-                low=np.array([0, 0, 0]),
-                high=np.array([0, 3, 11]),
-                dtype=np.int64,
-            ),
+            "start": spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12))),
+            "agent": spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12))),
+            "cliffs": spaces.Sequence(spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12)))),
+            "exits": spaces.Sequence(spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12)))),
             "size": spaces.Box(
                 low=np.array([3, 11]),
                 high=np.array([3, 11]),
@@ -45,6 +29,7 @@ def test_gridworld_init():
             ),
         }
     )
+    hello = environment.observation_space.sample()
     dynamics.assert_transition_mapping(
         environment.transition, env_desc=core.EnvDesc(num_states=4 * 12, num_actions=4)
     )
@@ -58,11 +43,11 @@ def test_gridworld_reset():
     assert_observation(
         obs,
         {
-            "start": np.array((3, 0), dtype=np.int64),
-            "agent": np.array((3, 0), dtype=np.int64),
-            "cliffs": np.array([], dtype=np.int64),
-            "exits": np.array([(3, 11)], dtype=np.int64),
-            "size": np.array((4, 12), dtype=np.int64),
+            "start": (3, 0),
+            "agent": (3, 0),
+            "cliffs": [],
+            "exits": [(3, 11)],
+            "size": (4, 12),
         },
     )
     assert info == {}
@@ -77,11 +62,11 @@ def test_gridworld_transition_step():
     assert_observation(
         obs,
         {
-            "start": np.array((3, 0), dtype=np.int64),
-            "agent": np.array((2, 0), dtype=np.int64),
-            "cliffs": np.array([], dtype=np.int64),
-            "exits": np.array([(3, 11)], dtype=np.int64),
-            "size": np.array((4, 12), dtype=np.int64),
+            "start": (3, 0),
+            "agent": (2, 0),
+            "cliffs": [],
+            "exits": [(3, 11)],
+            "size": (4, 12),
         },
     )
     assert reward == -1
@@ -99,11 +84,11 @@ def test_gridworld_transition_into_cliff():
     assert_observation(
         obs,
         {
-            "start": np.array((3, 0), dtype=np.int64),
-            "agent": np.array((3, 0), dtype=np.int64),  # sent back to the start
-            "cliffs": np.array([(3, 1)], dtype=np.int64),
-            "exits": np.array([(3, 11)], dtype=np.int64),
-            "size": np.array((4, 12), dtype=np.int64),
+            "start": (3, 0),
+            "agent": (3, 0),  # sent back to the start
+            "cliffs": [(3, 1)],
+            "exits": [(3, 11)],
+            "size": (4, 12),
         },
     )
     assert reward == -100.0
@@ -121,11 +106,11 @@ def test_gridworld_final_step():
     assert_observation(
         obs,
         {
-            "start": np.array((3, 0), dtype=np.int64),
-            "agent": np.array((3, 1), dtype=np.int64),
-            "cliffs": np.array([], dtype=np.int64),
-            "exits": np.array([(3, 1)], dtype=np.int64),
-            "size": np.array((4, 12), dtype=np.int64),
+            "start": (3, 0), 
+            "agent": (3, 1), 
+            "cliffs": [], 
+            "exits": [(3, 1)], 
+            "size": (4, 12), 
         },
     )
     assert reward == -1.0
@@ -183,19 +168,19 @@ def test_states_mapping():
 )
 def test_apply_action_going_up(x: int, y: int):
     obs = {
-        "start": np.array((0, 0), dtype=np.int64),
-        "agent": np.array((x, y), dtype=np.int64),
-        "cliffs": np.array([], dtype=np.int64),
-        "exits": np.array([], dtype=np.int64),
-        "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
+        "start": (0, 0), 
+        "agent": (x, y), 
+        "cliffs": [], 
+        "exits": [], 
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
     }
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.UP)
     expected = {
-        "start": np.array((0, 0), dtype=np.int64),
-        "agent": np.array((max(x - 1, 0), y), dtype=np.int64),
-        "cliffs": np.array([], dtype=np.int64),
-        "exits": np.array([], dtype=np.int64),
-        "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
+        "start": (0, 0), 
+        "agent": (max(x - 1, 0), y), 
+        "cliffs": [], 
+        "exits": [], 
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
     }
     assert_observation(output_observation, expected)
     assert output_reward == -1.0
@@ -207,19 +192,19 @@ def test_apply_action_going_up(x: int, y: int):
 )
 def test_apply_action_going_down(x: int, y: int):
     obs = {
-        "start": np.array((0, 0), dtype=np.int64),
-        "agent": np.array((x, y), dtype=np.int64),
-        "cliffs": np.array([], dtype=np.int64),
-        "exits": np.array([], dtype=np.int64),
-        "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
+        "start": (0, 0), 
+        "agent": (x, y), 
+        "cliffs": [], 
+        "exits": [], 
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
     }
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.DOWN)
     expected_observation = {
-        "start": np.array((0, 0), dtype=np.int64),
-        "agent": np.array((min(x + 1, grids.GRID_HEIGHT - 1), y), dtype=np.int64),
-        "cliffs": np.array([], dtype=np.int64),
-        "exits": np.array([], dtype=np.int64),
-        "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
+        "start": (0, 0), 
+        "agent": (min(x + 1, grids.GRID_HEIGHT - 1), y), 
+        "cliffs": [], 
+        "exits": [], 
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
     }
 
     assert_observation(output_observation, expected_observation)
@@ -232,19 +217,19 @@ def test_apply_action_going_down(x: int, y: int):
 )
 def test_apply_action_going_left(x: int, y: int):
     obs = {
-        "start": np.array((0, 0), dtype=np.int64),
-        "agent": np.array((x, y), dtype=np.int64),
-        "cliffs": np.array([], dtype=np.int64),
-        "exits": np.array([], dtype=np.int64),
-        "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
+        "start": (0, 0), 
+        "agent": (x, y), 
+        "cliffs": [], 
+        "exits": [], 
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
     }
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.LEFT)
     expected = {
-        "start": np.array((0, 0), dtype=np.int64),
-        "agent": np.array((x, max(0, y - 1)), dtype=np.int64),
-        "cliffs": np.array([], dtype=np.int64),
-        "exits": np.array([], dtype=np.int64),
-        "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
+        "start": (0, 0), 
+        "agent": (x, max(0, y - 1)), 
+        "cliffs": [], 
+        "exits": [], 
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
     }
     assert_observation(output_observation, expected)
     assert output_reward == -1.0
@@ -256,19 +241,19 @@ def test_apply_action_going_left(x: int, y: int):
 )
 def test_apply_action_going_right(x: int, y: int):
     obs = {
-        "start": np.array((0, 0), dtype=np.int64),
-        "agent": np.array((x, y), dtype=np.int64),
-        "cliffs": np.array([], dtype=np.int64),
-        "exits": np.array([], dtype=np.int64),
-        "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
+        "start": (0, 0), 
+        "agent": (x, y), 
+        "cliffs": [], 
+        "exits": [], 
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
     }
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.RIGHT)
     expected = {
-        "start": np.array((0, 0), dtype=np.int64),
-        "agent": np.array((x, min(y + 1, grids.GRID_WIDTH - 1)), dtype=np.int64),
-        "cliffs": np.array([], dtype=np.int64),
-        "exits": np.array([], dtype=np.int64),
-        "size": np.array((grids.GRID_HEIGHT, grids.GRID_WIDTH), dtype=np.int64),
+        "start": (0, 0), 
+        "agent": (x, min(y + 1, grids.GRID_WIDTH - 1)), 
+        "cliffs": [], 
+        "exits": [], 
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
     }
     assert_observation(output_observation, expected)
     assert output_reward == -1.0
@@ -305,11 +290,11 @@ def test_create_observation(
         exits=exits,
     )
     expected = {
-        "start": np.array(starting_pos, dtype=np.int64),
-        "agent": np.array(starting_pos, dtype=np.int64),
-        "cliffs": np.array(cliffs, dtype=np.int64),
-        "exits": np.array(exits, dtype=np.int64),
-        "size": np.array((100, 100), dtype=np.int64),
+        "start": starting_pos, 
+        "agent": starting_pos, 
+        "cliffs": cliffs, 
+        "exits": exits, 
+        "size": (100, 100), 
     }
     assert_observation(output, expected)
 
@@ -327,7 +312,7 @@ def test_create_state_id_fn(states: Sequence[Tuple[int, int]]):
     state_id_fn = gridworld.create_state_id_fn(states_mapping)
     for state, _id in states_mapping.items():
         # duck type an observation
-        assert state_id_fn({"agent": np.array(state, dtype=np.int64)}) == _id
+        assert state_id_fn({"agent": state}) == _id
 
 
 @hypothesis.given(
