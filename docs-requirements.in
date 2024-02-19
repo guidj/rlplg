@@ -1,1 +1,3 @@
 mkdocs>=1.5.3
+lazydocs==0.4.8
+pydocstyle==6.3.0
