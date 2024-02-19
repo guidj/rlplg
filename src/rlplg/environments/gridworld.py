@@ -141,15 +141,9 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                 )
                 for next_state in range(num_states):
                     next_state_pos = self.__reverse_state_mapping[next_state]
-                    prob = (
-                        1.0
-                        if next_obs[Strings.agent] == next_state_pos
-                        else 0.0
-                    )
+                    prob = 1.0 if next_obs[Strings.agent] == next_state_pos else 0.0
                     actual_reward = (
-                        reward
-                        if next_obs[Strings.agent] == next_state_pos
-                        else 0.0
+                        reward if next_obs[Strings.agent] == next_state_pos else 0.0
                     )
                     # transition to an exit
                     terminated = state != next_state and (next_state_pos in self._exits)
@@ -374,6 +368,37 @@ class BlueMoonSprites(Sprites):
     @property
     def actor_sprite(self):
         return self._actor_sprite
+
+
+def create_envspec_from_grid_text(grid: str) -> core.EnvSpec:
+    """
+    Parses a grid file and create an environment from
+    the parameters.
+    """
+    size, cliffs, exits, start = parse_grid_from_text(grid.splitlines())
+    return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)
+
+
+def parse_grid_from_text(grid: Iterator[str]):
+    """
+    Parses grid from text files.
+    """
+    cliffs = []
+    exits = []
+    start = None
+    height, width = 0, 0
+    for pos_x, line in enumerate(grid):
+        row = line.strip()
+        width = max(width, len(row))
+        for pos_y, elem in enumerate(row):
+            if elem.lower() == "x":
+                cliffs.append((pos_x, pos_y))
+            elif elem.lower() == "g":
+                exits.append((pos_x, pos_y))
+            elif elem.lower() == "s":
+                start = (pos_x, pos_y)
+        height += 1
+    return (height, width), cliffs, exits, start
 
 
 def create_env_spec(
@@ -739,34 +764,3 @@ def position_as_string(
             return f"[{MOVES[last_move]}]"
         return "[S]"
     return "[ ]"
-
-
-def parse_grid_from_text(grid: Iterator[str]):
-    """
-    Parses grid from text files.
-    """
-    cliffs = []
-    exits = []
-    start = None
-    height, width = 0, 0
-    for pos_x, line in enumerate(grid):
-        row = line.strip()
-        width = max(width, len(row))
-        for pos_y, elem in enumerate(row):
-            if elem.lower() == "x":
-                cliffs.append((pos_x, pos_y))
-            elif elem.lower() == "g":
-                exits.append((pos_x, pos_y))
-            elif elem.lower() == "s":
-                start = (pos_x, pos_y)
-        height += 1
-    return (height, width), cliffs, exits, start
-
-
-def create_envspec_from_grid_text(grid: Iterator[str]) -> core.EnvSpec:
-    """
-    Parses a grid file and create an environment from
-    the parameters.
-    """
-    size, cliffs, exits, start = parse_grid_from_text(grid)
-    return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)

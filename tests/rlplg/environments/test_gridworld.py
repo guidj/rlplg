@@ -20,8 +20,12 @@ def test_gridworld_init():
         {
             "start": spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12))),
             "agent": spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12))),
-            "cliffs": spaces.Sequence(spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12)))),
-            "exits": spaces.Sequence(spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12)))),
+            "cliffs": spaces.Sequence(
+                spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12)))
+            ),
+            "exits": spaces.Sequence(
+                spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12)))
+            ),
             "size": spaces.Box(
                 low=np.array([3, 11]),
                 high=np.array([3, 11]),
@@ -106,11 +110,11 @@ def test_gridworld_final_step():
     assert_observation(
         obs,
         {
-            "start": (3, 0), 
-            "agent": (3, 1), 
-            "cliffs": [], 
-            "exits": [(3, 1)], 
-            "size": (4, 12), 
+            "start": (3, 0),
+            "agent": (3, 1),
+            "cliffs": [],
+            "exits": [(3, 1)],
+            "size": (4, 12),
         },
     )
     assert reward == -1.0
@@ -168,19 +172,19 @@ def test_states_mapping():
 )
 def test_apply_action_going_up(x: int, y: int):
     obs = {
-        "start": (0, 0), 
-        "agent": (x, y), 
-        "cliffs": [], 
-        "exits": [], 
-        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
+        "start": (0, 0),
+        "agent": (x, y),
+        "cliffs": [],
+        "exits": [],
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH),
     }
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.UP)
     expected = {
-        "start": (0, 0), 
-        "agent": (max(x - 1, 0), y), 
-        "cliffs": [], 
-        "exits": [], 
-        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
+        "start": (0, 0),
+        "agent": (max(x - 1, 0), y),
+        "cliffs": [],
+        "exits": [],
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH),
     }
     assert_observation(output_observation, expected)
     assert output_reward == -1.0
@@ -192,19 +196,19 @@ def test_apply_action_going_up(x: int, y: int):
 )
 def test_apply_action_going_down(x: int, y: int):
     obs = {
-        "start": (0, 0), 
-        "agent": (x, y), 
-        "cliffs": [], 
-        "exits": [], 
-        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
+        "start": (0, 0),
+        "agent": (x, y),
+        "cliffs": [],
+        "exits": [],
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH),
     }
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.DOWN)
     expected_observation = {
-        "start": (0, 0), 
-        "agent": (min(x + 1, grids.GRID_HEIGHT - 1), y), 
-        "cliffs": [], 
-        "exits": [], 
-        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
+        "start": (0, 0),
+        "agent": (min(x + 1, grids.GRID_HEIGHT - 1), y),
+        "cliffs": [],
+        "exits": [],
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH),
     }
 
     assert_observation(output_observation, expected_observation)
@@ -217,19 +221,19 @@ def test_apply_action_going_down(x: int, y: int):
 )
 def test_apply_action_going_left(x: int, y: int):
     obs = {
-        "start": (0, 0), 
-        "agent": (x, y), 
-        "cliffs": [], 
-        "exits": [], 
-        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
+        "start": (0, 0),
+        "agent": (x, y),
+        "cliffs": [],
+        "exits": [],
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH),
     }
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.LEFT)
     expected = {
-        "start": (0, 0), 
-        "agent": (x, max(0, y - 1)), 
-        "cliffs": [], 
-        "exits": [], 
-        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
+        "start": (0, 0),
+        "agent": (x, max(0, y - 1)),
+        "cliffs": [],
+        "exits": [],
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH),
     }
     assert_observation(output_observation, expected)
     assert output_reward == -1.0
@@ -241,19 +245,19 @@ def test_apply_action_going_left(x: int, y: int):
 )
 def test_apply_action_going_right(x: int, y: int):
     obs = {
-        "start": (0, 0), 
-        "agent": (x, y), 
-        "cliffs": [], 
-        "exits": [], 
-        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
+        "start": (0, 0),
+        "agent": (x, y),
+        "cliffs": [],
+        "exits": [],
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH),
     }
     output_observation, output_reward = gridworld.apply_action(obs, gridworld.RIGHT)
     expected = {
-        "start": (0, 0), 
-        "agent": (x, min(y + 1, grids.GRID_WIDTH - 1)), 
-        "cliffs": [], 
-        "exits": [], 
-        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH), 
+        "start": (0, 0),
+        "agent": (x, min(y + 1, grids.GRID_WIDTH - 1)),
+        "cliffs": [],
+        "exits": [],
+        "size": (grids.GRID_HEIGHT, grids.GRID_WIDTH),
     }
     assert_observation(output_observation, expected)
     assert output_reward == -1.0
@@ -290,11 +294,11 @@ def test_create_observation(
         exits=exits,
     )
     expected = {
-        "start": starting_pos, 
-        "agent": starting_pos, 
-        "cliffs": cliffs, 
-        "exits": exits, 
-        "size": (100, 100), 
+        "start": starting_pos,
+        "agent": starting_pos,
+        "cliffs": cliffs,
+        "exits": exits,
+        "size": (100, 100),
     }
     assert_observation(output, expected)
 
