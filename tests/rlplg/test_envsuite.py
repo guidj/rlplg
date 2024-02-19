@@ -1,4 +1,5 @@
 import math
+import uuid
 from typing import Any, Mapping
 
 import numpy as np
@@ -15,17 +16,32 @@ def test_envsuite_load(args: Mapping[str, Mapping[str, Any]]):
         assert env_spec.name == env_name
         # reset env and state (get initial values)
         # play for one episode
-        env_spec.environment.reset()
-        time_step: TimeStep = (), math.nan, False, False, {}
+        obs, _ = env_spec.environment.reset()
+        time_step: TimeStep = obs, math.nan, False, False, {}
+        assert 0 <= env_spec.discretizer.state(obs) <= env_spec.mdp.env_desc.num_states
+
         while True:
             _, _, terminated, truncated, _ = time_step
             action = np.random.randint(0, env_spec.mdp.env_desc.num_actions)
             next_time_step = env_spec.environment.step(action)
+            assert (
+                0 <= env_spec.discretizer.state(obs) <= env_spec.mdp.env_desc.num_states
+            )
+            assert (
+                0
+                <= env_spec.discretizer.action(action)
+                <= env_spec.mdp.env_desc.num_actions
+            )
             if terminated or truncated:
                 break
             time_step = next_time_step
 
         env_spec.environment.close()
+
+
+def test_envsuite_load_with_unsupported_env():
+    with pytest.raises(ValueError):
+        envsuite.load(str(uuid.uuid4()))
 
 
 @pytest.fixture
