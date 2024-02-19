@@ -4,3 +4,12 @@ site_description: >
 
 nav:
   - RL-PLG Home: 'index.md'
+  - Development: 'dev.md'
+  - Environments:
+    - ABCseq: 'envs/abcseq.md'
+    - GridWorld: 'envs/gridworld.md'
+    - RedGreen: 'envs/redgreen.md'
+    - StateRandomWalk: 'envs/staterandomwalk.md'
+    - TariffFrozenLake: 'envs/tarifffrozenlake-v1.md'
+    - TowerOfHanoi: 'envs/towerofhanoi.md'
+    - Template: 'envs/template.md'

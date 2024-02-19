@@ -1,6 +1,7 @@
 """
 Policy evaluation methods.
 """
+
 import collections
 import copy
 from typing import Any, Callable, DefaultDict, Generator, List, Tuple
@@ -62,9 +63,9 @@ def first_visit_monte_carlo_action_values(
     state_action_updates: DefaultDict[Tuple[int, int], int] = collections.defaultdict(
         int
     )
-    state_action_visits_remaining: DefaultDict[
-        Tuple[int, int], int
-    ] = collections.defaultdict(int)
+    state_action_visits_remaining: DefaultDict[Tuple[int, int], int] = (
+        collections.defaultdict(int)
+    )
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.

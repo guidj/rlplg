@@ -30,6 +30,7 @@ def test_redgreen_init(cure: Sequence[str]):
             "position": spaces.Box(low=0, high=len(cure), dtype=np.int64),
         }
     )
+    assert len(environment.transition) == len(cure_sequence)
 
 
 def test_redgreen_simple_sequence():
@@ -155,6 +156,26 @@ def test_redgreen_render_with_invalid_modes(cure: Sequence[str]):
             environment.render()
 
 
+def test_redgreenmdpdiscretizer():
+    discretizer = redgreen.RedGreenMdpDiscretizer()
+    assert (
+        discretizer.state({"cure_sequence": ["green", "red", "wait"], "position": 0})
+        == 0
+    )
+    assert (
+        discretizer.state({"cure_sequence": ["green", "red", "wait"], "position": 1})
+        == 1
+    )
+    assert (
+        discretizer.state({"cure_sequence": ["green", "red", "wait"], "position": 2})
+        == 2
+    )
+
+    assert discretizer.action(0) == 0
+    assert discretizer.action(1) == 1
+    assert discretizer.action(2) == 2
+
+
 @hypothesis.given(
     cure_sequence=st.lists(
         st.sampled_from(elements=list(range(len(redgreen.ACTIONS)))), min_size=2
@@ -270,7 +291,7 @@ def test_state_observation(cure_sequence: Sequence[int]):
 )
 def test_state_observation_with_invalid_position(cure_sequence: Sequence[int]):
     pos = random.choice([-1, len(cure_sequence) + 1])
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         redgreen.state_observation(cure_sequence, position=pos)
 
 

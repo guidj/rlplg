@@ -17,6 +17,13 @@ def test_abcseq_init(length: int):
     assert environment.observation_space == spaces.Box(
         low=0, high=1, shape=(length + 1,), dtype=np.int64
     )
+    assert len(environment.transition) == length + 1
+
+
+@hypothesis.given(length=st.integers(min_value=27, max_value=100))
+def test_abcseq_init_with_invalid_length(length: int):
+    with pytest.raises(ValueError):
+        abcseq.ABCSeq(length)
 
 
 def test_abcseq_simple_sequence():
@@ -100,6 +107,17 @@ def test_abcseq_render_with_invalid_modes(length: int):
         environment.reset()
         with pytest.raises(NotImplementedError):
             environment.render()
+
+
+def test_abcseqmdpdiscretizer():
+    discretizer = abcseq.ABCSeqMdpDiscretizer()
+    assert discretizer.state(np.array([1, 0, 0])) == 0
+    assert discretizer.state(np.array([1, 1, 0])) == 1
+    assert discretizer.state(np.array([1, 1, 1])) == 2
+
+    assert discretizer.action(0) == 0
+    assert discretizer.action(1) == 1
+    assert discretizer.action(3) == 3
 
 
 @hypothesis.given(

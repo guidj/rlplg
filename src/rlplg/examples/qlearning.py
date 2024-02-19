@@ -2,7 +2,6 @@
 Implementation of Q-learning for discrete MDPs.
 """
 
-
 import copy
 import logging
 import math

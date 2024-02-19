@@ -2,7 +2,6 @@
 Policy evaluation methods with approximation.
 """
 
-
 import copy
 from typing import Callable, Generator, Tuple
 
@@ -47,8 +46,10 @@ def gradient_monte_carlo_state_values(
             weights = estimator.weights()
             new_weights = weights + alpha * (episode_return - state_value) * gradients
 
-            assert not utils.nan_or_inf(state_value), "Value estimate is NaN or Inf"
-            assert not utils.nan_or_inf(gradients), "Gradients are NaN or Inf"
+            if utils.nan_or_inf(state_value):
+                raise RuntimeError(f"Value estimate is NaN or Inf: {state_value}")
+            if utils.nan_or_inf(gradients):
+                raise RuntimeError(f"Gradients are NaN or Inf: {gradients}")
             estimator.assign_weights(new_weights)
             # update returns for the next state
             episode_return -= experience.reward

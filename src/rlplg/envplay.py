@@ -3,7 +3,6 @@ This module contains utilities for rollouts, and
 trajectory data.
 """
 
-
 import math
 from typing import Generator
 

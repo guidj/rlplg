@@ -2,7 +2,6 @@
 Functions to visualize data.
 """
 
-
 import numpy as np
 
 

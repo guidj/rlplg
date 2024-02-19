@@ -2,7 +2,6 @@
 Numpy and scipy utilities.
 """
 
-
 from typing import Any
 
 
