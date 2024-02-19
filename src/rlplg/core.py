@@ -6,7 +6,7 @@ import abc
 import base64
 import dataclasses
 import hashlib
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import gymnasium as gym
 import numpy as np
@@ -200,13 +200,7 @@ class EnvMdp(Mdp):
         self.__transition: MutableEnvTransition = {}
         # collections.defaultdict(lambda: collections.defaultdict(lambda: (0.0, 0.0)))
         # Find terminal states
-        terminal_states = set()
-        for _, action_transitions in transition.items():
-            for _, transitions in action_transitions.items():
-                for _, next_state, _, terminated in transitions:
-                    if terminated is True:
-                        terminal_states.add(next_state)
-
+        terminal_states = infer_env_terminal_states(transition)
         # Create mapping with correct transition for terminal states
         # This necessary because `env.P` in Gymnasium toy text
         # examples are incorrect.
@@ -243,6 +237,25 @@ class EnvMdp(Mdp):
             The mapping of state-action transition.
         """
         return self.__transition
+
+
+def infer_env_terminal_states(transition: EnvTransition) -> Set[int]:
+    """
+    Creates an MDP using transition mapping.
+
+    In some of the environments, there are errors in the implementation
+    for terminal states.
+    We correct them.
+    """
+    # collections.defaultdict(lambda: collections.defaultdict(lambda: (0.0, 0.0)))
+    # Find terminal states
+    terminal_states = set()
+    for _, action_transitions in transition.items():
+        for _, transitions in action_transitions.items():
+            for _, next_state, _, terminated in transitions:
+                if terminated is True:
+                    terminal_states.add(next_state)
+    return terminal_states
 
 
 def encode_env(signature: Sequence[Any]) -> str:

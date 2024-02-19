@@ -63,14 +63,22 @@ class ShiftRewardWrapper(gym.RewardWrapper):
         self.reward_range = (env.reward_range[0] + delta, env.reward_range[1] + delta)
 
         # Update transition data, if existing
+        # TODO: reward for terminal states shouldn't change.
+        # max(nrow) * max(ncol) - 1
         if hasattr(self.env, "P"):
             transitions = getattr(self.env, "P")
+            terminal_states = core.infer_env_terminal_states(transitions)
             new_transitions: MutableEnvTransition = {}
             for state, action_transitions in transitions.items():
                 new_transitions[state] = {}
                 for action, transitions in action_transitions.items():
                     new_transitions[state][action] = []
                     for prob, next_state, reward, done in transitions:
+                        if state in terminal_states:
+                            prob = 1.0 if state == next_state else 0.0
+                            reward = 0.0
+                        else:
+                            reward = reward + self.delta
                         new_transitions[state][action].append(
                             (prob, next_state, reward + self.delta, done)
                         )
