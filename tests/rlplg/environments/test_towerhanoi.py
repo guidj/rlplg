@@ -7,6 +7,7 @@ from gymnasium import spaces
 from rlplg import core
 from rlplg.core import TimeStep
 from rlplg.environments import towerhanoi
+from tests.rlplg.environments import dynamics
 
 
 @hypothesis.given(disks=st.integers(min_value=1, max_value=4))
@@ -21,7 +22,10 @@ def test_towerofhanoi_init(disks: int):
             "state": spaces.Tuple([spaces.Discrete(3) for _ in range(disks)]),
         }
     )
-    assert len(environment.transition) == 3**disks
+    dynamics.assert_transition_mapping(
+        environment.transition,
+        env_desc=core.EnvDesc(num_states=3**disks, num_actions=6),
+    )
 
 
 @hypothesis.given(disks=st.integers(min_value=10, max_value=100))

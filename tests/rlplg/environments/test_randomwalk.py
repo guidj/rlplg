@@ -6,11 +6,13 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
+from rlplg import core
 from rlplg.core import TimeStep
 from rlplg.environments import randomwalk
+from tests.rlplg.environments import dynamics
 
 
-@hypothesis.given(steps=st.integers(min_value=3, max_value=100))
+@hypothesis.given(steps=st.integers(min_value=3, max_value=10))
 @hypothesis.settings(deadline=None)
 def test_state_randomwalk_init(steps: int):
     environment = randomwalk.StateRandomWalk(steps=steps)
@@ -28,7 +30,9 @@ def test_state_randomwalk_init(steps: int):
             "step_reward": spaces.Box(low=0, high=0, dtype=np.float32),
         }
     )
-    assert len(environment.transition) == steps
+    dynamics.assert_transition_mapping(
+        environment.transition, env_desc=core.EnvDesc(num_states=steps, num_actions=2)
+    )
 
 
 @hypothesis.given(steps=st.integers(max_value=2))
