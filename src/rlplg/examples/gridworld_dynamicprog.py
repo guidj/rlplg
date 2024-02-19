@@ -15,7 +15,7 @@ def main():
     """
     # init env and policy
     env_spec = envsuite.load("GridWorld", grid=["xsog"])
-    policy = policies.PyObservableRandomPolicy(
+    policy = policies.PyRandomPolicy(
         num_actions=env_spec.mdp.env_desc.num_actions,
         emit_log_probability=False,
     )
