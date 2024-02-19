@@ -3,17 +3,10 @@
 Create a new virtual environment with for your supported Python version. Within that virtualenv:
 
 ```shell
-$ pip install -r dev-requirements.txt -e .
+$ pip install -r dev-requirements.txt -e .f
 ```
 
 This will install development dependencies, followed by installing this package itself as ["editable"](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs).
-
-
-## Examples
-
-You can find examples of evaluation/control under [src/rlplg/examples/](src/rlplg/examples/).
-
-Some of them have 2D rendering - to see it, install packages in [rendering-requirements.txt](rendering-requirements.txt).
 
 
 ## Creating Agents, Policies and Environments
@@ -66,7 +59,7 @@ See [tox's documentation](https://tox.readthedocs.io/en/latest/) for more inform
 ## Managing dependencies
 
 This repository uses `pip-tools` to manage dependencies.
-Requirements are specified in input files, e.g. [requirements.in](requirements.in).
+Requirements are specified in input files, e.g. [requirements.in](../requirements.in).
 To compile them, install `pip-tools` (`pip install pip-tools`) and run
 
 ```

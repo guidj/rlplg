@@ -21,6 +21,8 @@ as well as algorithms for policy evaluation and control.
 
 You can find examples of evaluation/control under [src/rlplg/examples/](src/rlplg/examples/).
 
+Some of them have 2D rendering - to run the GUI, install packages in [rendering-requirements.txt](rendering-requirements.txt).
+
 ## Setup Development
 
 Instructions are provided in [docs/dev.md](docs/dev.md).
