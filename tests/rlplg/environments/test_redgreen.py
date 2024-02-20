@@ -10,7 +10,7 @@ from gymnasium import spaces
 from rlplg import core
 from rlplg.core import TimeStep
 from rlplg.environments import redgreen
-from tests.rlplg.environments import dynamics
+from tests.rlplg import dynamics
 
 VALID_ACTIONS = ["red", "green", "wait"]
 
@@ -20,21 +20,17 @@ VALID_ACTIONS = ["red", "green", "wait"]
 def test_redgreen_init(cure: Sequence[str]):
     cure_sequence = [redgreen.ACTION_NAME_MAPPING[step] for step in cure]
     environment = redgreen.RedGreenSeq(cure)
-    assert environment.cure_sequence == cure_sequence
+    assert environment.cure_sequence == tuple(cure_sequence)
     assert environment.action_space == spaces.Discrete(3)
     assert environment.observation_space == spaces.Dict(
         {
-            "cure_sequence": spaces.Box(
-                low=np.zeros(len(cure)),
-                high=np.array([2] * len(cure)),
-                dtype=np.int64,
-            ),
-            "position": spaces.Box(low=0, high=len(cure), dtype=np.int64),
+            "cure_sequence": spaces.Sequence(spaces.Discrete(3)),
+            "pos": spaces.Discrete(len(cure_sequence) + 1),
         }
     )
     dynamics.assert_transition_mapping(
         environment.transition,
-        env_desc=core.EnvDesc(num_states=len(cure_sequence), num_actions=3),
+        env_desc=core.EnvDesc(num_states=len(cure_sequence) + 1, num_actions=3),
     )
 
 
@@ -45,8 +41,8 @@ def test_redgreen_simple_sequence():
     assert_observation(
         obs,
         {
-            "cure_sequence": [0, 1, 2],
-            "position": 0,
+            "cure_sequence": (0, 1, 2),
+            "pos": 0,
         },
     )
     assert info == {}
@@ -55,8 +51,8 @@ def test_redgreen_simple_sequence():
         environment.step(2),
         (
             {
-                "cure_sequence": [0, 1, 2],
-                "position": 0,
+                "cure_sequence": (0, 1, 2),
+                "pos": 0,
             },
             -2.0,
             False,
@@ -69,8 +65,8 @@ def test_redgreen_simple_sequence():
         environment.step(0),
         (
             {
-                "cure_sequence": [0, 1, 2],
-                "position": 1,
+                "cure_sequence": (0, 1, 2),
+                "pos": 1,
             },
             -1.0,
             False,
@@ -83,8 +79,8 @@ def test_redgreen_simple_sequence():
         environment.step(1),
         (
             {
-                "cure_sequence": [0, 1, 2],
-                "position": 2,
+                "cure_sequence": (0, 1, 2),
+                "pos": 2,
             },
             -1.0,
             False,
@@ -97,8 +93,8 @@ def test_redgreen_simple_sequence():
         environment.step(0),
         (
             {
-                "cure_sequence": [0, 1, 2],
-                "position": 2,
+                "cure_sequence": (0, 1, 2),
+                "pos": 2,
             },
             -2.0,
             False,
@@ -111,8 +107,8 @@ def test_redgreen_simple_sequence():
         environment.step(2),
         (
             {
-                "cure_sequence": [0, 1, 2],
-                "position": 3,
+                "cure_sequence": (0, 1, 2),
+                "pos": 3,
             },
             -1.0,
             True,
@@ -126,8 +122,8 @@ def test_redgreen_simple_sequence():
         environment.step(0),
         (
             {
-                "cure_sequence": [0, 1, 2],
-                "position": 3,
+                "cure_sequence": (0, 1, 2),
+                "pos": 3,
             },
             0.0,
             True,
@@ -163,18 +159,9 @@ def test_redgreen_render_with_invalid_modes(cure: Sequence[str]):
 
 def test_redgreenmdpdiscretizer():
     discretizer = redgreen.RedGreenMdpDiscretizer()
-    assert (
-        discretizer.state({"cure_sequence": ["green", "red", "wait"], "position": 0})
-        == 0
-    )
-    assert (
-        discretizer.state({"cure_sequence": ["green", "red", "wait"], "position": 1})
-        == 1
-    )
-    assert (
-        discretizer.state({"cure_sequence": ["green", "red", "wait"], "position": 2})
-        == 2
-    )
+    assert discretizer.state({"cure_sequence": ["green", "red", "wait"], "pos": 0}) == 0
+    assert discretizer.state({"cure_sequence": ["green", "red", "wait"], "pos": 1}) == 1
+    assert discretizer.state({"cure_sequence": ["green", "red", "wait"], "pos": 2}) == 2
 
     assert discretizer.action(0) == 0
     assert discretizer.action(1) == 1
@@ -189,12 +176,12 @@ def test_redgreenmdpdiscretizer():
 def test_apply_action_with_correct_next_action(cure_sequence: Sequence[int]):
     obs = {
         "cure_sequence": cure_sequence,
-        "position": 0,
+        "pos": 0,
     }
     output_obs, output_reward = redgreen.apply_action(obs, cure_sequence[0])
     assert output_obs == {
         "cure_sequence": cure_sequence,
-        "position": 1,
+        "pos": 1,
     }
     assert output_reward == -1.0
 
@@ -207,7 +194,7 @@ def test_apply_action_with_correct_next_action(cure_sequence: Sequence[int]):
 def test_apply_action_with_wrong_next_action(cure_sequence: Sequence[int]):
     obs = {
         "cure_sequence": cure_sequence,
-        "position": 0,
+        "pos": 0,
     }
     wrong_actions = [
         action for action in redgreen.ACTIONS if action != cure_sequence[0]
@@ -216,7 +203,7 @@ def test_apply_action_with_wrong_next_action(cure_sequence: Sequence[int]):
     output_obs, output_reward = redgreen.apply_action(obs, wrong_action)
     assert output_obs == {
         "cure_sequence": cure_sequence,
-        "position": 0,
+        "pos": 0,
     }
     assert output_reward == -2.0
 
@@ -231,12 +218,12 @@ def test_apply_action_with_action_going_into_terminal_state(
 ):
     obs = {
         "cure_sequence": cure_sequence,
-        "position": len(cure_sequence) - 1,
+        "pos": len(cure_sequence) - 1,
     }
     output_obs, output_reward = redgreen.apply_action(obs, cure_sequence[-1])
     assert output_obs == {
         "cure_sequence": cure_sequence,
-        "position": len(cure_sequence),
+        "pos": len(cure_sequence),
     }
     assert output_reward == -1.0
 
@@ -252,28 +239,28 @@ def test_apply_action_with_env_in_terminal_state(
 ):
     obs = {
         "cure_sequence": cure_sequence,
-        "position": len(cure_sequence),
+        "pos": len(cure_sequence),
     }
     output_obs, output_reward = redgreen.apply_action(obs, action)
     assert output_obs == {
         "cure_sequence": cure_sequence,
-        "position": len(cure_sequence),
+        "pos": len(cure_sequence),
     }
     assert output_reward == 0.0
 
 
 def test_is_finished():
-    assert not redgreen.is_finished({"cure_sequence": [0], "position": 0})
-    assert redgreen.is_finished({"cure_sequence": [0], "position": 1})
-    assert not redgreen.is_finished({"cure_sequence": [0, 1, 0], "position": 0})
-    assert not redgreen.is_finished({"cure_sequence": [0, 1, 0], "position": 1})
-    assert redgreen.is_finished({"cure_sequence": [0, 1, 0], "position": 3})
+    assert not redgreen.is_terminal_state({"cure_sequence": (0,), "pos": 0})
+    assert redgreen.is_terminal_state({"cure_sequence": (0,), "pos": 1})
+    assert not redgreen.is_terminal_state({"cure_sequence": (0, 1, 0), "pos": 0})
+    assert not redgreen.is_terminal_state({"cure_sequence": (0, 1, 0), "pos": 1})
+    assert redgreen.is_terminal_state({"cure_sequence": (0, 1, 0), "pos": 3})
 
 
 def test_get_state_id():
-    assert redgreen.get_state_id({"position": 0}) == 0
-    assert redgreen.get_state_id({"position": 1}) == 1
-    assert redgreen.get_state_id({"position": 2}) == 2
+    assert redgreen.get_state_id({"pos": 0}) == 0
+    assert redgreen.get_state_id({"pos": 1}) == 1
+    assert redgreen.get_state_id({"pos": 2}) == 2
 
 
 @hypothesis.given(
@@ -283,9 +270,9 @@ def test_get_state_id():
 )
 def test_state_observation(cure_sequence: Sequence[int]):
     pos = random.randint(0, len(cure_sequence))
-    assert redgreen.state_observation(position=pos, cure_sequence=cure_sequence) == {
+    assert redgreen.state_observation(pos=pos, cure_sequence=cure_sequence) == {
         "cure_sequence": cure_sequence,
-        "position": pos,
+        "pos": pos,
     }
 
 
@@ -297,34 +284,26 @@ def test_state_observation(cure_sequence: Sequence[int]):
 def test_state_observation_with_invalid_position(cure_sequence: Sequence[int]):
     pos = random.choice([-1, len(cure_sequence) + 1])
     with pytest.raises(ValueError):
-        redgreen.state_observation(cure_sequence, position=pos)
+        redgreen.state_observation(cure_sequence, pos=pos)
 
 
 def test_state_representation():
-    assert redgreen.state_representation(
-        {"cure_sequence": [0, 1, 0], "position": 0}
-    ) == [
+    assert redgreen.state_representation({"cure_sequence": (0, 1, 0), "pos": 0}) == [
         0,
         0,
         0,
     ]
-    assert redgreen.state_representation(
-        {"cure_sequence": [0, 1, 0], "position": 1}
-    ) == [
+    assert redgreen.state_representation({"cure_sequence": (0, 1, 0), "pos": 1}) == [
         1,
         0,
         0,
     ]
-    assert redgreen.state_representation(
-        {"cure_sequence": [0, 1, 0], "position": 2}
-    ) == [
+    assert redgreen.state_representation({"cure_sequence": (0, 1, 0), "pos": 2}) == [
         1,
         1,
         0,
     ]
-    assert redgreen.state_representation(
-        {"cure_sequence": [0, 1, 0], "position": 3}
-    ) == [
+    assert redgreen.state_representation({"cure_sequence": (0, 1, 0), "pos": 3}) == [
         1,
         1,
         1,
@@ -343,7 +322,7 @@ def test_create_env_spec(cure: Sequence[str]):
     assert isinstance(env_spec.discretizer, redgreen.RedGreenMdpDiscretizer)
     assert env_spec.mdp.env_desc.num_states == len(cure) + 1
     assert env_spec.mdp.env_desc.num_actions == 3
-    assert len(env_spec.mdp.transition) == len(cure)
+    assert len(env_spec.mdp.transition) == len(cure) + 1
 
 
 def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
@@ -357,4 +336,4 @@ def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
 def assert_observation(output: Any, expected: Any) -> None:
     assert len(output) == 2
     assert output["cure_sequence"] == expected["cure_sequence"]
-    assert output["position"] == expected["position"]
+    assert output["pos"] == expected["pos"]

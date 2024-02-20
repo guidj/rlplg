@@ -2,38 +2,37 @@
 This is an episodic task.
   - Action space ~ state space.
 
-The objective of the environment is to learn the alphabet in sequence.
-Starting from the first letter, the agent is suppose to choose the one that follows it,
+The objective of the environment is to sort tokens.
+Starting from the first token, the agent is suppose to choose the one that follows it,
 and then the one that follows after.
-Choosing letters out of order incurs a negative reward, while choosing letters
+Choosing tokens out of order incurs a negative reward, while choosing tokens
 in order incurs the smallest penalty reward.
-The player reaches the end of the game when they reach the final letter,
+The player reaches the end of the game when they reach the final token,
 regardless of how many they have gone through.
 
+This is general problem of sorting items - the tokens
+can represent anything.
+
 Observation:
-The agent can choose any letter.
+The agent can choose any token.
 The observation is just what the agent has already mastered.
 
-[A, B, C, D] => [1, 0, 0, 0, 0]
-So the number of actions with 4 letters.
+E.g. [A, B, C, D]
 
 Transitions:
-  - The agent can only say to have learned a letter if they have go to it after
-  completing the previous one. The first letter is an exception - there is no prior
-  letter.
-  - If an agent chooses a letter that is further ahead, they get penalized by the distance
+  - If an agent chooses a token that is further ahead, they get penalized by the distance
   and the state doesn't change.
-  - If they choose a letter that lies before, they also get penalized - the entire sequence
-  of steps forward until the beginning, and from there to the letter they chose.
+  - If they choose a token that lies before, they also get penalized - the entire sequence
+  of steps forward until the beginning, and from there to the token they chose.
   The state doesn't change.
 
-The number of possible states is the number of letters plus one:
-E.g. With four letters (first value is set to 1 to simplify calculations)
-  - starting: [1, 0, 0, 0, 0]
-  - mastered the first letter: [1, 1, 0, 0, 0]
-  - mastered the second letter: [1, 1, 1, 0, 0]
-  - mastered the third letter: [1, 1, 1, 1, 0]
-  - mastered the fourth letter: [1, 1, 1, 1, 1] (terminal state)
+The number of possible states is the number of tokens plus one:
+E.g. With four tokens (first value is set to 1 to simplify calculations)
+  - starting: 0
+  - Picked the first token: 1
+  - Picked the second token: 2
+  - Picked the third token: 3
+  - Picked the fourth token: 4 (terminal state)
 
 
 Notes:
@@ -54,12 +53,14 @@ from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 ENV_NAME = "ABCSeq"
 MIN_SEQ_LENGTH = 1
 LETTERS = [chr(value) for value in range(ord("A"), ord("Z") + 1)]
-NUM_LETTERS = len(LETTERS)
+NUM_TOKENS = len(LETTERS)
+OBS_KEY_POS = "pos"
+OBS_KEY_LENGTH = "length"
 
 
-class ABCSeq(gym.Env[np.ndarray, int]):
+class ABCSeq(gym.Env[Mapping[str, int], int]):
     """
-    A sequence of tokens in order.
+    Place a sequence of tokens in order.
     The goal is to follow then, from left to right, until the end, selecting
     the current state as an action in the current state.
     """
@@ -70,13 +71,16 @@ class ABCSeq(gym.Env[np.ndarray, int]):
         super().__init__()
         self.length = length
         self.render_mode = render_mode
-        if length > NUM_LETTERS or length < MIN_SEQ_LENGTH:
+        if length > NUM_TOKENS or length < MIN_SEQ_LENGTH:
             raise ValueError(
-                f"Length must be between {MIN_SEQ_LENGTH} and {NUM_LETTERS}: {length}"
+                f"Length must be between {MIN_SEQ_LENGTH} and {NUM_TOKENS}: {length}"
             )
         self.action_space = spaces.Discrete(self.length)
-        self.observation_space = spaces.Box(
-            low=0, high=1, shape=(length + 1,), dtype=np.int64
+        self.observation_space = spaces.Dict(
+            {
+                "length": spaces.Box(low=self.length, high=self.length, dtype=np.int64),
+                "pos": spaces.Discrete(self.length + 1),
+            }
         )
         self.transition: MutableEnvTransition = {}
         for state in range(self.length + 1):
@@ -95,7 +99,7 @@ class ABCSeq(gym.Env[np.ndarray, int]):
                     )
 
         # env specific
-        self._observation: np.ndarray = np.empty(shape=(0,))
+        self._observation: Mapping[str, int] = {}
         self._seed: Optional[int] = None
 
     def step(self, action: int) -> TimeStep:
@@ -108,9 +112,9 @@ class ABCSeq(gym.Env[np.ndarray, int]):
 
         """
         new_observation, reward = apply_action(self._observation, action)
-        finished = is_finished(new_observation, action)
+        finished = is_terminal_state(new_observation)
         self._observation = new_observation
-        return copy.deepcopy(self._observation), reward, finished, False, {}
+        return copy.copy(self._observation), reward, finished, False, {}
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
@@ -122,7 +126,7 @@ class ABCSeq(gym.Env[np.ndarray, int]):
         del options
         self.seed(seed)
         self._observation = beginning_state(length=self.length)
-        return copy.deepcopy(self._observation), {}
+        return copy.copy(self._observation), {}
 
     def render(self) -> RenderType:
         """
@@ -130,7 +134,7 @@ class ABCSeq(gym.Env[np.ndarray, int]):
         state.
         """
         if self.render_mode == "rgb_array":
-            return copy.deepcopy(self._observation)
+            return state_representation(self._observation)
         return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
@@ -148,7 +152,7 @@ class ABCSeqMdpDiscretizer(core.MdpDiscretizer):
     Creates an environment discrete maps for states and actions.
     """
 
-    def state(self, observation: np.ndarray) -> int:
+    def state(self, observation: Mapping[str, int]) -> int:
         """
         Maps an observation to a state ID.
         """
@@ -164,7 +168,9 @@ class ABCSeqMdpDiscretizer(core.MdpDiscretizer):
         return action_
 
 
-def apply_action(observation: np.ndarray, action: int) -> Tuple[np.ndarray, float]:
+def apply_action(
+    observation: Mapping[str, int], action: int
+) -> Tuple[Mapping[str, int], float]:
     """
     Takes an action in a given state.
 
@@ -174,54 +180,42 @@ def apply_action(observation: np.ndarray, action: int) -> Tuple[np.ndarray, floa
     return _step_observation(observation, action), _step_reward(observation, action)
 
 
-def _step_observation(observation: np.ndarray, action: int) -> np.ndarray:
+def _step_observation(observation: Mapping[str, int], action: int) -> Mapping[str, int]:
     """
     Transitions:
-        - The agent can only say to have learned a letter if they go to it after
-        completing the previous one. The first letter is an execption - there is no prior
-        letter.
-        - If an agent chooses a letter that is further ahead, they get penalized by the distance
+        - If an agent chooses a token that is further ahead, they get penalized by the distance
         and the state doesn't change.
-        - If they choose a letter that lies before, they also get penalized - the entire sequence
+        - If they choose a token that lies before, they also get penalized - the entire sequence
         of steps forward until the beginning, and from there to the letter they chose.
         The state doesn't change.
-        - After msatering every letter, they enter a terminal state.
     """
-    new_observation = copy.deepcopy(observation)
-    # For four letters, obs.size == 5
+    new_observation = dict(observation)
     # Check action in within bounds
-    if action < observation.size - 1:
-        new_observation[action + 1] = (
-            np.array(1, dtype=np.int64)
-            if observation[action] == 1
-            else observation[action + 1]
-        )
+    if action < observation[OBS_KEY_LENGTH] and observation[OBS_KEY_POS] == action:
+        new_observation[OBS_KEY_POS] += 1
     return new_observation
 
 
-def _step_reward(observation: np.ndarray, action: int) -> float:
+def _step_reward(observation: Mapping[str, int], action: int) -> float:
     """
     One penalty per turn and one for the distance - except
     in the terminal state.
     """
     chosen_step = action + 1
-    (unmastered_letters,) = np.where(observation == 0)
+    unplaced_tokens = observation[OBS_KEY_LENGTH] - observation[OBS_KEY_POS]
     # non terminal state
-    if unmastered_letters.size > 0:
-        next_letter = unmastered_letters[0]
-        if chosen_step == next_letter:
+    if unplaced_tokens > 0:
+        next_token = observation[OBS_KEY_POS] + 1
+        if chosen_step == next_token:
             distance = 0.0
-        elif chosen_step > next_letter:
-            distance = chosen_step - next_letter
+        elif chosen_step > next_token:
+            distance = chosen_step - next_token
         else:
             # distance from the current position to the chosen
             # one, going forward and shifting back to the starting
             # state
-            num_letters = observation.size - 1
-            distance = (num_letters - next_letter + 1) + chosen_step
-
+            distance = (observation[OBS_KEY_LENGTH] - next_token + 1) + chosen_step
         turn_penalty = -1.0
-
     else:
         # terminal state
         distance = 0.0
@@ -230,30 +224,27 @@ def _step_reward(observation: np.ndarray, action: int) -> float:
     return -distance + turn_penalty
 
 
-def beginning_state(length: int) -> np.ndarray:
+def beginning_state(length: int) -> Mapping[str, int]:
     """
     Args:
         lenght: number of tokens in sequence.
     Returns:
         Initial observation for a starting game.
     """
-    observation = np.zeros(shape=(length + 1,), dtype=np.int64)
-    observation[0] = 1
-    return observation
+    return {OBS_KEY_LENGTH: length, OBS_KEY_POS: 0}
 
 
-def is_finished(observation: np.ndarray, action: int) -> bool:
+def is_terminal_state(observation: Mapping[str, int]) -> bool:
     """
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
     """
-    del action
-    return np.sum(observation) == observation.size  # type: ignore
+    return observation[OBS_KEY_POS] == observation[OBS_KEY_LENGTH]
 
 
 def create_env_spec(length: int) -> core.EnvSpec:
     """
-    Creates an env spec from a gridworld config.
+    Creates an env spec for ABCSeq.
     """
     environment = ABCSeq(length=length)
     discretizer = ABCSeqMdpDiscretizer()
@@ -270,26 +261,36 @@ def create_env_spec(length: int) -> core.EnvSpec:
     )
 
 
-def get_state_id(observation: np.ndarray) -> int:
+def get_state_id(observation: Mapping[str, int]) -> int:
     """
-    Each letter can be a zero or one.
-    They can only be learned in order.
-    There is one dummy value of one in the observation.
-    For 2 letters:
-        [1, 0, 0] = 0 (starting state)
-        [1, 1, 0] = 1
-        [1, 1, 1] = 2 (terminal state)
+    Discretizes an observation to an `int` state Id.
+    Returns:
+        The int `state` corresponding to the observation.
     """
-    state_id: int = np.sum(observation) - 1
-    return state_id
+    return observation[OBS_KEY_POS]
 
 
-def state_observation(state_id: int, length: int) -> np.ndarray:
+def state_observation(state_id: int, length: int) -> Mapping[str, int]:
     """
     Given a state ID for an environment, returns an observation.
     """
     if state_id > length:
         raise ValueError(f"State id should be <= length: {state_id} > {length}")
-    observation = np.zeros(shape=(length + 1,), dtype=np.int64)
-    observation[: state_id + 1] = 1
-    return observation
+    return {OBS_KEY_LENGTH: length, OBS_KEY_POS: state_id}
+
+
+def state_representation(observation: Mapping[str, Any]) -> np.ndarray:
+    """
+    An array view of the state, where the position of the
+    agent is marked with an 1.
+
+    E.g. {
+        "pos": 2,
+        "length": 4,
+    }
+
+    output = [1, 1, 1, 0, 0]
+    """
+    array = np.zeros(shape=(observation[OBS_KEY_LENGTH] + 1,), dtype=np.int64)
+    array[0 : npsci.item(observation[OBS_KEY_POS]) + 1] = 1
+    return array

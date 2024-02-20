@@ -7,7 +7,7 @@ from gymnasium import spaces
 from rlplg import core
 from rlplg.core import TimeStep
 from rlplg.environments import towerhanoi
-from tests.rlplg.environments import dynamics
+from tests.rlplg import dynamics
 
 
 @hypothesis.given(disks=st.integers(min_value=1, max_value=4))

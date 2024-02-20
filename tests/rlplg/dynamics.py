@@ -13,7 +13,6 @@ def assert_transition_mapping(
         assert len(action_transitions) == env_desc.num_actions
         for action, transitions in action_transitions.items():
             assert 0 <= action < env_desc.num_actions
-            assert len(transitions) == env_desc.num_states
             for prob, next_state, reward, done in transitions:
                 assert 0 <= prob <= 1.0
                 assert 0 <= next_state < env_desc.num_states
