@@ -33,13 +33,13 @@ class PyRandomPolicy(core.PyPolicy, SupportsStateActionProbability):
         self,
         num_actions: int,
         emit_log_probability: bool = False,
+        seed: Optional[int] = None,
     ):
-        super().__init__(
-            emit_log_probability=emit_log_probability,
-        )
+        super().__init__(emit_log_probability=emit_log_probability, seed=seed)
         self._num_actions = num_actions
         self._arms = np.arange(start=0, stop=num_actions)
         self._uniform_chance = np.array(1.0) / np.array(num_actions, dtype=np.float32)
+        self._rng = np.random.default_rng(seed=seed)
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
@@ -54,7 +54,7 @@ class PyRandomPolicy(core.PyPolicy, SupportsStateActionProbability):
         del observation
         if seed is not None:
             raise NotImplementedError(f"Seed is not supported; but got seed: {seed}")
-        action = np.random.choice(self._arms)
+        action = self._rng.choice(self._arms)
         if self.emit_log_probability:
             policy_info = {
                 "log_probability": np.array(
@@ -89,6 +89,7 @@ class PyQGreedyPolicy(core.PyPolicy):
         state_id_fn: Callable[[Any], int],
         action_values: np.ndarray,
         emit_log_probability: bool = False,
+        seed: Optional[int] = None,
     ):
         """
         The following initializes to base class defaults:
@@ -97,12 +98,11 @@ class PyQGreedyPolicy(core.PyPolicy):
             - observation_and_action_constraint_splitter: Optional[types.Splitter] = None
         """
 
-        super().__init__(
-            emit_log_probability=emit_log_probability,
-        )
+        super().__init__(emit_log_probability=emit_log_probability, seed=seed)
 
         self._state_id_fn = state_id_fn
         self._state_action_value_table = copy.deepcopy(action_values)
+        self._rng = np.random.default_rng(seed=seed)
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
@@ -144,6 +144,7 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
         num_actions: int,
         epsilon: float,
         emit_log_probability: bool = False,
+        seed: Optional[int] = None,
     ):
         if epsilon < 0.0 or epsilon > 1.0:
             raise ValueError(f"Epsilon must be between [0, 1]: {epsilon}")
@@ -156,17 +157,17 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
                 emit_log_probability={emit_log_probability}""",
             )
 
-        super().__init__(
-            emit_log_probability=emit_log_probability,
-        )
+        super().__init__(emit_log_probability=emit_log_probability, seed=seed)
 
         self._num_actions = num_actions
         self.exploit_policy = policy
         self.explore_policy = PyRandomPolicy(
             num_actions=num_actions,
             emit_log_probability=emit_log_probability,
+            seed=seed,
         )
         self.epsilon = epsilon
+        self._rng = np.random.default_rng(seed=seed)
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
@@ -181,7 +182,7 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
         if seed is not None:
             raise NotImplementedError(f"Seed is not supported; but got seed: {seed}")
         # greedy move, find out the greedy arm
-        explore = np.random.rand() <= self.epsilon
+        explore = self._rng.random() <= self.epsilon
         policy_: core.PyPolicy = self.explore_policy if explore else self.exploit_policy
         prob = (
             self.epsilon / self._num_actions
@@ -198,5 +199,4 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
                 )
             }
             return dataclasses.replace(policy_step_, info=policy_info)
-
         return policy_step_

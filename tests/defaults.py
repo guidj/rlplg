@@ -224,11 +224,10 @@ class RoundRobinActionsPolicy(core.PyPolicy):
         self,
         actions: Sequence[Any],
     ):
-        super().__init__()
+        super().__init__(emit_log_probability=True)
         self._counter = 0
         self._actions = actions
         self._iterator = iter(actions)
-        self.emit_log_probability = True
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
@@ -251,7 +250,6 @@ class RoundRobinActionsPolicy(core.PyPolicy):
         except StopIteration:
             self._iterator = iter(self._actions)
             action = next(self._iterator)
-
         return core.PolicyStep(np.array(action, dtype=np.int64), state, info)
 
 
