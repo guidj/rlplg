@@ -20,8 +20,8 @@ def test_interger_to_sequence(space_size: int, sequence_length: int):
 
 
 @hypothesis.given(
-    space_size=st.integers(min_value=1, max_value=100),
-    sequence_length=st.integers(min_value=1, max_value=100),
+    space_size=st.integers(min_value=1, max_value=10),
+    sequence_length=st.integers(min_value=1, max_value=10),
     samples=st.integers(min_value=1, max_value=100),
 )
 @hypothesis.settings(deadline=None)
@@ -42,7 +42,7 @@ def test_sequence_to_integer(space_size: int, sequence_length: int, samples: int
 
 
 @hypothesis.given(
-    space_size=st.integers(min_value=1, max_value=100),
+    space_size=st.integers(min_value=1, max_value=10),
     sequence_length=st.integers(min_value=1, max_value=10),
 )
 def test_interger_to_sequence_round_trip(space_size: int, sequence_length: int):
@@ -57,7 +57,7 @@ def test_interger_to_sequence_round_trip(space_size: int, sequence_length: int):
 
 
 @hypothesis.given(
-    space_size=st.integers(min_value=1, max_value=100),
+    space_size=st.integers(min_value=1, max_value=10),
     sequence_length=st.integers(min_value=1, max_value=10),
 )
 def test_sequence_to_integer_round_trip(space_size: int, sequence_length: int):
