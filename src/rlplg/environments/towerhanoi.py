@@ -119,9 +119,9 @@ class TowerOfHanoi(gym.Env[Mapping[str, Any], int]):
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         new_observation, reward = apply_action(self._observation, action)
-        finished = is_finished(new_observation)
+        finished = is_terminal_state(new_observation)
         self._observation = new_observation
-        return copy.deepcopy(self._observation), reward, finished, False, {}
+        return copy.copy(self._observation), reward, finished, False, {}
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
@@ -135,7 +135,7 @@ class TowerOfHanoi(gym.Env[Mapping[str, Any], int]):
         self._observation = state_observation(
             num_pegs=self.num_pegs, state=(0,) * self.num_disks
         )
-        return copy.deepcopy(self._observation), {}
+        return copy.copy(self._observation), {}
 
     def render(self) -> RenderType:
         """
@@ -216,7 +216,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     """
     state = observation[OBS_KEY_STATE]
     num_disks = len(state)
-    new_observation = dict(**copy.deepcopy(observation))
+    new_observation = dict(observation)
     source, dest = ACTIONS[action]
 
     # if the top disk on any peg isn't the smallest
@@ -232,7 +232,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
             raise ValueError(f"Invalid state. Peg {peg} is invalid: {peg_disks}")
 
     # In terminal state already, nothing changes
-    if is_finished(observation):
+    if is_terminal_state(observation):
         move_penalty = 0.0
         reward = 0.0
 
@@ -252,10 +252,9 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     return new_observation, move_penalty + reward
 
 
-def is_finished(observation: Mapping[str, Any]) -> bool:
+def is_terminal_state(observation: Mapping[str, Any]) -> bool:
     """
-    This function is called after the action is applied - i.e.
-    observation is a new state from taking the `action` passed in.
+    Determines if the given state is terminal.
     """
     # does that fact that we just went into the
     # terminal state matter? No

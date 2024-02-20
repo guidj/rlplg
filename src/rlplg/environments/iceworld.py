@@ -331,7 +331,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
 
     next_position = _step(observation, action)
     reward = _step_reward(observation, next_position=next_position)
-    next_observation = dict(**observation)
+    next_observation = dict(observation)
     next_observation[Strings.agent] = next_position
     return next_observation, reward
 

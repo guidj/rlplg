@@ -12,25 +12,8 @@ Done
 S: integer indicating pos: from 0 to 5
 A: integer 3 actions - red, green, wait
 (S x A x S): (0, red, 1), (0, green/wait, 0)
-R: (action penalty of -1) + (-1 if you take the wrong action); zero for terminal state
-
-(0, green, 0) - (0, [red], [1])
-
-(0, green, 0)
-(0, red, 1)
-(1, red, 1) --> (1, green, 2)
-(1, green, 2)
-
-outcome, cumulative reward: -100 /// -10
-state change: red to green instead staying red
-we want a change of state to represent progression of cure
-
-What is ||x - x'||?
-- x: probably the trajectory for us; we will compare the change in trajectories
-
-problem formulation: tutoring an agent (e.g. doctor, specialist)
-assumptions we're making: our policy knows better
-Teacher policy: optimize to make as fewer changes on the student policy
+R: (action penalty of -1) + (-1 if the agent takes the wrong action);
+zero for terminal state.
 """
 
 import copy
@@ -51,7 +34,7 @@ ACTIONS = [RED_PILL, GREEN_PILL, WAIT]
 
 ACTION_NAME_MAPPING = {"red": RED_PILL, "green": GREEN_PILL, "wait": WAIT}
 OBS_KEY_CURE_SEQUENCE = "cure_sequence"
-OBS_KEY_POSITION = "position"
+OBS_KEY_POSITION = "pos"
 
 
 class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
@@ -71,32 +54,26 @@ class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
         if len(cure) < 1:
             raise ValueError(f"Cure sequence should be longer than one: {len(cure)}")
 
-        self.cure_sequence = [ACTION_NAME_MAPPING[action] for action in cure]
+        self.cure_sequence = tuple([ACTION_NAME_MAPPING[action] for action in cure])
         self.render_mode = render_mode
         self.action_space = spaces.Discrete(len(ACTIONS))
         self.observation_space = spaces.Dict(
             {
-                OBS_KEY_CURE_SEQUENCE: spaces.Box(
-                    low=np.zeros(len(self.cure_sequence)),
-                    high=np.array([len(ACTIONS) - 1] * len(self.cure_sequence)),
-                    dtype=np.int64,
-                ),
-                OBS_KEY_POSITION: spaces.Box(
-                    low=0, high=len(self.cure_sequence), dtype=np.int64
-                ),
+                OBS_KEY_CURE_SEQUENCE: spaces.Sequence(spaces.Discrete(len(ACTIONS))),
+                OBS_KEY_POSITION: spaces.Discrete(len(self.cure_sequence) + 1),
             }
         )
         self.transition: MutableEnvTransition = {}
-        for state in range(len(self.cure_sequence)):
+        for state in range(len(self.cure_sequence) + 1):
             self.transition[state] = {}
-            state_obs = state_observation(self.cure_sequence, position=state)
+            state_obs = state_observation(self.cure_sequence, pos=state)
             for action in range(len(ACTIONS)):
                 self.transition[state][action] = []
                 next_state_obs, reward = apply_action(
                     observation=state_obs, action=action
                 )
                 next_state_id = get_state_id(next_state_obs)
-                for next_state in range(len(self.cure_sequence)):
+                for next_state in range(len(self.cure_sequence) + 1):
                     prob = 1.0 if next_state == next_state_id else 0.0
                     actual_reward = reward if next_state == next_state_id else 0.0
                     terminated = state != next_state and next_state == len(
@@ -123,9 +100,9 @@ class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         new_observation, reward = apply_action(self._observation, action)
-        finished = is_finished(new_observation)
+        finished = is_terminal_state(new_observation)
         self._observation = new_observation
-        return copy.deepcopy(self._observation), reward, finished, False, {}
+        return copy.copy(self._observation), reward, finished, False, {}
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
@@ -136,10 +113,8 @@ class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
         """
         del options
         self.seed(seed)
-        self._observation = state_observation(
-            cure_sequence=self.cure_sequence, position=0
-        )
-        return copy.deepcopy(self._observation), {}
+        self._observation = state_observation(cure_sequence=self.cure_sequence, pos=0)
+        return copy.copy(self._observation), {}
 
     def render(self) -> RenderType:
         """
@@ -216,9 +191,8 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
 
     """
     pos = observation[OBS_KEY_POSITION]
-    terminal_state = len(observation[OBS_KEY_CURE_SEQUENCE])
-    new_observation = dict(**copy.deepcopy(observation))
-    if observation[OBS_KEY_POSITION] == terminal_state:
+    new_observation = dict(observation)
+    if is_terminal_state(observation):
         move_penalty = 0.0
         reward = 0.0
     else:
@@ -233,13 +207,10 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     return new_observation, move_penalty + reward
 
 
-def is_finished(observation: Mapping[str, Any]) -> bool:
+def is_terminal_state(observation: Mapping[str, Any]) -> bool:
     """
-    This function is called after the action is applied - i.e.
-    observation is a new state from taking the `action` passed in.
+    Determines if the agent is in a terminal state.
     """
-    # does that fact that we just went into the
-    # terminal state matter? No
     terminal_state = len(observation[OBS_KEY_CURE_SEQUENCE])
     return observation[OBS_KEY_POSITION] == terminal_state  # type: ignore
 
@@ -268,11 +239,10 @@ def get_state_id(observation: Mapping[str, Any]) -> int:
     """
     Computes an integer ID that represents that state.
     """
-    state_id: int = observation[OBS_KEY_POSITION]
-    return state_id
+    return observation[OBS_KEY_POSITION]  # type: ignore
 
 
-def state_observation(cure_sequence: Sequence[int], position: int) -> Mapping[str, Any]:
+def state_observation(cure_sequence: Sequence[int], pos: int) -> Mapping[str, Any]:
     """
     Generates a state observation, given an interger ID and the cure sequence.
 
@@ -283,13 +253,13 @@ def state_observation(cure_sequence: Sequence[int], position: int) -> Mapping[st
     Returns:
         A mapping with the cure sequence and the current state.
     """
-    if not 0 <= position <= len(cure_sequence):
+    if not 0 <= pos <= len(cure_sequence):
         raise ValueError(
-            f"Position must be in range [0, {len(cure_sequence)}]. Got {position}"
+            f"Position must be in range [0, {len(cure_sequence)}]. Got {pos}"
         )
     return {
         OBS_KEY_CURE_SEQUENCE: cure_sequence,
-        OBS_KEY_POSITION: position,
+        OBS_KEY_POSITION: pos,
     }
 
 
@@ -300,7 +270,7 @@ def state_representation(observation: Mapping[str, Any]) -> Sequence[int]:
 
     E.g.
     observation = {
-        "position": 2,
+        "pos": 2,
         "cure_sequnece": [0, 1, 2, 0, 1]
     }
 

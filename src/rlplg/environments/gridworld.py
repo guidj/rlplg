@@ -470,7 +470,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     if next_position in observation[Strings.cliffs]:
         # send back to the beginning
         next_position = observation[Strings.start]
-    next_observation = dict(**observation)
+    next_observation = dict(observation)
     next_observation[Strings.agent] = next_position
     return next_observation, reward
 

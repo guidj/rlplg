@@ -23,7 +23,7 @@ def test_state_randomwalk_init(steps: int):
     assert environment.action_space == spaces.Discrete(2)
     assert environment.observation_space == spaces.Dict(
         {
-            "position": spaces.Box(low=0, high=steps - 1, dtype=np.int64),
+            "pos": spaces.Discrete(steps),
             "steps": spaces.Box(low=steps, high=steps, dtype=np.int64),
             "right_end_reward": spaces.Box(low=1, high=1, dtype=np.float32),
             "left_end_reward": spaces.Box(low=0, high=0, dtype=np.float32),
@@ -49,13 +49,13 @@ def test_state_randomwalk_reset(steps: int):
     assert_observation(
         obs,
         {
-            "position": np.array(
+            "pos": np.array(
                 steps // 2 - 1 if steps % 2 == 0 else steps // 2, dtype=np.int64
             ),
-            "steps": np.array(steps, dtype=np.int64),
-            "right_end_reward": np.array(1.0, dtype=np.float32),
-            "left_end_reward": np.array(0.0, dtype=np.float32),
-            "step_reward": np.array(0.0, dtype=np.float32),
+            "steps": steps,
+            "right_end_reward": 1.0,
+            "left_end_reward": 0.0,
+            "step_reward": 0.0,
         },
     )
     assert info == {}
@@ -67,11 +67,11 @@ def test_state_randomwalk_end_left_sequence():
     assert_observation(
         obs,
         {
-            "position": np.array(2, dtype=np.int64),
-            "steps": np.array(5, dtype=np.int64),
-            "right_end_reward": np.array(1.0, dtype=np.float32),
-            "left_end_reward": np.array(0.0, dtype=np.float32),
-            "step_reward": np.array(0.0, dtype=np.float32),
+            "pos": 2,
+            "steps": 5,
+            "right_end_reward": 1.0,
+            "left_end_reward": 0.0,
+            "step_reward": 0.0,
         },
     )
     assert info == {}
@@ -81,11 +81,11 @@ def test_state_randomwalk_end_left_sequence():
         environment.step(0),
         (
             {
-                "position": np.array(1, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
+                "pos": 1,
+                "steps": 5,
+                "right_end_reward": 1.0,
+                "left_end_reward": 0.0,
+                "step_reward": 0.0,
             },
             0.0,
             False,
@@ -98,11 +98,11 @@ def test_state_randomwalk_end_left_sequence():
         environment.step(0),
         (
             {
-                "position": np.array(0, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
+                "pos": 0,
+                "steps": 5,
+                "right_end_reward": 1.0,
+                "left_end_reward": 0.0,
+                "step_reward": 0.0,
             },
             0.0,
             True,
@@ -115,11 +115,11 @@ def test_state_randomwalk_end_left_sequence():
         environment.step(1),
         (
             {
-                "position": np.array(0, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
+                "pos": 0,
+                "steps": 5,
+                "right_end_reward": 1.0,
+                "left_end_reward": 0.0,
+                "step_reward": 0.0,
             },
             0.0,
             True,
@@ -136,11 +136,11 @@ def test_state_randomwalk_end_right_sequence():
     assert_observation(
         obs,
         {
-            "position": np.array(2, dtype=np.int64),
-            "steps": np.array(5, dtype=np.int64),
-            "right_end_reward": np.array(1.0, dtype=np.float32),
-            "left_end_reward": np.array(0.0, dtype=np.float32),
-            "step_reward": np.array(0.0, dtype=np.float32),
+            "pos": 2,
+            "steps": 5,
+            "right_end_reward": 1.0,
+            "left_end_reward": 0.0,
+            "step_reward": 0.0,
         },
     )
     assert info == {}
@@ -149,11 +149,11 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(0),
         (
             {
-                "position": np.array(1, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
+                "pos": 1,
+                "steps": 5,
+                "right_end_reward": 1.0,
+                "left_end_reward": 0.0,
+                "step_reward": 0.0,
             },
             0.0,
             False,
@@ -166,11 +166,11 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(1),
         (
             {
-                "position": np.array(2, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
+                "pos": 2,
+                "steps": 5,
+                "right_end_reward": 1.0,
+                "left_end_reward": 0.0,
+                "step_reward": 0.0,
             },
             0.0,
             False,
@@ -183,11 +183,11 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(1),
         (
             {
-                "position": np.array(3, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
+                "pos": 3,
+                "steps": 5,
+                "right_end_reward": 1.0,
+                "left_end_reward": 0.0,
+                "step_reward": 0.0,
             },
             0.0,
             False,
@@ -200,11 +200,11 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(1),
         (
             {
-                "position": np.array(4, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
+                "pos": 4,
+                "steps": 5,
+                "right_end_reward": 1.0,
+                "left_end_reward": 0.0,
+                "step_reward": 0.0,
             },
             1.0,
             True,
@@ -218,11 +218,11 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(1),
         (
             {
-                "position": np.array(4, dtype=np.int64),
-                "steps": np.array(5, dtype=np.int64),
-                "right_end_reward": np.array(1.0, dtype=np.float32),
-                "left_end_reward": np.array(0.0, dtype=np.float32),
-                "step_reward": np.array(0.0, dtype=np.float32),
+                "pos": 4,
+                "steps": 5,
+                "right_end_reward": 1.0,
+                "left_end_reward": 0.0,
+                "step_reward": 0.0,
             },
             0.0,
             True,
@@ -263,7 +263,7 @@ def test_state_randomwalk_discretizer(state: int, action: int):
     assert (
         discretizer.state(
             {
-                "position": np.array(state, dtype=np.int64),
+                "pos": np.array(state, dtype=np.int64),
             }
         )
         == state
@@ -275,21 +275,21 @@ def test_state_randomwalk_discretizer(state: int, action: int):
 def test_is_finished(steps: int):
     assert randomwalk.is_finished(
         {
-            "position": np.array(0, dtype=np.int64),
-            "steps": np.array(steps, dtype=np.int64),
+            "pos": 0,
+            "steps": steps,
         }
     )
     assert randomwalk.is_finished(
         {
-            "position": np.array(steps - 1, dtype=np.int64),
-            "steps": np.array(steps, dtype=np.int64),
+            "pos": steps - 1,
+            "steps": steps,
         }
     )
     for step in range(1, steps - 1):
         assert not randomwalk.is_finished(
             {
-                "position": np.array(step, dtype=np.int64),
-                "steps": np.array(steps, dtype=np.int64),
+                "pos": step,
+                "steps": steps,
             }
         )
 
@@ -310,24 +310,17 @@ def test_create_env_spec(steps: int):
 @hypothesis.given(pos=st.integers(min_value=3, max_value=100))
 def test_get_state_id(pos: int):
     # other fields are unucessary
-    assert (
-        randomwalk.get_state_id(
-            {
-                "position": np.array(pos, dtype=np.int64),
-            }
-        )
-        == pos
-    )
+    assert randomwalk.get_state_id({"pos": pos}) == pos
 
 
 def test_state_representation():
     np.testing.assert_array_equal(
-        randomwalk.state_representation({"position": 1, "steps": 3}),
-        np.array([0, 1, 0]),
+        randomwalk.state_representation({"pos": 1, "steps": 3}),
+        (0, 1, 0),
     )
     np.testing.assert_array_equal(
-        randomwalk.state_representation({"position": 0, "steps": 3}),
-        np.array([1, 0, 0]),
+        randomwalk.state_representation({"pos": 0, "steps": 3}),
+        (1, 0, 0),
     )
 
 

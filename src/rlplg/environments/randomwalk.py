@@ -30,7 +30,7 @@ ACTIONS = [GO_LEFT, GO_RIGHT]
 RIGHT_REWARD = 1
 LEFT_REWARD = 0
 STEP_REWARD = 0
-OBS_KEY_POSITION = "position"
+OBS_KEY_POS = "pos"
 OBS_KEY_STEPS = "steps"
 OBS_KEY_LEFT_END_REWARD = "left_end_reward"
 OBS_KEY_RIGHT_END_REWARD = "right_end_reward"
@@ -77,7 +77,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         self.action_space = spaces.Discrete(len(ACTIONS))
         self.observation_space = spaces.Dict(
             {
-                OBS_KEY_POSITION: spaces.Box(low=0, high=steps - 1, dtype=np.int64),
+                OBS_KEY_POS: spaces.Discrete(steps),
                 OBS_KEY_STEPS: spaces.Box(low=steps, high=steps, dtype=np.int64),
                 OBS_KEY_RIGHT_END_REWARD: spaces.Box(
                     low=right_end_reward, high=right_end_reward, dtype=np.float32
@@ -94,7 +94,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         for state in range(self.steps):
             self.transition[state] = {}
             state_obs = state_observation(
-                position=state,
+                pos=state,
                 steps=self.steps,
                 left_end_reward=self.left_end_reward,
                 right_end_reward=self.right_end_reward,
@@ -136,7 +136,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         new_observation, reward = apply_action(self._observation, action)
         finished = is_finished(new_observation)
         self._observation = new_observation
-        return copy.deepcopy(self._observation), reward, finished, False, {}
+        return copy.copy(self._observation), reward, finished, False, {}
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
@@ -149,13 +149,13 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         self.seed(seed)
         middle = math.floor(self.steps / 2)
         self._observation = state_observation(
-            position=middle - 1 if self.steps % 2 == 0 else middle,
+            pos=middle - 1 if self.steps % 2 == 0 else middle,
             steps=self.steps,
             left_end_reward=self.left_end_reward,
             right_end_reward=self.right_end_reward,
             step_reward=self.step_reward,
         )
-        return copy.deepcopy(self._observation), {}
+        return copy.copy(self._observation), {}
 
     def render(self) -> RenderType:
         """
@@ -213,28 +213,28 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     """
     right_terminal_state = observation[OBS_KEY_STEPS] - 1
     terminal_states = set((0, right_terminal_state))
-    new_observation = dict(**copy.deepcopy(observation))
+    new_observation = dict(observation)
     # default reward + for terminal states
     reward = 0.0
-    if npsci.item(observation[OBS_KEY_POSITION]) in terminal_states:
+    if observation[OBS_KEY_POS] in terminal_states:
         # override step reward in terminal states
         step_reward = 0.0
     else:
         if action == GO_LEFT:
-            new_observation[OBS_KEY_POSITION] -= 1
+            new_observation[OBS_KEY_POS] -= 1
         elif action == GO_RIGHT:
-            new_observation[OBS_KEY_POSITION] += 1
+            new_observation[OBS_KEY_POS] += 1
 
         step_reward = new_observation[OBS_KEY_STEP_REWARD]
-        if new_observation[OBS_KEY_POSITION] == right_terminal_state:
+        if new_observation[OBS_KEY_POS] == right_terminal_state:
             reward = new_observation[OBS_KEY_RIGHT_END_REWARD]
-        elif new_observation[OBS_KEY_POSITION] == 0:  # left end
+        elif new_observation[OBS_KEY_POS] == 0:  # left end
             reward = new_observation[OBS_KEY_LEFT_END_REWARD]
     return new_observation, reward + step_reward
 
 
 def state_observation(
-    position: int,
+    pos: int,
     steps: int,
     left_end_reward: float,
     right_end_reward: float,
@@ -244,11 +244,11 @@ def state_observation(
     Generates the starting state.
     """
     return {
-        OBS_KEY_POSITION: np.array(position, dtype=np.int64),
-        OBS_KEY_STEPS: np.array(steps, dtype=np.int64),
-        OBS_KEY_RIGHT_END_REWARD: np.array(right_end_reward, dtype=np.float32),
-        OBS_KEY_LEFT_END_REWARD: np.array(left_end_reward, dtype=np.float32),
-        OBS_KEY_STEP_REWARD: np.array(step_reward, dtype=np.float32),
+        OBS_KEY_POS: pos,
+        OBS_KEY_STEPS: steps,
+        OBS_KEY_RIGHT_END_REWARD: right_end_reward,
+        OBS_KEY_LEFT_END_REWARD: left_end_reward,
+        OBS_KEY_STEP_REWARD: step_reward,
     }
 
 
@@ -257,9 +257,7 @@ def is_finished(observation: Mapping[str, Any]) -> bool:
     This function is called after the action is applied - i.e.
     observation is a new state from taking the `action` passed in.
     """
-    return npsci.item(observation[OBS_KEY_POSITION]) in set(
-        (0, observation[OBS_KEY_STEPS] - 1)
-    )
+    return observation[OBS_KEY_POS] in set((0, observation[OBS_KEY_STEPS] - 1))
 
 
 def create_env_spec(
@@ -296,17 +294,17 @@ def get_state_id(observation: Mapping[str, Any]) -> int:
     """
     Computes an integer ID that represents that state.
     """
-    state_id: int = observation[OBS_KEY_POSITION].item()
-    return state_id
+    return observation[OBS_KEY_POS]  # type: ingore
 
 
 def state_representation(observation: Mapping[str, Any]) -> np.ndarray:
     """
-    An array view of the state, where the position of the
-    agent is marked with an 1.
+    An array view of the state, where the tokens
+    sorted are marked with a 1.
+    There an extra flag for the starting state.
 
     E.g. {
-        "position": 2,
+        "pos": 2,
         "steps": 5,
         "step_reward": 0,
         ...
@@ -315,5 +313,5 @@ def state_representation(observation: Mapping[str, Any]) -> np.ndarray:
     output = [0, 0, 1, 0, 0]
     """
     array = np.zeros(shape=(observation[OBS_KEY_STEPS],), dtype=np.int64)
-    array[npsci.item(observation[OBS_KEY_POSITION])] = 1
+    array[observation[OBS_KEY_POS]] = 1
     return array
