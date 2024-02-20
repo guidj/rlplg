@@ -177,7 +177,7 @@ class IceWorld(gym.Env[Mapping[str, Any], int]):
         next_observation, reward = apply_action(self._observation, action)
         self._observation = next_observation
         finished = self._observation[Strings.agent] in (self._goals | self._lakes)
-        return copy.deepcopy(self._observation), reward, finished, False, {}
+        return copy.copy(self._observation), reward, finished, False, {}
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
@@ -196,7 +196,7 @@ class IceWorld(gym.Env[Mapping[str, Any], int]):
             lakes=tuple(self._lakes),
             goals=tuple(self._goals),
         )
-        return copy.deepcopy(self._observation), {}
+        return copy.copy(self._observation), {}
 
     def render(self) -> RenderType:
         """
@@ -331,7 +331,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
 
     next_position = _step(observation, action)
     reward = _step_reward(observation, next_position=next_position)
-    next_observation = dict(**copy.deepcopy(observation))
+    next_observation = dict(**observation)
     next_observation[Strings.agent] = next_position
     return next_observation, reward
 
@@ -341,8 +341,7 @@ def _step(observation: Mapping[str, Any], action: int) -> Tuple[int, int]:
     if (observation[Strings.agent] in observation[Strings.goals]) or (
         observation[Strings.agent] in observation[Strings.lakes]
     ):
-        pos: Tuple[int, int] = copy.deepcopy(observation[Strings.agent])
-        return pos
+        return observation[Strings.agent]
     pos_x, pos_y = observation[Strings.agent]
     height, width = observation[Strings.size]
     if action == LEFT:

@@ -169,7 +169,10 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         next_observation, reward = apply_action(self._observation, action)
         self._observation = next_observation
         finished = self._observation[Strings.agent] in self._exits
-        return copy.deepcopy(self._observation), reward, finished, False, {}
+        # Note: obs fields are immutable;
+        # so shallow copies suffice to prevent tampering with
+        # internal state.
+        return copy.copy(self._observation), reward, finished, False, {}
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Mapping[str, Any]] = None
@@ -188,7 +191,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
             cliffs=tuple(self._cliffs),
             exits=tuple(self._exits),
         )
-        return copy.deepcopy(self._observation), {}
+        return copy.copy(self._observation), {}
 
     def render(self) -> RenderType:
         """
@@ -467,7 +470,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     if next_position in observation[Strings.cliffs]:
         # send back to the beginning
         next_position = observation[Strings.start]
-    next_observation = dict(**copy.deepcopy(observation))
+    next_observation = dict(**observation)
     next_observation[Strings.agent] = next_position
     return next_observation, reward
 
@@ -475,8 +478,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
 def _step(observation: Mapping[str, Any], action: int) -> Tuple[int, int]:
     # If in exit, stay
     if observation[Strings.agent] in observation[Strings.exits]:
-        pos: Tuple[int, int] = copy.deepcopy(observation[Strings.agent])
-        return pos
+        return observation[Strings.agent]
     pos_x, pos_y = observation[Strings.agent]
     height, width = observation[Strings.size]
     if action == LEFT:
