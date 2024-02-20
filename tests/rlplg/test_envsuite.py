@@ -7,6 +7,7 @@ import pytest
 
 from rlplg import core, envsuite
 from rlplg.core import TimeStep
+from tests.rlplg import dynamics
 
 
 @pytest.mark.parametrize(
@@ -17,6 +18,9 @@ def test_envsuite_load(env_name: str, args: Mapping[str, Sequence[Mapping[str, A
         env_spec = envsuite.load(name=env_name, **kwargs)
         assert isinstance(env_spec, core.EnvSpec)
         assert env_spec.name == env_name
+        dynamics.assert_transition_mapping(
+            env_spec.mdp.transition, env_desc=env_spec.mdp.env_desc
+        )
         terminal_states = core.infer_env_terminal_states(env_spec.mdp.transition)
         # reset env and state (get initial values)
         # play for one episode
