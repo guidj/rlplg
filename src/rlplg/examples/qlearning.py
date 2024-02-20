@@ -5,7 +5,7 @@ Implementation of Q-learning for discrete MDPs.
 import copy
 import logging
 import math
-from typing import Callable, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -24,6 +24,7 @@ def control(
     gamma: float,
     alpha: float,
     log_step: int = 100,
+    seed: Optional[int] = None,
 ) -> Tuple[core.PyPolicy, np.ndarray]:
     """
     Implements Q-learning, using epsilon-greedy as a collection (behavior) policy.
@@ -32,6 +33,7 @@ def control(
     policy, collect_policy = _target_and_collect_policies(
         state_id_fn=state_id_fn, qtable=qtable, epsilon=epsilon
     )
+    rng = np.random.default_rng(seed=seed)
     episode = 0
     while episode < num_episodes:
         obs, _ = environment.reset()
@@ -88,6 +90,7 @@ def _qlearing_step(
     gamma: float,
     alpha: float,
     experiences: Sequence[core.TrajectoryStep],
+    rng: np.random.Generator,
 ) -> None:
     steps = len(experiences)
 
@@ -100,7 +103,7 @@ def _qlearing_step(
 
         state_action_value = qtable[state_id, experiences[step].action]  # type: ignore
         next_state_actions_values = qtable[next_state_id]
-        next_best_action = np.random.choice(
+        next_best_action = rng.choice(
             np.flatnonzero(next_state_actions_values == next_state_actions_values.max())
         )
 
