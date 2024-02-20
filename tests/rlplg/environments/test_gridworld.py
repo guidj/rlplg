@@ -33,7 +33,6 @@ def test_gridworld_init():
             ),
         }
     )
-    hello = environment.observation_space.sample()
     dynamics.assert_transition_mapping(
         environment.transition, env_desc=core.EnvDesc(num_states=4 * 12, num_actions=4)
     )
