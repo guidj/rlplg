@@ -341,7 +341,8 @@ def _step(observation: Mapping[str, Any], action: int) -> Tuple[int, int]:
     if (observation[Strings.agent] in observation[Strings.goals]) or (
         observation[Strings.agent] in observation[Strings.lakes]
     ):
-        return observation[Strings.agent]
+        pos: Tuple[int, int] = observation[Strings.agent]
+        return pos
     pos_x, pos_y = observation[Strings.agent]
     height, width = observation[Strings.size]
     if action == LEFT:

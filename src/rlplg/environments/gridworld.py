@@ -478,7 +478,8 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
 def _step(observation: Mapping[str, Any], action: int) -> Tuple[int, int]:
     # If in exit, stay
     if observation[Strings.agent] in observation[Strings.exits]:
-        return observation[Strings.agent]
+        pos: Tuple[int, int] = observation[Strings.agent]
+        return pos
     pos_x, pos_y = observation[Strings.agent]
     height, width = observation[Strings.size]
     if action == LEFT:

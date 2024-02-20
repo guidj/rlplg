@@ -99,7 +99,7 @@ class ABCSeq(gym.Env[Mapping[str, int], int]):
                     )
 
         # env specific
-        self._observation: Mapping[int, str] = {}
+        self._observation: Mapping[str, int] = {}
         self._seed: Optional[int] = None
 
     def step(self, action: int) -> TimeStep:
@@ -169,8 +169,8 @@ class ABCSeqMdpDiscretizer(core.MdpDiscretizer):
 
 
 def apply_action(
-    observation: Mapping[int, str], action: int
-) -> Tuple[Mapping[int, str], float]:
+    observation: Mapping[str, int], action: int
+) -> Tuple[Mapping[str, int], float]:
     """
     Takes an action in a given state.
 
@@ -180,7 +180,7 @@ def apply_action(
     return _step_observation(observation, action), _step_reward(observation, action)
 
 
-def _step_observation(observation: Mapping[str, int], action: int) -> Mapping[int, str]:
+def _step_observation(observation: Mapping[str, int], action: int) -> Mapping[str, int]:
     """
     Transitions:
         - If an agent chooses a token that is further ahead, they get penalized by the distance
@@ -270,7 +270,7 @@ def get_state_id(observation: Mapping[str, int]) -> int:
     return observation[OBS_KEY_POS]
 
 
-def state_observation(state_id: int, length: int) -> Mapping[int, str]:
+def state_observation(state_id: int, length: int) -> Mapping[str, int]:
     """
     Given a state ID for an environment, returns an observation.
     """

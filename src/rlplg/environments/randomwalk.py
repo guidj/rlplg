@@ -294,7 +294,8 @@ def get_state_id(observation: Mapping[str, Any]) -> int:
     """
     Computes an integer ID that represents that state.
     """
-    return observation[OBS_KEY_POS]  # type: ingore
+    pos: int = observation[OBS_KEY_POS]
+    return pos
 
 
 def state_representation(observation: Mapping[str, Any]) -> np.ndarray:
