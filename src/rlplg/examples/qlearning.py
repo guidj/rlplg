@@ -57,6 +57,7 @@ def control(
                     gamma=gamma,
                     alpha=alpha,
                     experiences=transitions,
+                    rng=rng,
                 )
 
                 # update policies
