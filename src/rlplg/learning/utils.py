@@ -39,6 +39,7 @@ def initial_table(
     dtype: DTypeLike = np.float32,
     random: bool = False,
     terminal_states: Optional[Set[int]] = None,
+    seed: Optional[int] = None,
 ) -> np.ndarray:
     """
     The value of terminal states should be zero.
@@ -47,7 +48,7 @@ def initial_table(
         if terminal_states is None:
             logging.warning("Creating Q-table with no terminal states")
 
-        qtable = np.random.rand(num_states, num_actions)
+        qtable = np.random.default_rng(seed).random(size=(num_states, num_actions))
         qtable[list(terminal_states or []), :] = 0.0
         return qtable.astype(dtype)
     return np.zeros(shape=(num_states, num_actions), dtype=dtype)

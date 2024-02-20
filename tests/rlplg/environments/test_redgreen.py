@@ -1,4 +1,3 @@
-import random
 from typing import Any, Sequence
 
 import hypothesis
@@ -199,7 +198,7 @@ def test_apply_action_with_wrong_next_action(cure_sequence: Sequence[int]):
     wrong_actions = [
         action for action in redgreen.ACTIONS if action != cure_sequence[0]
     ]
-    wrong_action = random.sample(population=wrong_actions, k=1)[0]
+    wrong_action = np.random.default_rng().choice(wrong_actions)
     output_obs, output_reward = redgreen.apply_action(obs, wrong_action)
     assert output_obs == {
         "cure_sequence": cure_sequence,
@@ -269,7 +268,7 @@ def test_get_state_id():
     )
 )
 def test_state_observation(cure_sequence: Sequence[int]):
-    pos = random.randint(0, len(cure_sequence))
+    pos = np.random.default_rng().integers(0, len(cure_sequence) + 1)
     assert redgreen.state_observation(pos=pos, cure_sequence=cure_sequence) == {
         "cure_sequence": cure_sequence,
         "pos": pos,
@@ -282,7 +281,7 @@ def test_state_observation(cure_sequence: Sequence[int]):
     )
 )
 def test_state_observation_with_invalid_position(cure_sequence: Sequence[int]):
-    pos = random.choice([-1, len(cure_sequence) + 1])
+    pos = np.random.default_rng().choice([-1, len(cure_sequence) + 1])
     with pytest.raises(ValueError):
         redgreen.state_observation(cure_sequence, pos=pos)
 

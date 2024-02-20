@@ -151,7 +151,7 @@ def test_apply_action_with_unsorted_tokens_and_action_is_skipped_head(
     completed: int, missing: int
 ):
     obs = {"length": completed + missing, "pos": completed}
-    skipped_steps = np.random.randint(low=1, high=missing + 1)
+    skipped_steps = np.random.default_rng().integers(low=1, high=missing + 1)
     output_obs, output_reward = abcseq.apply_action(
         obs, action=completed + skipped_steps
     )
@@ -167,7 +167,7 @@ def test_apply_action_with_unsorted_tokens_and_action_is_behind(
     completed: int, missing: int
 ):
     obs = {"length": completed + missing, "pos": completed}
-    action = np.random.randint(low=0, high=completed)
+    action = np.random.default_rng().integers(low=0, high=completed)
     # num tokens ahead + behind + 1 for rotation
     output_obs, output_reward = abcseq.apply_action(obs, action=action)
     assert output_obs == obs

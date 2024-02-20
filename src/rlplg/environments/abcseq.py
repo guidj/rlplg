@@ -101,6 +101,7 @@ class ABCSeq(gym.Env[Mapping[str, int], int]):
         # env specific
         self._observation: Mapping[str, int] = {}
         self._seed: Optional[int] = None
+        self._rng: np.random.Generator = np.random.default_rng()
 
     def step(self, action: int) -> TimeStep:
         """Updates the environment according to action and returns a `TimeStep`.
@@ -143,7 +144,7 @@ class ABCSeq(gym.Env[Mapping[str, int], int]):
         """
         if seed is not None:
             self._seed = seed
-            np.random.seed(seed)
+            self._rng = np.random.default_rng(self._seed)
         return self._seed
 
 

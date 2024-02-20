@@ -81,8 +81,10 @@ class PyPolicy(abc.ABC):
     def __init__(
         self,
         emit_log_probability: bool = False,
+        seed: Optional[int] = None,
     ):
         self.emit_log_probability = emit_log_probability
+        self.seed = seed
 
     @abc.abstractmethod
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:

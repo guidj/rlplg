@@ -30,7 +30,9 @@ def test_envsuite_load(env_name: str, args: Mapping[str, Sequence[Mapping[str, A
 
         while True:
             obs, _, terminated, truncated, _ = time_step
-            action = np.random.randint(0, env_spec.mdp.env_desc.num_actions)
+            action = np.random.default_rng().integers(
+                0, env_spec.mdp.env_desc.num_actions
+            )
             next_time_step = env_spec.environment.step(action)
             next_obs, next_reward, _, _, _ = next_time_step
             assert (
