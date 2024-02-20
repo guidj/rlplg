@@ -4,21 +4,26 @@ defined in either `rlplg` or gymnasium.
 """
 
 import functools
-from typing import Any, Callable, Mapping, SupportsFloat
+from typing import Any, Callable, Mapping
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
-from gymnasium.core import ActType, ObsType
 
 from rlplg import core, npsci
-from rlplg.core import EnvTransition, MutableEnvTransition
-from rlplg.environments import abcseq, gridworld, randomwalk, redgreen, towerhanoi
+from rlplg.core import EnvTransition
+from rlplg.environments import (
+    abcseq,
+    gridworld,
+    iceworld,
+    randomwalk,
+    redgreen,
+    towerhanoi,
+)
 
 TAXI = "Taxi-v3"
 FROZEN_LAKE = "FrozenLake-v1"
 CLIFF_WALKING = "CliffWalking-v0"
-TARIFF_FROZEN_LAKE = "TariffFrozenLake-v1"
 
 SUPPORTED_RLPLG_ENVS = frozenset(
     (
@@ -27,10 +32,10 @@ SUPPORTED_RLPLG_ENVS = frozenset(
         randomwalk.ENV_NAME,
         redgreen.ENV_NAME,
         towerhanoi.ENV_NAME,
-        TARIFF_FROZEN_LAKE,
+        iceworld.ENV_NAME,
     )
 )
-SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE, CLIFF_WALKING, TARIFF_FROZEN_LAKE))
+SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE, CLIFF_WALKING))
 
 
 class DefaultGymEnvMdpDiscretizer(core.MdpDiscretizer):
@@ -53,39 +58,6 @@ class DefaultGymEnvMdpDiscretizer(core.MdpDiscretizer):
         del self
         action_: int = npsci.item(action)
         return action_
-
-
-class ShiftRewardWrapper(gym.RewardWrapper):
-    def __init__(self, env: gym.Env[ObsType, ActType], delta: float):
-        """Constructor for the Reward wrapper."""
-        super().__init__(env)
-        self.delta = delta
-        self.reward_range = (env.reward_range[0] + delta, env.reward_range[1] + delta)
-
-        # Update transition data, if existing
-        if hasattr(self.env, "P"):
-            transitions = getattr(self.env, "P")
-            terminal_states = core.infer_env_terminal_states(transitions)
-            new_transitions: MutableEnvTransition = {}
-            for state, action_transitions in transitions.items():
-                new_transitions[state] = {}
-                for action, transitions in action_transitions.items():
-                    new_transitions[state][action] = []
-                    for prob, next_state, reward, done in transitions:
-                        if state in terminal_states:
-                            prob = 1.0 if state == next_state else 0.0
-                            reward = 0.0
-                        else:
-                            reward = reward + self.delta
-                        new_transitions[state][action].append(
-                            (prob, next_state, reward, done)
-                        )
-            setattr(self.env, "P", new_transitions)
-
-    def reward(self, reward: SupportsFloat) -> SupportsFloat:
-        # TODO: This is also wrong; need to know the current state
-        # of the env;
-        return float(reward) + self.delta
 
 
 def load(name: str, **args) -> core.EnvSpec:
@@ -120,6 +92,7 @@ def __environment_spec_constructors() -> Mapping[str, Callable[..., core.EnvSpec
     rlplg_envs: Mapping[str, Callable[..., core.EnvSpec]] = {
         abcseq.ENV_NAME: abcseq.create_env_spec,
         gridworld.ENV_NAME: gridworld.create_envspec_from_grid_text,
+        iceworld.ENV_NAME: iceworld.create_envspec_from_map,
         randomwalk.ENV_NAME: randomwalk.create_env_spec,
         redgreen.ENV_NAME: redgreen.create_env_spec,
         towerhanoi.ENV_NAME: towerhanoi.create_env_spec,
@@ -169,8 +142,6 @@ def __make_gym_environment(name: str, **kwargs: Mapping[str, Any]) -> gym.Env:
     """
     Creates discretizers for supported environments.
     """
-    if name == TARIFF_FROZEN_LAKE:
-        return ShiftRewardWrapper(gym.make(FROZEN_LAKE, **kwargs), delta=-1.0)
     return gym.make(name, **kwargs)
 
 

@@ -1,6 +1,6 @@
 # GridWorld
 
-A grid of size $n \times m$, with cliffs and one exit. The goal of the agent is to nagivate from their starting position to the exit. If the agent falls in a cliff, they go back to the start, so cliffs aren't part of the state space.
+A grid of size $W \times H$, with cliffs and one exit. The goal of the agent is to nagivate from their starting position to the exit. If the agent falls in a cliff, they go back to the start, so cliffs aren't part of the state space.
 
 The grid is configurable with a string:
 - `x` represents cliffs
@@ -17,7 +17,7 @@ xog
 
 **States**
 
-The total number of states is $n \times m - |\text{cliffs}|$, where cliffs is a set.
+The total number of states is $W \times H - |\text{cliffs}|$, where cliffs is a set.
 
 **Actions**
 

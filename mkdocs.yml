@@ -10,6 +10,6 @@ nav:
     - GridWorld: 'envs/gridworld.md'
     - RedGreen: 'envs/redgreen.md'
     - StateRandomWalk: 'envs/staterandomwalk.md'
-    - TariffFrozenLake: 'envs/tarifffrozenlake-v1.md'
+    - IceWorld: 'envs/iceworld.md'
     - TowerOfHanoi: 'envs/towerofhanoi.md'
     - Template: 'envs/template.md'
