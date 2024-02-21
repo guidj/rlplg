@@ -247,9 +247,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
         move_penalty = -1.0
         reward = 0.0
         # move top disk from source to dest
-        mutable_state = list(state)
-        mutable_state[pegs[source][0]] = dest
-        new_observation[OBS_KEY_STATE] = tuple(mutable_state)
+        new_observation[OBS_KEY_STATE] = state[:pegs[source][0]] + (dest,) + state[pegs[source][0]+1:]
     return new_observation, move_penalty + reward
 
 
