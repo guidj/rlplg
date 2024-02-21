@@ -24,6 +24,7 @@ is 2^{n} - 1, where n is the number of disks.
 Code based on https://github.com/xadahiya/toh-gym.
 """
 
+import collections
 import copy
 import functools
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple
@@ -216,21 +217,11 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
             reward = 0
     """
     state = observation[OBS_KEY_STATE]
-    num_disks = len(state)
     new_observation = dict(observation)
     source, dest = ACTIONS[action]
-
-    # if the top disk on any peg isn't the smallest
-    # the state is invalid.
-    pegs: Mapping[int, List[int]] = {
-        peg: [] for peg in range(observation[OBS_KEY_NUM_PEGS])
-    }
-    for idx in range(num_disks):
-        pegs[state[idx]].append(idx)
-
-    for peg, peg_disks in pegs.items():
-        if peg_disks != sorted(peg_disks):
-            raise ValueError(f"Invalid state. Peg {peg} is invalid: {peg_disks}")
+    pegs: Mapping[int, List[int]] = collections.defaultdict(list)
+    for idx, peg in enumerate(state):
+        pegs[peg].append(idx)
 
     # In terminal state already, nothing changes
     if is_terminal_state(observation):
@@ -247,7 +238,9 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
         move_penalty = -1.0
         reward = 0.0
         # move top disk from source to dest
-        new_observation[OBS_KEY_STATE] = state[:pegs[source][0]] + (dest,) + state[pegs[source][0]+1:]
+        new_observation[OBS_KEY_STATE] = (
+            state[: pegs[source][0]] + (dest,) + state[pegs[source][0] + 1 :]
+        )
     return new_observation, move_penalty + reward
 
 
@@ -255,11 +248,10 @@ def is_terminal_state(observation: Mapping[str, Any]) -> bool:
     """
     Determines if the given state is terminal.
     """
-    # does that fact that we just went into the
-    # terminal state matter? No
-    state = observation[OBS_KEY_STATE]
-    terminal_state = (observation[OBS_KEY_NUM_PEGS] - 1,) * len(state)
-    return state == terminal_state  # type: ignore
+    for peg in observation[OBS_KEY_STATE]:
+        if peg != observation[OBS_KEY_NUM_PEGS] - 1:
+            return False
+    return True
 
 
 def create_env_spec(num_disks: int) -> core.EnvSpec:
