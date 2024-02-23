@@ -168,7 +168,7 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
             seed=seed,
         )
         self.epsilon = epsilon
-        self._rng = random.Random(seed=seed)
+        self._rng = random.Random(seed)
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
