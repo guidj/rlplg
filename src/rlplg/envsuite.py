@@ -10,7 +10,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import core, npsci
+from rlplg import core
 from rlplg.core import EnvTransition
 from rlplg.environments import (
     abcseq,
@@ -48,16 +48,14 @@ class DefaultGymEnvMdpDiscretizer(core.MdpDiscretizer):
         Maps an observation to a state ID.
         """
         del self
-        state_: int = npsci.item(observation)
-        return state_
+        return observation
 
     def action(self, action: Any) -> int:
         """
         Maps an agent action to an action ID.
         """
         del self
-        action_: int = npsci.item(action)
-        return action_
+        return action
 
 
 def load(name: str, **args) -> core.EnvSpec:

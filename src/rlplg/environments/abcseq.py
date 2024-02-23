@@ -165,8 +165,7 @@ class ABCSeqMdpDiscretizer(core.MdpDiscretizer):
         Maps an agent action to an action ID.
         """
         del self
-        action_: int = npsci.item(action)
-        return action_
+        return action
 
 
 def apply_action(

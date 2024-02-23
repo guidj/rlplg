@@ -33,7 +33,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import combinatorics, core, npsci
+from rlplg import combinatorics, core
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "TowerOfHanoi"
@@ -179,8 +179,7 @@ class TowerOfHanoiMdpDiscretizer(core.MdpDiscretizer):
         Maps an agent action to an action ID.
         """
         del self
-        action_: int = npsci.item(action)
-        return action_
+        return action
 
 
 def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:
