@@ -4,6 +4,7 @@ This module contains implemenation for certain discrete arm policies.
 
 import copy
 import dataclasses
+import random
 from typing import Any, Callable, Optional, Protocol
 
 import numpy as np
@@ -37,9 +38,9 @@ class PyRandomPolicy(core.PyPolicy, SupportsStateActionProbability):
     ):
         super().__init__(emit_log_probability=emit_log_probability, seed=seed)
         self._num_actions = num_actions
-        self._arms = np.arange(start=0, stop=num_actions)
+        self._arms = tuple(range(self._num_actions))
         self._uniform_chance = np.array(1.0) / np.array(num_actions, dtype=np.float32)
-        self._rng = np.random.default_rng(seed=seed)
+        self._rng = random.Random(seed)
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
@@ -167,7 +168,7 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
             seed=seed,
         )
         self.epsilon = epsilon
-        self._rng = np.random.default_rng(seed=seed)
+        self._rng = random.Random(seed)
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size

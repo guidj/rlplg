@@ -4,13 +4,13 @@ defined in either `rlplg` or gymnasium.
 """
 
 import functools
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, SupportsInt
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import core, npsci
+from rlplg import core
 from rlplg.core import EnvTransition
 from rlplg.environments import (
     abcseq,
@@ -43,21 +43,19 @@ class DefaultGymEnvMdpDiscretizer(core.MdpDiscretizer):
     Creates an environment discrete maps for states and actions.
     """
 
-    def state(self, observation: Any) -> int:
+    def state(self, observation: SupportsInt) -> int:
         """
         Maps an observation to a state ID.
         """
         del self
-        state_: int = npsci.item(observation)
-        return state_
+        return int(observation)
 
-    def action(self, action: Any) -> int:
+    def action(self, action: SupportsInt) -> int:
         """
         Maps an agent action to an action ID.
         """
         del self
-        action_: int = npsci.item(action)
-        return action_
+        return int(action)
 
 
 def load(name: str, **args) -> core.EnvSpec:

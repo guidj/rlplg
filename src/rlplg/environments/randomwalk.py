@@ -14,13 +14,13 @@ Combined with a random policy, it should produce the same effect.
 
 import copy
 import math
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional, SupportsInt, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import core, npsci
+from rlplg import core
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "StateRandomWalk"
@@ -193,13 +193,12 @@ class StateRandomWalkMdpDiscretizer(core.MdpDiscretizer):
         del self
         return get_state_id(observation)
 
-    def action(self, action: int) -> int:
+    def action(self, action: SupportsInt) -> int:
         """
         Maps an agent action to an action ID.
         """
         del self
-        action_: int = npsci.item(action)
-        return action_
+        return int(action)
 
 
 def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:

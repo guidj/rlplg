@@ -15,14 +15,14 @@ import os
 import os.path
 import sys
 import time
-from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Mapping, Optional, Sequence, SupportsInt, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from PIL import Image as image
 
-from rlplg import core, npsci
+from rlplg import core
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "GridWorld"
@@ -236,13 +236,12 @@ class GridWorldMdpDiscretizer(core.MdpDiscretizer):
         """
         return self.__state_fn(observation)
 
-    def action(self, action: int) -> int:
+    def action(self, action: SupportsInt) -> int:
         """
         Maps an agent action to an action ID.
         """
         del self
-        action_: int = npsci.item(action)
-        return action_
+        return int(action)
 
 
 class GridWorldRenderer:

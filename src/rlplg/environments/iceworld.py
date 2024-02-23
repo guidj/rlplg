@@ -18,14 +18,14 @@ import contextlib
 import copy
 import io
 import sys
-from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Mapping, Optional, Sequence, SupportsInt, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from PIL import Image as image
 
-from rlplg import core, npsci
+from rlplg import core
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "IceWorld"
@@ -237,13 +237,12 @@ class IceWorldMdpDiscretizer(core.MdpDiscretizer):
         _, cols = size
         return row * cols + col
 
-    def action(self, action: int) -> int:
+    def action(self, action: SupportsInt) -> int:
         """
         Maps an agent action to an action ID.
         """
         del self
-        action_: int = npsci.item(action)
-        return action_
+        return int(action)
 
 
 def create_envspec_from_map(
