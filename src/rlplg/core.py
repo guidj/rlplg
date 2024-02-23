@@ -6,7 +6,18 @@ import abc
 import base64
 import dataclasses
 import hashlib
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    SupportsInt,
+    Tuple,
+    Union,
+)
 
 import gymnasium as gym
 import numpy as np
@@ -143,7 +154,7 @@ class MdpDiscretizer:
         """
 
     @abc.abstractmethod
-    def action(self, action: Any) -> int:
+    def action(self, action: SupportsInt) -> int:
         """
         Maps an agent action to an action ID.
         """

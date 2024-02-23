@@ -41,7 +41,7 @@ Notes:
 """
 
 import copy
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional, SupportsInt, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -160,12 +160,12 @@ class ABCSeqMdpDiscretizer(core.MdpDiscretizer):
         del self
         return get_state_id(observation)
 
-    def action(self, action: Any) -> int:
+    def action(self, action: SupportsInt) -> int:
         """
         Maps an agent action to an action ID.
         """
         del self
-        return action
+        return int(action)
 
 
 def apply_action(

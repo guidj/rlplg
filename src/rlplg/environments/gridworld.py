@@ -15,7 +15,7 @@ import os
 import os.path
 import sys
 import time
-from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Mapping, Optional, Sequence, SupportsInt, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -236,12 +236,12 @@ class GridWorldMdpDiscretizer(core.MdpDiscretizer):
         """
         return self.__state_fn(observation)
 
-    def action(self, action: int) -> int:
+    def action(self, action: SupportsInt) -> int:
         """
         Maps an agent action to an action ID.
         """
         del self
-        return action
+        return int(action)
 
 
 class GridWorldRenderer:
