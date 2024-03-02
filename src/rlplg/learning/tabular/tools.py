@@ -1,15 +1,6 @@
 import itertools
 from typing import Any, Sequence
 
-import numpy as np
-
-
-def greedy_actions_mask(qtable: np.ndarray) -> np.ndarray:
-    mask: np.ndarray = np.eye(qtable.shape[0], M=qtable.shape[1])[
-        np.argmax(qtable, axis=-1)
-    ]
-    return mask
-
 
 def nsize_permutations(
     num_values: int, max_permutation_size: int, stub: int = -1

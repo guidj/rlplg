@@ -103,7 +103,7 @@ class PyQGreedyPolicy(core.PyPolicy):
 
         self._state_id_fn = state_id_fn
         self._state_action_value_table = copy.deepcopy(action_values)
-        self._rng = np.random.default_rng(seed=seed)
+        self._rng = random.Random(seed)
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
@@ -119,7 +119,10 @@ class PyQGreedyPolicy(core.PyPolicy):
             raise NotImplementedError(f"Seed is not supported; but got seed: {seed}")
 
         state_id = self._state_id_fn(observation)
-        action = np.argmax(self._state_action_value_table[state_id])
+        candidate_actions = self._state_action_value_table[state_id]
+        action = self._rng.choice(
+            np.flatnonzero(candidate_actions == np.max(candidate_actions))
+        )
         if self.emit_log_probability:
             # the best arm has 1.0 probability of being chosen
             policy_info = {"log_probability": np.array(np.log(1.0), dtype=np.float32)}
