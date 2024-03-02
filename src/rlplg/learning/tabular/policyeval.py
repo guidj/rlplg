@@ -1,5 +1,6 @@
 import collections
 import copy
+import dataclasses
 from typing import Any, Callable, DefaultDict, Generator, List, Tuple
 
 import gymnasium as gym
@@ -9,6 +10,12 @@ from rlplg import core, envplay
 from rlplg.learning.opt import schedules
 
 MCUpdate = collections.namedtuple("MCUpdate", ["returns", "cu_sum", "value", "weight"])
+
+
+@dataclasses.dataclass(frozen=True)
+class PolicyEvalSnapshot:
+    steps: int
+    values: np.ndarray
 
 
 def onpolicy_first_visit_monte_carlo_action_values(
@@ -27,7 +34,7 @@ def onpolicy_first_visit_monte_carlo_action_values(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     First-Visit Monte Carlo Prediction.
     Estimates Q(s, a) for a fixed policy pi.
@@ -96,7 +103,7 @@ def onpolicy_first_visit_monte_carlo_action_values(
                     )
 
         # need to copy values because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(qtable)
+        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(qtable))
 
 
 def onpolicy_sarsa_action_values(
@@ -116,7 +123,7 @@ def onpolicy_sarsa_action_values(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     On-policy Sarsa Prediction.
     Estimates Q(s, a) for a fixed policy pi.
@@ -167,7 +174,7 @@ def onpolicy_sarsa_action_values(
             steps_counter += 1
 
         # need to copy qtable because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(qtable)
+        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(qtable))
 
 
 def onpolicy_first_visit_monte_carlo_state_values(
@@ -185,7 +192,7 @@ def onpolicy_first_visit_monte_carlo_state_values(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     First-Visit Monte Carlo Prediction.
     Estimates V(s) for a fixed policy pi.
@@ -240,7 +247,7 @@ def onpolicy_first_visit_monte_carlo_state_values(
                 state_updates[state_id] += 1
 
         # need to copy values because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(values)
+        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(values))
 
 
 def onpolicy_one_step_td_state_values(
@@ -259,7 +266,7 @@ def onpolicy_one_step_td_state_values(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     TD(0) or one-step TD.
     Estimates V(s) for a fixed policy pi.
@@ -300,7 +307,7 @@ def onpolicy_one_step_td_state_values(
             steps_counter += 1
 
         # need to copy values because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(values)
+        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(values))
 
 
 def onpolicy_nstep_td_state_values(
@@ -320,7 +327,7 @@ def onpolicy_nstep_td_state_values(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     n-step TD learning.
     Estimates V(s) for a fixed policy pi.
@@ -371,7 +378,7 @@ def onpolicy_nstep_td_state_values(
                 values[state_id] += alpha * (returns - values[state_id])
             steps_counter += 1
         # need to copy qtable because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(values)
+        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(values))
 
 
 def offpolicy_monte_carlo_action_values(
@@ -399,7 +406,7 @@ def offpolicy_monte_carlo_action_values(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyEvalSnapshot, None, None]:
     """Off-policy MC Prediction.
     Estimates Q (table) for a fixed policy pi.
 
@@ -476,7 +483,7 @@ def offpolicy_monte_carlo_action_values(
             except StopIteration:
                 break
         # need to copy qtable because it's a mutable numpy array
-        yield num_steps, copy.deepcopy(qtable)
+        yield PolicyEvalSnapshot(steps=num_steps, values=copy.deepcopy(qtable))
 
 
 def offpolicy_monte_carlo_action_values_step(
@@ -531,7 +538,7 @@ def offpolicy_nstep_sarsa_action_values(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     Off-policy n-step Sarsa Prediction.
     Estimates Q (table) for a fixed policy pi.
@@ -615,4 +622,4 @@ def offpolicy_nstep_sarsa_action_values(
                 break
 
         # need to copy qtable because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(qtable)
+        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(qtable))

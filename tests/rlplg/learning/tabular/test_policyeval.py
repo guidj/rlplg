@@ -45,10 +45,10 @@ def test_onpolicy_first_visit_monte_carlo_action_values_with_one_episode(
 
     output = list(results)
     assert len(output) == 1
-    steps, qtable = next(iter(output))
-    assert steps == 4
+    snapshot = next(iter(output))
+    assert snapshot.steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[0, -2.8525], [0, -1.95], [0, -1], [0, 0]])
+        snapshot.values, np.array([[0, -2.8525], [0, -1.95], [0, -1], [0, 0]])
     )
 
 
@@ -87,10 +87,10 @@ def test_onpolicy_first_visit_monte_carlo_action_values_with_one_episode_converi
 
     output = list(results)
     assert len(output) == 1
-    steps, qtable = next(iter(output))
-    assert steps == 7
+    snapshot = next(iter(output))
+    assert snapshot.steps == 7
     np.testing.assert_array_almost_equal(
-        qtable,
+        snapshot.values,
         np.array(
             [[-29.751219, -20.790756], [-20.832375, -11.4025], [-10.95, -1], [0, 0]]
         ),
@@ -125,10 +125,10 @@ def test_onpolicy_sarsa_action_values_with_one_episode(
 
     output = list(results)
     assert len(output) == 1
-    steps, qtable = next(iter(output))
-    assert steps == 4
+    snapshot = next(iter(output))
+    assert snapshot.steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]])
+        snapshot.values, np.array([[0, -0.1], [0, -0.1], [0, -0.1], [0, 0]])
     )
 
 
@@ -165,10 +165,10 @@ def test_onpolicy_sarsa_action_values_with_one_episode_convering_every_action(
 
     output = list(results)
     assert len(output) == 1
-    steps, qtable = next(iter(output))
-    assert steps == 7
+    snapshot = next(iter(output))
+    assert snapshot.steps == 7
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[-1, -0.1], [-1, -0.1], [-1, -0.1], [0, 0]])
+        snapshot.values, np.array([[-1, -0.1], [-1, -0.1], [-1, -0.1], [0, 0]])
     )
 
 
@@ -194,9 +194,9 @@ def test_onpolicy_first_visit_monte_carlo_state_values_with_one_episode(
 
     output = list(results)
     assert len(output) == 1
-    steps, values = next(iter(output))
-    assert steps == 4
-    np.testing.assert_array_equal(values, [-3, -2, -1, 0])
+    snapshot = next(iter(output))
+    assert snapshot.steps == 4
+    np.testing.assert_array_equal(snapshot.values, [-3, -2, -1, 0])
 
 
 def test_onpolicy_first_visit_monte_carlo_state_values_with_two_episodes(
@@ -225,12 +225,12 @@ def test_onpolicy_first_visit_monte_carlo_state_values_with_two_episodes(
     output = list(results)
     assert len(output) == 2
     output_iter = iter(output)
-    steps, values = next(output_iter)
-    assert steps == 4
-    np.testing.assert_array_equal(values, [-3, -2, -1, 0])
-    steps, values = next(output_iter)
-    assert steps == 4
-    np.testing.assert_array_equal(values, [-3, -2, -1, 0])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_array_equal(snapshot.values, [-3, -2, -1, 0])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_array_equal(snapshot.values, [-3, -2, -1, 0])
 
 
 def test_onpolicy_one_step_td_state_values_with_one_episode(
@@ -259,9 +259,9 @@ def test_onpolicy_one_step_td_state_values_with_one_episode(
 
     output = list(results)
     assert len(output) == 1
-    steps, values = next(iter(output))
-    assert steps == 4
-    np.testing.assert_allclose(values, [-0.1, -0.1, -0.1, 0])
+    snapshot = next(iter(output))
+    assert snapshot.steps == 4
+    np.testing.assert_allclose(snapshot.values, [-0.1, -0.1, -0.1, 0])
 
 
 def test_onpolicy_one_step_td_state_values_with_two_episodes(
@@ -315,12 +315,12 @@ def test_onpolicy_one_step_td_state_values_with_two_episodes(
     output = list(results)
     assert len(output) == 2
     output_iter = iter(output)
-    steps, values = next(output_iter)
-    assert steps == 4
-    np.testing.assert_allclose(values, [-0.1, -0.1, -0.1, 0])
-    steps, values = next(output_iter)
-    assert steps == 4
-    np.testing.assert_allclose(values, [-0.2, -0.2, -0.19, 0])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_allclose(snapshot.values, [-0.1, -0.1, -0.1, 0])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_allclose(snapshot.values, [-0.2, -0.2, -0.19, 0])
 
 
 def test_onpolicy_nstep_td_state_values_with_one_nstep_and_one_episode(
@@ -350,9 +350,9 @@ def test_onpolicy_nstep_td_state_values_with_one_nstep_and_one_episode(
 
     output = list(results)
     assert len(output) == 1
-    steps, values = next(iter(output))
-    assert steps == 4
-    np.testing.assert_allclose(values, [-0.1, -0.1, -0.1, 0])
+    snapshot = next(iter(output))
+    assert snapshot.steps == 4
+    np.testing.assert_allclose(snapshot.values, [-0.1, -0.1, -0.1, 0])
 
 
 def test_onpolicy_nstep_td_state_values_with_one_nstep_and_two_episodes(
@@ -407,12 +407,12 @@ def test_onpolicy_nstep_td_state_values_with_one_nstep_and_two_episodes(
     output = list(results)
     assert len(output) == 2
     output_iter = iter(output)
-    steps, values = next(output_iter)
-    assert steps == 4
-    np.testing.assert_allclose(values, [-0.1, -0.1, -0.1, 0])
-    steps, values = next(output_iter)
-    assert steps == 4
-    np.testing.assert_allclose(values, [-0.2, -0.2, -0.19, 0])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_allclose(snapshot.values, [-0.1, -0.1, -0.1, 0])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_allclose(snapshot.values, [-0.2, -0.2, -0.19, 0])
 
 
 def test_onpolicy_nstep_td_state_values_with_two_nstep_and_one_episode(
@@ -442,9 +442,9 @@ def test_onpolicy_nstep_td_state_values_with_two_nstep_and_one_episode(
 
     output = list(results)
     assert len(output) == 1
-    steps, values = next(iter(output))
-    assert steps == 4
-    np.testing.assert_allclose(values, [-0.2, -0.2, -0.1, 0])
+    snapshot = next(iter(output))
+    assert snapshot.steps == 4
+    np.testing.assert_allclose(snapshot.values, [-0.2, -0.2, -0.1, 0])
 
 
 def test_onpolicy_nstep_td_state_values_with_two_nstep_and_two_episodes(
@@ -503,12 +503,12 @@ def test_onpolicy_nstep_td_state_values_with_two_nstep_and_two_episodes(
     output = list(results)
     assert len(output) == 2
     output_iter = iter(output)
-    steps, values = next(output_iter)
-    assert steps == 4
-    np.testing.assert_allclose(values, [-0.2, -0.2, -0.1, 0])
-    steps, values = next(output_iter)
-    assert steps == 4
-    np.testing.assert_allclose(values, [-0.39, -0.38, -0.19, 0.0])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_allclose(snapshot.values, [-0.2, -0.2, -0.1, 0])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_allclose(snapshot.values, [-0.39, -0.38, -0.19, 0.0])
 
 
 def test_offpolicy_monte_carlo_action_values_with_one_episode(
@@ -538,9 +538,9 @@ def test_offpolicy_monte_carlo_action_values_with_one_episode(
 
     output = list(results)
     assert len(output) == 1
-    steps, qtable = next(iter(output))
-    assert steps == 4
-    np.testing.assert_array_equal(qtable, [[0, -3], [0, -2], [0, -1], [0, 0]])
+    snapshot = next(iter(output))
+    assert snapshot.steps == 4
+    np.testing.assert_array_equal(snapshot.values, [[0, -3], [0, -2], [0, -1], [0, 0]])
 
 
 def test_offpolicy_monte_carlo_action_values_with_two_episodes(
@@ -572,12 +572,12 @@ def test_offpolicy_monte_carlo_action_values_with_two_episodes(
     output = list(results)
     output_iter = iter(output)
     assert len(output) == 2
-    steps, qtable = next(output_iter)
-    assert steps == 4
-    np.testing.assert_array_equal(qtable, [[0, -3], [0, -2], [0, -1], [0, 0]])
-    steps, qtable = next(output_iter)
-    assert steps == 4
-    np.testing.assert_array_equal(qtable, [[0, -3], [0, -2], [0, -1], [0, 0]])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_array_equal(snapshot.values, [[0, -3], [0, -2], [0, -1], [0, 0]])
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
+    np.testing.assert_array_equal(snapshot.values, [[0, -3], [0, -2], [0, -1], [0, 0]])
 
 
 def test_offpolicy_monte_carlo_action_values_with_one_episode_covering_every_action(
@@ -608,10 +608,10 @@ def test_offpolicy_monte_carlo_action_values_with_one_episode_covering_every_act
 
     output = list(results)
     assert len(output) == 1
-    steps, qtable = next(iter(output))
-    assert steps == 7
+    snapshot = next(iter(output))
+    assert snapshot.steps == 7
     # we only learn about the last two (state, action) pairs.
-    np.testing.assert_array_equal(qtable, [[0, 0], [0, 0], [-11, -1], [0, 0]])
+    np.testing.assert_array_equal(snapshot.values, [[0, 0], [0, 0], [-11, -1], [0, 0]])
 
 
 def test_offpolicy_monte_carlo_action_values_step_with_reward_discount():
@@ -660,10 +660,10 @@ def test_offpolicy_nstep_sarsa_action_values_with_one_nstep_and_one_episode(
 
     output = list(results)
     assert len(output) == 1
-    steps, qtable = next(iter(output))
-    assert steps == 4
+    snapshot = next(iter(output))
+    assert snapshot.steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[0.0, -0.1], [0.0, -0.1], [0.0, -0.1], [0.0, 0.0]])
+        snapshot.values, np.array([[0.0, -0.1], [0.0, -0.1], [0.0, -0.1], [0.0, 0.0]])
     )
 
 
@@ -694,15 +694,17 @@ def test_offpolicy_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
     output = list(results)
     output_iter = iter(output)
     assert len(output) == 2
-    steps, qtable = next(output_iter)
-    assert steps == 4
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[0.0, -0.195], [0.0, -0.195], [0.0, -0.1], [0.0, 0.0]])
+        snapshot.values,
+        np.array([[0.0, -0.195], [0.0, -0.195], [0.0, -0.1], [0.0, 0.0]]),
     )
-    steps, qtable = next(output_iter)
-    assert steps == 4
+    snapshot = next(output_iter)
+    assert snapshot.steps == 4
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[0.0, -0.379525], [0.0, -0.3705], [0.0, -0.19], [0.0, 0.0]])
+        snapshot.values,
+        np.array([[0.0, -0.379525], [0.0, -0.3705], [0.0, -0.19], [0.0, 0.0]]),
     )
 
 
@@ -737,10 +739,11 @@ def test_offpolicy_nstep_sarsa_action_values_with_one_nstep_and_one_episode_cove
 
     output = list(results)
     assert len(output) == 1
-    steps, qtable = next(iter(output))
-    assert steps == 7
+    snapshot = next(iter(output))
+    assert snapshot.steps == 7
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[-1.0, -0.1], [-1.0, -0.1], [-1.0, -0.1], [0.0, 0.0]])
+        snapshot.values,
+        np.array([[-1.0, -0.1], [-1.0, -0.1], [-1.0, -0.1], [0.0, 0.0]]),
     )
 
 
@@ -774,10 +777,11 @@ def test_offpolicy_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_cov
 
     output = list(results)
     assert len(output) == 1
-    steps, qtable = next(iter(output))
-    assert steps == 7
+    snapshot = next(iter(output))
+    assert snapshot.steps == 7
     np.testing.assert_array_almost_equal(
-        qtable, np.array([[-2.19, 0.0], [-2.19, 0.0], [-2.19, -0.1], [0.0, 0.0]])
+        snapshot.values,
+        np.array([[-2.19, 0.0], [-2.19, 0.0], [-2.19, -0.1], [0.0, 0.0]]),
     )
 
 

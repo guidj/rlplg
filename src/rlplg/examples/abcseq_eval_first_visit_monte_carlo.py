@@ -61,10 +61,10 @@ def main(args: Args):
         ),
     )
 
-    *_, (_, learned_values) = results
+    *_, snapshot = results
 
-    logging.info("\n%s", learned_values)
-    logging.info("\n%s", rendering.vis_learned_array(learned_values))
+    logging.info("\n%s", snapshot.values)
+    logging.info("\n%s", rendering.vis_learned_array(snapshot.values))
     env_spec.environment.close()
 
 
