@@ -16,8 +16,7 @@ There are three actions - RED, GREEN, WAIT.
 
 **Rewards**
 
-There is a penalty of $-1$ for every move.
-Additionally, choosing the wrong action yields an extra reward of $-1$.
+There is a penalty of $-1$ for every move, with the exception of actions taken in the terminal state.
 
 ## Example Instatiation
 
