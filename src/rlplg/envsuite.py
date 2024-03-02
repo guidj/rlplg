@@ -21,7 +21,6 @@ from rlplg.environments import (
     towerhanoi,
 )
 
-TAXI = "Taxi-v3"
 FROZEN_LAKE = "FrozenLake-v1"
 CLIFF_WALKING = "CliffWalking-v0"
 
@@ -35,7 +34,7 @@ SUPPORTED_RLPLG_ENVS = frozenset(
         iceworld.ENV_NAME,
     )
 )
-SUPPORTED_GYM_ENVS = frozenset((TAXI, FROZEN_LAKE, CLIFF_WALKING))
+SUPPORTED_GYM_ENVS = frozenset((FROZEN_LAKE, CLIFF_WALKING))
 
 
 class DefaultGymEnvMdpDiscretizer(core.MdpDiscretizer):
