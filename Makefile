@@ -9,9 +9,8 @@ pip-install:
 	pip install -r dev-requirements.txt -e .
 
 format:
-	find src tests -name "*.py" | xargs -I % autoflake8 % --in-place
-	black src tests
-	isort src tests
+	ruff format src tests
+	ruff check --fix
 
 test-coverage:
 	pytest --cov-report=html --cov=src tests
