@@ -35,8 +35,6 @@ Thus, there are six possible moves: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0) and (
 **Rewards**
 
 There is a penalty of $-1$ for every move, with the exception of actions taken in the terminal state.
-If the move is invalid, either because there is a smaller disk on the destination or no disk at the source,
-there is an extra reward of $-1$.
 
 ## Example Instatiation
 
