@@ -177,9 +177,6 @@ def test_first_visit_monte_carlo_state_values_with_one_episode(
     policy: core.PyPolicy,
 ):
     """
-    Every (state, action) pair is updated, since
-    the behavior and target policies match on every step.
-
     Trajectory: (0, 1), (1, 1), (2, 1), (3, 1)
     Reversed: (3, 1), (2, 1), (1, 1), (0, 1)
     Reversed Rewards: 0, -1, -1, -1
@@ -207,9 +204,6 @@ def test_first_visit_monte_carlo_state_values_with_two_episodes(
     policy: core.PyPolicy,
 ):
     """
-    Every (state, action) pair is updated, since
-    the behavior and target policies match on every step.
-
     Since the rewards are the same at each episode,
     the average should be the same.
 
