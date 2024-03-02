@@ -205,7 +205,7 @@ def nstep_sarsa_action_values(
     Yields:
         A tuple of steps (count) and q-table.
 
-    Note: the first reward (in the book) is R_{1} for R_{0 + 1};
+    Note: the first reward (in Sutton & Barto, 2018) is R_{1} for R_{0 + 1};
     So index wise, we subtract reward access references by one.
     """
     if nstep < 1:

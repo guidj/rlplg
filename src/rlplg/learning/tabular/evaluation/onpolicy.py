@@ -52,7 +52,7 @@ def first_visit_monte_carlo_action_values(
     Yields:
         A tuple of steps (count) and q-table.
 
-    Note: the first reward (in the book) is R_{1} for R_{0 + 1};
+    Note: the first reward (in Sutton & Barto, 2018) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
 
@@ -63,9 +63,9 @@ def first_visit_monte_carlo_action_values(
     state_action_updates: DefaultDict[Tuple[int, int], int] = collections.defaultdict(
         int
     )
-    state_action_visits_remaining: DefaultDict[Tuple[int, int], int] = (
-        collections.defaultdict(int)
-    )
+    state_action_visits_remaining: DefaultDict[
+        Tuple[int, int], int
+    ] = collections.defaultdict(int)
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
@@ -144,7 +144,7 @@ def sarsa_action_values(
     Yields:
         A tuple of steps (count) and q-table.
 
-    Note: the first reward (in the book) is R_{1} for R_{0 + 1};
+    Note: the first reward (in Sutton & Barto, 2018) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
     qtable = copy.deepcopy(initial_qtable)
@@ -206,7 +206,7 @@ def first_visit_monte_carlo_state_values(
     Yields:
         A tuple of steps (count) and v-table.
 
-    Note: the first reward (in the book) is R_{1} for R_{0 + 1};
+    Note: the first reward (in Sutton & Barto, 2018) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
     values = copy.deepcopy(initial_values)
@@ -281,7 +281,7 @@ def one_step_td_state_values(
     Yields:
         A tuple of steps (count) and v-table.
 
-    Note: the first reward (in the book) is R_{1} for R_{0 + 1};
+    Note: the first reward (in Sutton & Barto, 2018) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
     values = copy.deepcopy(initial_values)
@@ -342,7 +342,7 @@ def nstep_td_state_values(
     Yields:
         A tuple of steps (count) and v-table.
 
-    Note: the first reward (in the book) is R_{1} for R_{0 + 1};
+    Note: the first reward (in Sutton & Barto, 2018) is R_{1} for R_{0 + 1};
     So index wise, we subtract reward access references by one.
     """
     values = copy.deepcopy(initial_values)
