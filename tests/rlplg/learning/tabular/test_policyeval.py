@@ -781,15 +781,15 @@ def test_offpolicy_nstep_sarsa_action_values_with_two_nsteps_and_one_episode_cov
     )
 
 
-def policy_prob_fn(
-    policy: policies.PyQGreedyPolicy, traj: core.TrajectoryStep
-) -> float:
+def policy_prob_fn(policy: core.PyPolicy, traj: core.TrajectoryStep) -> float:
     """The policy we're evaluating is assumed to be greedy w.r.t. Q(s, a).
     So the best action has probability 1.0, and all the others 0.0.
     In case multiple actions have the same value, the probability is
     equal between them.
     """
-    action_values = policy._state_action_value_table[traj.observation]
+
+    qtable = getattr(policy, "_state_action_value_table")
+    action_values = qtable[traj.observation]
     candidate_actions = np.flatnonzero(action_values == np.max(action_values))
     if traj.action in candidate_actions:
         return 1.0 / len(candidate_actions)

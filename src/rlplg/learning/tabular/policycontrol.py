@@ -18,7 +18,7 @@ from rlplg.learning.tabular import policies
 class PolicyControlSnapshot:
     steps: int
     returns: float
-    values: np.ndarray
+    action_values: np.ndarray
 
 
 def onpolicy_sarsa_control(
@@ -106,7 +106,7 @@ def onpolicy_sarsa_control(
 
         # need to copy qtable because it's a mutable numpy array
         yield PolicyControlSnapshot(
-            steps=len(experiences), returns=returns, values=copy.deepcopy(qtable)
+            steps=len(experiences), returns=returns, action_values=copy.deepcopy(qtable)
         )
 
 
@@ -189,7 +189,7 @@ def onpolicy_qlearning_control(
 
         # need to copy qtable because it's a mutable numpy array
         yield PolicyControlSnapshot(
-            steps=len(experiences), returns=returns, values=copy.deepcopy(qtable)
+            steps=len(experiences), returns=returns, action_values=copy.deepcopy(qtable)
         )
 
 
@@ -297,5 +297,5 @@ def onpolicy_nstep_sarsa_control(
                 steps_counter += 1
         # need to copy qtable because it's a mutable numpy array
         yield PolicyControlSnapshot(
-            steps=len(experiences), returns=returns, values=copy.deepcopy(qtable)
+            steps=len(experiences), returns=returns, action_values=copy.deepcopy(qtable)
         )

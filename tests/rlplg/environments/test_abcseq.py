@@ -3,10 +3,10 @@ import hypothesis.strategies as st
 import numpy as np
 import pytest
 from gymnasium import spaces
-
 from rlplg import core
 from rlplg.core import InitState, TimeStep
 from rlplg.environments import abcseq
+
 from tests.rlplg import dynamics
 
 
@@ -100,8 +100,8 @@ def test_abcseq_render(length: int):
     # one move
     environment.step(0)
     np.testing.assert_array_equal(
-        environment.render(),
-        np.array([1, 1] + [0] * (length - 1)),  # type: ignore
+        environment.render(),  # type: ignore
+        np.array([1, 1] + [0] * (length - 1)),
     )
 
 

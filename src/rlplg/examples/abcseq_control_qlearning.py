@@ -48,7 +48,7 @@ def main(args: Args):
     # init env and policy
     env_spec = envsuite.load(name="ABCSeq", length=args.num_letters)
     # Policy Control with Q-learning
-    for _, qtable in policycontrol.onpolicy_qlearning_control(
+    for snapshot in policycontrol.onpolicy_qlearning_control(
         environment=env_spec.environment,
         num_episodes=args.num_episodes,
         state_id_fn=env_spec.discretizer.state,
@@ -66,11 +66,11 @@ def main(args: Args):
         pass
 
     learned_policy = policies.PyQGreedyPolicy(
-        state_id_fn=env_spec.discretizer.state, action_values=qtable
+        state_id_fn=env_spec.discretizer.state, action_values=snapshot.action_values
     )
     logging.info("Using trained policy to play")
-    logging.info("\n%s", qtable)
-    logging.info(rendering.vis_learned_array(qtable))
+    logging.info("\n%s", snapshot.action_values)
+    logging.info(rendering.vis_learned_array(snapshot.action_values))
     # stats tracking
     stats = tracking.EpisodeStats()
     # play N times

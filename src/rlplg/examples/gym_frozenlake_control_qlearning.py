@@ -47,7 +47,7 @@ def main(args: Args):
     env_spec = envsuite.load("FrozenLake-v1", render_mode="ansi")
     episode = 0
     # Policy Control with Q-learning
-    for _, qtable in policycontrol.onpolicy_qlearning_control(
+    for snapshot in policycontrol.onpolicy_qlearning_control(
         environment=env_spec.environment,
         num_episodes=args.num_episodes,
         state_id_fn=env_spec.discretizer.state,
@@ -65,10 +65,10 @@ def main(args: Args):
         pass
 
     learned_policy = policies.PyQGreedyPolicy(
-        state_id_fn=env_spec.discretizer.state, action_values=qtable
+        state_id_fn=env_spec.discretizer.state, action_values=snapshot.action_values
     )
     logging.info("Using trained policy to play")
-    logging.info("\n%s", rendering.vis_learned_array(qtable))
+    logging.info("\n%s", rendering.vis_learned_array(snapshot.action_values))
     # play N times
     for episode in range(args.play_episodes):
         obs, _ = env_spec.environment.reset()
