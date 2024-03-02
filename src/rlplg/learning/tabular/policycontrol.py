@@ -82,7 +82,7 @@ def onpolicy_sarsa_control(
             generate_episodes(environment, egreedy_policy, 1)
         ):
             experiences.append(traj_step)
-            returns += (gamma**step) * traj_step.reward
+            returns += traj_step.reward
             if step - 1 > 0:
                 # this will be updated in the next `step`
                 # we modify it to avoid changing indeces below.
@@ -164,7 +164,7 @@ def onpolicy_qlearning_control(
             generate_episodes(environment, egreedy_policy, 1)
         ):
             experiences.append(traj_step)
-            returns += (gamma**step) * traj_step.reward
+            returns += traj_step.reward
             if step - 1 > 0:
                 # this will be updated in the next `step`
                 # we modify it to avoid changing indeces below.
@@ -255,7 +255,7 @@ def onpolicy_nstep_sarsa_control(
             generate_episodes(environment, egreedy_policy, 1)
         ):
             experiences.append(traj_step)
-            returns += (gamma**step) * traj_step.reward
+            returns += traj_step.reward
             if step - 1 > 0:
                 # this will be updated in the next `step`
                 # we modify it to avoid changing indeces below.
