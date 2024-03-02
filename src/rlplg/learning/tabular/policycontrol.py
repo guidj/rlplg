@@ -3,7 +3,8 @@ Policy evaluation methods.
 """
 
 import copy
-from typing import Any, Callable, Generator, List, Tuple
+import dataclasses
+from typing import Any, Callable, Generator, List
 
 import gymnasium as gym
 import numpy as np
@@ -11,6 +12,13 @@ import numpy as np
 from rlplg import core, envplay
 from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
+
+
+@dataclasses.dataclass(frozen=True)
+class PolicyControlSnapshot:
+    steps: int
+    returns: float
+    values: np.ndarray
 
 
 def onpolicy_sarsa_control(
@@ -30,7 +38,7 @@ def onpolicy_sarsa_control(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyControlSnapshot, None, None]:
     """
     On-policy Control Sarsa.
     Learns a policy to maximize rewards in an environment.
@@ -69,10 +77,12 @@ def onpolicy_sarsa_control(
     steps_counter = 0
     for episode in range(num_episodes):
         experiences: List[core.TrajectoryStep] = []
+        returns = 0.0
         for step, traj_step in enumerate(
             generate_episodes(environment, egreedy_policy, 1)
         ):
             experiences.append(traj_step)
+            returns += (gamma**step) * traj_step.reward
             if step - 1 > 0:
                 # this will be updated in the next `step`
                 # we modify it to avoid changing indeces below.
@@ -95,7 +105,9 @@ def onpolicy_sarsa_control(
             setattr(egreedy_policy.exploit_policy, "_state_action_value_table", qtable)
 
         # need to copy qtable because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(qtable)
+        yield PolicyControlSnapshot(
+            steps=len(experiences), returns=returns, values=copy.deepcopy(qtable)
+        )
 
 
 def onpolicy_qlearning_control(
@@ -115,7 +127,7 @@ def onpolicy_qlearning_control(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyControlSnapshot, None, None]:
     """
     Implements Q-learning, using epsilon-greedy as a collection (behavior) policy.
 
@@ -147,10 +159,12 @@ def onpolicy_qlearning_control(
     steps_counter = 0
     for episode in range(num_episodes):
         experiences: List[core.TrajectoryStep] = []
+        returns = 0.0
         for step, traj_step in enumerate(
             generate_episodes(environment, egreedy_policy, 1)
         ):
             experiences.append(traj_step)
+            returns += (gamma**step) * traj_step.reward
             if step - 1 > 0:
                 # this will be updated in the next `step`
                 # we modify it to avoid changing indeces below.
@@ -174,7 +188,9 @@ def onpolicy_qlearning_control(
             setattr(egreedy_policy.exploit_policy, "_state_action_value_table", qtable)
 
         # need to copy qtable because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(qtable)
+        yield PolicyControlSnapshot(
+            steps=len(experiences), returns=returns, values=copy.deepcopy(qtable)
+        )
 
 
 def onpolicy_nstep_sarsa_control(
@@ -195,7 +211,7 @@ def onpolicy_nstep_sarsa_control(
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episodes,
-) -> Generator[Tuple[int, np.ndarray], None, None]:
+) -> Generator[PolicyControlSnapshot, None, None]:
     """
     n-step TD learning.
     Estimates V(s) for a fixed policy pi.
@@ -234,10 +250,12 @@ def onpolicy_nstep_sarsa_control(
     for episode in range(num_episodes):
         final_step = np.iinfo(np.int64).max
         experiences: List[core.TrajectoryStep] = []
+        returns = 0.0
         for step, traj_step in enumerate(
             generate_episodes(environment, egreedy_policy, 1)
         ):
             experiences.append(traj_step)
+            returns += (gamma**step) * traj_step.reward
             if step - 1 > 0:
                 # this will be updated in the next `step`
                 # we modify it to avoid changing indeces below.
@@ -252,12 +270,14 @@ def onpolicy_nstep_sarsa_control(
                 if tau >= 0:
                     min_idx = tau + 1
                     max_idx = min(tau + nstep, final_step)
-                    returns = 0.0
+                    nstep_returns = 0.0
 
                     for i in range(min_idx, max_idx + 1):
-                        returns += (gamma ** (i - tau - 1)) * experiences[i - 1].reward
+                        nstep_returns += (gamma ** (i - tau - 1)) * experiences[
+                            i - 1
+                        ].reward
                     if tau + nstep < final_step:
-                        returns += (gamma**nstep) * qtable[
+                        nstep_returns += (gamma**nstep) * qtable[
                             state_id_fn(experiences[tau + nstep].observation),
                             action_id_fn(experiences[tau + nstep].action),
                         ]
@@ -265,7 +285,7 @@ def onpolicy_nstep_sarsa_control(
                     action_id = action_id_fn(experiences[tau].action)
                     alpha = lrs(episode=episode, step=steps_counter)
                     qtable[state_id, action_id] += alpha * (
-                        returns - qtable[state_id, action_id]
+                        nstep_returns - qtable[state_id, action_id]
                     )
                     # update the qtable before generating the
                     # next step in the trajectory
@@ -276,4 +296,6 @@ def onpolicy_nstep_sarsa_control(
                     )
                 steps_counter += 1
         # need to copy qtable because it's a mutable numpy array
-        yield len(experiences), copy.deepcopy(qtable)
+        yield PolicyControlSnapshot(
+            steps=len(experiences), returns=returns, values=copy.deepcopy(qtable)
+        )
