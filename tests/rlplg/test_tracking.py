@@ -95,7 +95,7 @@ def test_episode_stats_with_multiple_steps_episodes(
     )
 )
 def test_episode_stats_with_different_variations(
-    episodes: Sequence[Tuple[Sequence[int], bool]]
+    episodes: Sequence[Tuple[Sequence[int], bool]],
 ):
     stats = tracking.EpisodeStats()
     expected_success = 0

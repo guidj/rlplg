@@ -20,7 +20,7 @@ class Args:
 
     Args:
         num_letters: size of sequence length.
-        num_episodes: for Q-learning.
+        num_episodes: episodes to play.
     """
 
     num_letters: int

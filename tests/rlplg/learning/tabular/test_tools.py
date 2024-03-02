@@ -4,16 +4,7 @@ import hypothesis
 import numpy as np
 import pytest
 from hypothesis import strategies as st
-
 from rlplg.learning.tabular import tools
-from tests import defaults
-
-
-def test_greedy_actions_mask():
-    qtable = defaults.batch([4, 16], [23, 1], [0, 2])
-
-    output = tools.greedy_actions_mask(qtable)
-    np.testing.assert_array_equal(output, [[0, 1], [1, 0], [0, 1]])
 
 
 @hypothesis.given(

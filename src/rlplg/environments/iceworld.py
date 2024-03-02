@@ -454,7 +454,7 @@ def validate_starting_grid(
 
 
 def create_position_from_state_id_fn(
-    states: Mapping[Tuple[int, int], int]
+    states: Mapping[Tuple[int, int], int],
 ) -> Callable[[int], Tuple[int, int]]:
     """
     Creates a function that maps a state ID to a grid (x, y) coordinates.

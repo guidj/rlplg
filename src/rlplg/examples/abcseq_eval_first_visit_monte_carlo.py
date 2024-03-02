@@ -8,8 +8,7 @@ import logging
 
 from rlplg import envsuite
 from rlplg.examples import factories, rendering
-from rlplg.learning.tabular import policies
-from rlplg.learning.tabular.evaluation import onpolicy
+from rlplg.learning.tabular import policies, policyeval
 
 
 @dataclasses.dataclass(frozen=True)
@@ -51,7 +50,7 @@ def main(args: Args):
         emit_log_probability=False,
     )
 
-    results = onpolicy.first_visit_monte_carlo_state_values(
+    results = policyeval.onpolicy_first_visit_monte_carlo_state_values(
         policy=policy,
         environment=env_spec.environment,
         num_episodes=args.num_episodes,
@@ -62,10 +61,10 @@ def main(args: Args):
         ),
     )
 
-    *_, (_, learned_values) = results
+    *_, snapshot = results
 
-    logging.info("\n%s", learned_values)
-    logging.info("\n%s", rendering.vis_learned_array(learned_values))
+    logging.info("\n%s", snapshot.values)
+    logging.info("\n%s", rendering.vis_learned_array(snapshot.values))
     env_spec.environment.close()
 
 

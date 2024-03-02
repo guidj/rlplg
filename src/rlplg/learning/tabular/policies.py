@@ -103,7 +103,7 @@ class PyQGreedyPolicy(core.PyPolicy):
 
         self._state_id_fn = state_id_fn
         self._state_action_value_table = copy.deepcopy(action_values)
-        self._rng = np.random.default_rng(seed=seed)
+        self._rng = random.Random(seed)
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
@@ -119,10 +119,18 @@ class PyQGreedyPolicy(core.PyPolicy):
             raise NotImplementedError(f"Seed is not supported; but got seed: {seed}")
 
         state_id = self._state_id_fn(observation)
-        action = np.argmax(self._state_action_value_table[state_id])
+        candidate_actions = np.flatnonzero(
+            self._state_action_value_table[state_id]
+            == np.max(self._state_action_value_table[state_id])
+        )
+        action = self._rng.choice(candidate_actions)
         if self.emit_log_probability:
             # the best arm has 1.0 probability of being chosen
-            policy_info = {"log_probability": np.array(np.log(1.0), dtype=np.float32)}
+            policy_info = {
+                "log_probability": np.array(
+                    np.log(1.0 / len(candidate_actions)), dtype=np.float32
+                )
+            }
         else:
             policy_info = {}
 
@@ -169,6 +177,10 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
         )
         self.epsilon = epsilon
         self._rng = random.Random(seed)
+        self._probs = {
+            "explore": self.epsilon / self._num_actions,
+            "exploit": self.epsilon / self._num_actions + (1.0 - self.epsilon),
+        }
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
@@ -185,11 +197,7 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
         # greedy move, find out the greedy arm
         explore = self._rng.random() <= self.epsilon
         policy_: core.PyPolicy = self.explore_policy if explore else self.exploit_policy
-        prob = (
-            self.epsilon / self._num_actions
-            if explore
-            else self.epsilon / self._num_actions + (1.0 - self.epsilon)
-        )
+        prob = self._probs["explore"] if explore else self._probs["exploit"]
         policy_step_ = policy_.action(observation, policy_state)
         # Update log-prob in _policy_step
         if self.emit_log_probability:
