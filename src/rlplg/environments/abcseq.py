@@ -56,6 +56,7 @@ LETTERS = [chr(value) for value in range(ord("A"), ord("Z") + 1)]
 NUM_TOKENS = len(LETTERS)
 OBS_KEY_POS = "pos"
 OBS_KEY_LENGTH = "length"
+OBS_KEY_DIST_PENALTY = "distance_penalty"
 
 
 class ABCSeq(gym.Env[Mapping[str, int], int]):
@@ -67,9 +68,10 @@ class ABCSeq(gym.Env[Mapping[str, int], int]):
 
     metadata = {"render.modes": ["raw"]}
 
-    def __init__(self, length: int, render_mode: str = "raw"):
+    def __init__(self, length: int, distance_penalty: bool, render_mode: str = "raw"):
         super().__init__()
         self.length = length
+        self.distance_penalty = distance_penalty
         self.render_mode = render_mode
         if length > NUM_TOKENS or length < MIN_SEQ_LENGTH:
             raise ValueError(
@@ -79,13 +81,16 @@ class ABCSeq(gym.Env[Mapping[str, int], int]):
         self.observation_space = spaces.Dict(
             {
                 "length": spaces.Box(low=self.length, high=self.length, dtype=np.int64),
+                "distance_penalty": spaces.Discrete(2),
                 "pos": spaces.Discrete(self.length + 1),
             }
         )
         self.transition: MutableEnvTransition = {}
         for state in range(self.length + 1):
             self.transition[state] = {}
-            state_obs = state_observation(state, self.length)
+            state_obs = state_observation(
+                state, length=self.length, distance_penalty=self.distance_penalty
+            )
             for action in range(self.length):
                 self.transition[state][action] = []
                 next_state_obs, reward = apply_action(state_obs, action)
@@ -126,7 +131,9 @@ class ABCSeq(gym.Env[Mapping[str, int], int]):
         """
         del options
         self.seed(seed)
-        self._observation = beginning_state(length=self.length)
+        self._observation = beginning_state(
+            length=self.length, distance_penalty=self.distance_penalty
+        )
         return copy.copy(self._observation), {}
 
     def render(self) -> RenderType:
@@ -206,15 +213,18 @@ def _step_reward(observation: Mapping[str, int], action: int) -> float:
     # non terminal state
     if unplaced_tokens > 0:
         next_token = observation[OBS_KEY_POS] + 1
-        if chosen_step == next_token:
-            distance = 0.0
-        elif chosen_step > next_token:
-            distance = chosen_step - next_token
+        if observation[OBS_KEY_DIST_PENALTY]:
+            if chosen_step == next_token:
+                distance = 0.0
+            elif chosen_step > next_token:
+                distance = chosen_step - next_token
+            else:
+                # distance from the current position to the chosen
+                # one, going forward and shifting back to the starting
+                # state
+                distance = (observation[OBS_KEY_LENGTH] - next_token + 1) + chosen_step
         else:
-            # distance from the current position to the chosen
-            # one, going forward and shifting back to the starting
-            # state
-            distance = (observation[OBS_KEY_LENGTH] - next_token + 1) + chosen_step
+            distance = 0.0
         turn_penalty = -1.0
     else:
         # terminal state
@@ -224,14 +234,18 @@ def _step_reward(observation: Mapping[str, int], action: int) -> float:
     return -distance + turn_penalty
 
 
-def beginning_state(length: int) -> Mapping[str, int]:
+def beginning_state(length: int, distance_penalty: bool) -> Mapping[str, int]:
     """
     Args:
         lenght: number of tokens in sequence.
     Returns:
         Initial observation for a starting game.
     """
-    return {OBS_KEY_LENGTH: length, OBS_KEY_POS: 0}
+    return {
+        OBS_KEY_LENGTH: length,
+        OBS_KEY_POS: 0,
+        OBS_KEY_DIST_PENALTY: int(distance_penalty),
+    }
 
 
 def is_terminal_state(observation: Mapping[str, int]) -> bool:
@@ -242,11 +256,11 @@ def is_terminal_state(observation: Mapping[str, int]) -> bool:
     return observation[OBS_KEY_POS] == observation[OBS_KEY_LENGTH]
 
 
-def create_env_spec(length: int) -> core.EnvSpec:
+def create_env_spec(length: int, distance_penalty: bool) -> core.EnvSpec:
     """
     Creates an env spec for ABCSeq.
     """
-    environment = ABCSeq(length=length)
+    environment = ABCSeq(length=length, distance_penalty=distance_penalty)
     discretizer = ABCSeqMdpDiscretizer()
     mdp = core.EnvMdp(
         env_desc=core.EnvDesc(num_states=length + 1, num_actions=length),
@@ -270,13 +284,19 @@ def get_state_id(observation: Mapping[str, int]) -> int:
     return observation[OBS_KEY_POS]
 
 
-def state_observation(state_id: int, length: int) -> Mapping[str, int]:
+def state_observation(
+    state_id: int, length: int, distance_penalty: bool
+) -> Mapping[str, int]:
     """
     Given a state ID for an environment, returns an observation.
     """
     if state_id > length:
         raise ValueError(f"State id should be <= length: {state_id} > {length}")
-    return {OBS_KEY_LENGTH: length, OBS_KEY_POS: state_id}
+    return {
+        OBS_KEY_LENGTH: length,
+        OBS_KEY_DIST_PENALTY: distance_penalty,
+        OBS_KEY_POS: state_id,
+    }
 
 
 def state_representation(observation: Mapping[str, Any]) -> np.ndarray:

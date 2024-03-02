@@ -62,13 +62,12 @@ def test_envsuite_load_with_unsupported_env():
 @pytest.fixture
 def args() -> Mapping[str, Sequence[Mapping[str, Any]]]:
     return {
-        "ABCSeq": [{"length": 3}],
+        "ABCSeq": [{"length": 3, "distance_penalty": False}],
         "CliffWalking-v0": [{"max_episode_steps": 100}],
         "FrozenLake-v1": [{"is_slippery": False}],
         "GridWorld": [{"grid": "xooo\nsoxg"}],
         "RedGreenSeq": [{"cure": ["red", "green", "wait", "green"]}],
         "StateRandomWalk": [{"steps": 3}],
         "IceWorld": [{"map_name": "4x4"}, {"map": "FFFG\nSFHH"}],
-        "Taxi-v3": [{"max_episode_steps": 100}],
         "TowerOfHanoi": [{"num_disks": 4}],
     }

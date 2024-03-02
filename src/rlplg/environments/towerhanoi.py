@@ -194,21 +194,18 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
         S = (0, 0, 0)
             Try to move the second disk to the last peg.
             Nothing changes, since there are disks on top of it.
-            Penalty for moving and for an invalid move.
-            reward = -1 -1 = -2
+            reward = -1
         S = (0, 0, 0)
             Move the top disk from the first peg to the second.
-            Penalty for moving.
             reward = -1
         S = (1, 0, 0)
             Move the top disk from the first peg to the third.
-            Penalty for moving.
             reward = -1
         S = (1, 2, 0)
         ....
         S = (1, 2, 2)
             Move the top disk from the second peg to the third.
-            Penalty for moving. Terminal state
+            Terminal state
             reward = -1
         S = (2, 2, 2)
             Try to move the top disk from the last peg to the first.
@@ -224,23 +221,20 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
 
     # In terminal state already, nothing changes
     if is_terminal_state(observation):
-        move_penalty = 0.0
         reward = 0.0
 
     # No disk to move or dest has smaller disk on top
     elif len(pegs[source]) == 0 or (pegs[dest] and pegs[source][0] > pegs[dest][0]):
-        move_penalty = -1.0
         reward = -1.0
 
     # Ok to move
     else:
-        move_penalty = -1.0
-        reward = 0.0
+        reward = -1.0
         # move top disk from source to dest
         new_observation[OBS_KEY_STATE] = (
             state[: pegs[source][0]] + (dest,) + state[pegs[source][0] + 1 :]
         )
-    return new_observation, move_penalty + reward
+    return new_observation, reward
 
 
 def is_terminal_state(observation: Mapping[str, Any]) -> bool:

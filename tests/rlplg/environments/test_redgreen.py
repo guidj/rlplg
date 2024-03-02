@@ -53,7 +53,7 @@ def test_redgreen_simple_sequence():
                 "cure_sequence": (0, 1, 2),
                 "pos": 0,
             },
-            -2.0,
+            -1.0,
             False,
             False,
             {},
@@ -95,7 +95,7 @@ def test_redgreen_simple_sequence():
                 "cure_sequence": (0, 1, 2),
                 "pos": 2,
             },
-            -2.0,
+            -1.0,
             False,
             False,
             {},
@@ -204,7 +204,7 @@ def test_apply_action_with_wrong_next_action(cure_sequence: Sequence[int]):
         "cure_sequence": cure_sequence,
         "pos": 0,
     }
-    assert output_reward == -2.0
+    assert output_reward == -1.0
 
 
 @hypothesis.given(
