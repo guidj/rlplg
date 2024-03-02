@@ -12,7 +12,7 @@ Done
 S: integer indicating pos: from 0 to 5
 A: integer 3 actions - red, green, wait
 (S x A x S): (0, red, 1), (0, green/wait, 0)
-R: (action penalty of -1) + (-1 if the agent takes the wrong action);
+R: penalty of -1 for every action
 zero for terminal state.
 """
 
@@ -175,36 +175,30 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
 
         S = 0 (starting pos), Action 1 (green treatment)
             new state = 0 (no change from starting pos)
-            reward = -1 - 1 = -2 (one penalty for acting, one for the wrong move)
+            reward = -1
         S = 0 (starting pos), Action 0 (red treatment)
             new state = 1 (has taken the first treatment)
-            reward = -1 + 0 = -1 (one penalty for acting)
+            reward = -1
         S = 1 (first treatment), Action 1 (green treatment)
             new state = 2 (has taken the second treatment)
-            reward = -1 + 0 = -1 (one penalty for acting)
+            reward = -1
         S = 2 (second treatment), Action 0 (red treatment)
             new state = 3 (has taken the third treatment)
-            reward = -1 + 0 = -1 (one penalty for acting)
+            reward = -1
         S = 3 (second treatment), Action 2 (wait treatment)
             new state = 4 (has taken the fourth treatment) - terminal state
-            reward = -1 + 0 = -1 (one penalty for acting)
+            reward = -1
 
     """
     pos = observation[OBS_KEY_POSITION]
     new_observation = dict(observation)
     if is_terminal_state(observation):
-        move_penalty = 0.0
         reward = 0.0
     else:
-        move_penalty = -1.0
         if action == observation[OBS_KEY_CURE_SEQUENCE][pos]:
             new_observation[OBS_KEY_POSITION] += 1
-            reward = 0.0
-        else:
-            # wrong move
-            reward = -1.0
-
-    return new_observation, move_penalty + reward
+        reward = -1.0
+    return new_observation, reward
 
 
 def is_terminal_state(observation: Mapping[str, Any]) -> bool:
