@@ -1,6 +1,6 @@
 """
-Example on using OpenAI Gym's Toy Text CliffWalking:
-https://www.gymlibrary.ml/environments/toy_text/cliff_walking/
+Example of using Q-learning to learn an optimal
+policy an environment.
 """
 
 import argparse
@@ -8,9 +8,12 @@ import dataclasses
 import logging
 import math
 
-from rlplg import envsuite, npsci
+from rlplg import envsuite
 from rlplg.core import TimeStep
-from rlplg.examples import factories, qlearning, rendering
+from rlplg.examples import factories, rendering
+from rlplg.learning.opt import schedules
+from rlplg.learning.tabular import policies
+from rlplg.learning.tabular.control import onpolicy
 
 
 @dataclasses.dataclass(frozen=True)
@@ -45,19 +48,26 @@ def main(args: Args):
     env_spec = envsuite.load("FrozenLake-v1", render_mode="ansi")
     episode = 0
     # Policy Control with Q-learning
-    learned_policy, qtable = qlearning.control(
+    for _, qtable in onpolicy.qlearning(
         environment=env_spec.environment,
         num_episodes=args.num_episodes,
-        state_id_fn=npsci.item,
+        state_id_fn=env_spec.discretizer.state,
+        action_id_fn=env_spec.discretizer.action,
         initial_qtable=factories.initialize_action_values(
             num_states=env_spec.mdp.env_desc.num_states,
             num_actions=env_spec.mdp.env_desc.num_actions,
         ),
-        epsilon=0.5,
+        epsilon=0.1,
         gamma=1.0,
-        alpha=0.1,
-    )
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=lambda lr, _, __: lr
+        ),
+    ):
+        pass
 
+    learned_policy = policies.PyQGreedyPolicy(
+        state_id_fn=env_spec.discretizer.state, action_values=qtable
+    )
     logging.info("Using trained policy to play")
     logging.info("\n%s", rendering.vis_learned_array(qtable))
     # play N times

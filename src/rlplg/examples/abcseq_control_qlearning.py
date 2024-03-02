@@ -9,7 +9,10 @@ import math
 
 from rlplg import envsuite, tracking
 from rlplg.core import TimeStep
-from rlplg.examples import factories, qlearning, rendering
+from rlplg.examples import factories, rendering
+from rlplg.learning.opt import schedules
+from rlplg.learning.tabular import policies
+from rlplg.learning.tabular.control import onpolicy
 
 
 @dataclasses.dataclass(frozen=True)
@@ -45,26 +48,30 @@ def main(args: Args):
     """
     # init env and policy
     env_spec = envsuite.load(name="ABCSeq", length=args.num_letters)
-    epsilon = 0.5
-    alpha = 0.1
-    gamma = 1.0
     # Policy Control with Q-learning
-    learned_policy, learned_qtable = qlearning.control(
-        env_spec.environment,
+    for _, qtable in onpolicy.qlearning(
+        environment=env_spec.environment,
         num_episodes=args.num_episodes,
         state_id_fn=env_spec.discretizer.state,
+        action_id_fn=env_spec.discretizer.action,
         initial_qtable=factories.initialize_action_values(
             num_states=env_spec.mdp.env_desc.num_states,
             num_actions=env_spec.mdp.env_desc.num_actions,
         ),
-        epsilon=epsilon,
-        gamma=gamma,
-        alpha=alpha,
-    )
+        epsilon=0.1,
+        gamma=1.0,
+        lrs=schedules.LearningRateSchedule(
+            initial_learning_rate=0.1, schedule=lambda lr, _, __: lr
+        ),
+    ):
+        pass
 
+    learned_policy = policies.PyQGreedyPolicy(
+        state_id_fn=env_spec.discretizer.state, action_values=qtable
+    )
     logging.info("Using trained policy to play")
-    logging.info("\n%s", learned_qtable)
-    logging.info(rendering.vis_learned_array(learned_qtable))
+    logging.info("\n%s", qtable)
+    logging.info(rendering.vis_learned_array(qtable))
     # stats tracking
     stats = tracking.EpisodeStats()
     # play N times
