@@ -169,6 +169,10 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
         )
         self.epsilon = epsilon
         self._rng = random.Random(seed)
+        self._probs = {
+            "explore": self.epsilon / self._num_actions,
+            "exploit": self.epsilon / self._num_actions + (1.0 - self.epsilon),
+        }
 
     def get_initial_state(self, batch_size: Optional[int] = None) -> Any:
         del batch_size
@@ -185,11 +189,7 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
         # greedy move, find out the greedy arm
         explore = self._rng.random() <= self.epsilon
         policy_: core.PyPolicy = self.explore_policy if explore else self.exploit_policy
-        prob = (
-            self.epsilon / self._num_actions
-            if explore
-            else self.epsilon / self._num_actions + (1.0 - self.epsilon)
-        )
+        prob = self._probs["explore"] if explore else self._probs["exploit"]
         policy_step_ = policy_.action(observation, policy_state)
         # Update log-prob in _policy_step
         if self.emit_log_probability:
