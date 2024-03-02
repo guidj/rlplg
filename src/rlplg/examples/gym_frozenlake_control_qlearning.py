@@ -13,7 +13,7 @@ from rlplg.core import TimeStep
 from rlplg.examples import factories, rendering
 from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
-from rlplg.learning.tabular.control import onpolicy
+from rlplg.learning.tabular.policycontrol import onpolicy
 
 
 @dataclasses.dataclass(frozen=True)

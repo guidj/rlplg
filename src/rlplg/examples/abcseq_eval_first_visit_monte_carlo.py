@@ -9,7 +9,7 @@ import logging
 from rlplg import envsuite
 from rlplg.examples import factories, rendering
 from rlplg.learning.tabular import policies
-from rlplg.learning.tabular.evaluation import onpolicy
+from rlplg.learning.tabular.policyeval import onpolicy
 
 
 @dataclasses.dataclass(frozen=True)

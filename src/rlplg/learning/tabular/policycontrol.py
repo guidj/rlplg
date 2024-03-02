@@ -13,7 +13,7 @@ from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
 
 
-def sarsa_action_values(
+def onpolicy_sarsa_control(
     environment: gym.Env,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
@@ -98,7 +98,7 @@ def sarsa_action_values(
         yield len(experiences), copy.deepcopy(qtable)
 
 
-def qlearning(
+def onpolicy_qlearning_control(
     environment: gym.Env,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
@@ -177,7 +177,7 @@ def qlearning(
         yield len(experiences), copy.deepcopy(qtable)
 
 
-def nstep_sarsa(
+def onpolicy_nstep_sarsa_control(
     environment: gym.Env,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
