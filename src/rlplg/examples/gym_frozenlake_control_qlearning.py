@@ -12,8 +12,7 @@ from rlplg import envsuite
 from rlplg.core import TimeStep
 from rlplg.examples import factories, rendering
 from rlplg.learning.opt import schedules
-from rlplg.learning.tabular import policies
-from rlplg.learning.tabular.policycontrol import onpolicy
+from rlplg.learning.tabular import policies, policycontrol
 
 
 @dataclasses.dataclass(frozen=True)
@@ -48,7 +47,7 @@ def main(args: Args):
     env_spec = envsuite.load("FrozenLake-v1", render_mode="ansi")
     episode = 0
     # Policy Control with Q-learning
-    for _, qtable in onpolicy.qlearning(
+    for _, qtable in policycontrol.onpolicy_qlearning_control(
         environment=env_spec.environment,
         num_episodes=args.num_episodes,
         state_id_fn=env_spec.discretizer.state,
