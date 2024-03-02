@@ -81,16 +81,17 @@ def first_visit_monte_carlo_action_values(
         for experience in experiences:
             key = visit_key(experience)
             state_action_visits_remaining[key] -= 1
-            state_id, action_id = key
             reward = experience.reward
             episode_return = gamma * episode_return + reward
 
             if state_action_visits_remaining[key] == 0:
                 state_action_updates[key] += 1
+                state_id, action_id = key
                 if state_action_updates[key] == 1:
                     # first value
                     qtable[state_id, action_id] = episode_return
                 else:
+                    # average returns
                     qtable[state_id, action_id] = qtable[state_id, action_id] + (
                         (episode_return - qtable[state_id, action_id])
                         / state_action_updates[key]
