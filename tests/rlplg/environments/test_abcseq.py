@@ -100,7 +100,8 @@ def test_abcseq_render(length: int):
     # one move
     environment.step(0)
     np.testing.assert_array_equal(
-        environment.render(), np.array([1, 1] + [0] * (length - 1))  # type: ignore
+        environment.render(),
+        np.array([1, 1] + [0] * (length - 1)),  # type: ignore
     )
 
 
