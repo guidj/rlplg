@@ -156,25 +156,27 @@ def onpolicy_sarsa_action_values(
     qtable = copy.deepcopy(initial_qtable)
     steps_counter = 0
     for episode in range(num_episodes):
-        # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, policy, 1))
-        for step in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[step].observation)
-            action_id = action_id_fn(experiences[step].action)
-            reward = experiences[step].reward
+        experiences: List[core.TrajectoryStep] = []
+        for step, traj_step in enumerate(generate_episodes(environment, policy, 1)):
+            experiences.append(traj_step)
+            if step - 1 >= 0:
+                state_id = state_id_fn(experiences[0].observation)
+                action_id = action_id_fn(experiences[0].action)
+                reward = experiences[0].reward
 
-            next_state_id = state_id_fn(experiences[step + 1].observation)
-            next_action_id = action_id_fn(experiences[step + 1].action)
-            alpha = lrs(episode=episode, step=steps_counter)
-            qtable[state_id, action_id] += alpha * (
-                reward
-                + gamma * qtable[next_state_id, next_action_id]
-                - qtable[state_id, action_id]
-            )
-            steps_counter += 1
+                next_state_id = state_id_fn(experiences[1].observation)
+                next_action_id = action_id_fn(experiences[1].action)
+                alpha = lrs(episode=episode, step=steps_counter)
+                qtable[state_id, action_id] += alpha * (
+                    reward
+                    + gamma * qtable[next_state_id, next_action_id]
+                    - qtable[state_id, action_id]
+                )
+                steps_counter += 1
+                experiences = experiences[1:]
 
         # need to copy qtable because it's a mutable numpy array
-        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(qtable))
+        yield PolicyEvalSnapshot(steps=step + 1, values=copy.deepcopy(qtable))
 
 
 def onpolicy_first_visit_monte_carlo_state_values(
@@ -293,21 +295,23 @@ def onpolicy_one_step_td_state_values(
     values = copy.deepcopy(initial_values)
     steps_counter = 0
     for episode in range(num_episodes):
-        # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, policy, 1))
-        for step in range(len(experiences) - 1):
-            state_id = state_id_fn(experiences[step].observation)
-            next_state_id = state_id_fn(experiences[step + 1].observation)
-            alpha = lrs(episode=episode, step=steps_counter)
-            values[state_id] += alpha * (
-                experiences[step].reward
-                + gamma * values[next_state_id]
-                - values[state_id]
-            )
-            steps_counter += 1
+        experiences: List[core.TrajectoryStep] = []
+        for step, traj_step in enumerate(generate_episodes(environment, policy, 1)):
+            experiences.append(traj_step)
+            if step - 1 >= 0:
+                state_id = state_id_fn(experiences[0].observation)
+                next_state_id = state_id_fn(experiences[1].observation)
+                alpha = lrs(episode=episode, step=steps_counter)
+                values[state_id] += alpha * (
+                    experiences[0].reward
+                    + gamma * values[next_state_id]
+                    - values[state_id]
+                )
+                steps_counter += 1
+                experiences = experiences[1:]
 
         # need to copy values because it's a mutable numpy array
-        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(values))
+        yield PolicyEvalSnapshot(steps=step + 1, values=copy.deepcopy(values))
 
 
 def onpolicy_nstep_td_state_values(
@@ -354,31 +358,38 @@ def onpolicy_nstep_td_state_values(
     values = copy.deepcopy(initial_values)
     steps_counter = 0
     for episode in range(num_episodes):
-        # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, policy, 1))
+        experiences: List[core.TrajectoryStep] = []
         final_step = np.iinfo(np.int64).max
-        for step, _ in enumerate(experiences):
-            if step < final_step:
-                if experiences[step + 1].terminated or experiences[step + 1].truncated:
-                    final_step = step + 1
-            tau = step - nstep + 1
-            if tau >= 0:
-                min_idx = tau + 1
-                max_idx = min(tau + nstep, final_step)
-                returns = 0.0
+        for step, traj_step in enumerate(generate_episodes(environment, policy, 1)):
+            experiences.append(traj_step)
+            if step - 1 >= 0:
+                if step < final_step:
+                    if experiences[1].terminated or experiences[1].truncated:
+                        final_step = step + 1
+                tau = step - nstep + 1
+                if tau >= 0:
+                    # tau + 1
+                    min_idx = 1
+                    # min(tau + nstep, final_step)
+                    max_idx = min(nstep, len(experiences))
+                    returns = 0.0
 
-                for i in range(min_idx, max_idx + 1):
-                    returns += (gamma ** (i - tau - 1)) * experiences[i - 1].reward
-                if tau + nstep < final_step:
-                    returns += (gamma**nstep) * values[
-                        state_id_fn(experiences[tau + nstep].observation),
-                    ]
-                state_id = state_id_fn(experiences[tau].observation)
-                alpha = lrs(episode=episode, step=steps_counter)
-                values[state_id] += alpha * (returns - values[state_id])
-            steps_counter += 1
+                    for i in range(min_idx, max_idx + 1):
+                        # gamma ** (i - tau - 1); experiences[i - 1]
+                        returns += (gamma ** (i - 1)) * experiences[i - 1].reward
+                    if tau + nstep < final_step:
+                        # tau + nstep
+                        returns += (gamma**nstep) * values[
+                            state_id_fn(experiences[nstep - 1].observation),
+                        ]
+                    # tau
+                    state_id = state_id_fn(experiences[0].observation)
+                    alpha = lrs(episode=episode, step=steps_counter)
+                    values[state_id] += alpha * (returns - values[state_id])
+                    experiences = experiences[1:]
+                steps_counter += 1
         # need to copy qtable because it's a mutable numpy array
-        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(values))
+        yield PolicyEvalSnapshot(steps=step + 1, values=copy.deepcopy(values))
 
 
 def offpolicy_monte_carlo_action_values(
@@ -581,45 +592,52 @@ def offpolicy_nstep_sarsa_action_values(
     steps_counter = 0
     for episode in range(num_episodes):
         final_step = np.iinfo(np.int64).max
-        # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, collect_policy, 1))
-        for step, _ in enumerate(experiences):
-            if step < final_step:
-                # we don't need to transition because we already collected the experience
-                # a better way to determine the next state is terminal one
-                if experiences[step + 1].terminated or experiences[step + 1].truncated:
-                    final_step = step + 1
+        experiences: List[core.TrajectoryStep] = []
+        for step, traj_step in enumerate(
+            generate_episodes(environment, collect_policy, 1)
+        ):
+            experiences.append(traj_step)
+            if step - 1 >= 0:
+                if step < final_step:
+                    # we don't need to transition because we already collected the experience
+                    # a better way to determine the next state is terminal one
+                    if experiences[1].terminated or experiences[1].truncated:
+                        final_step = step + 1
 
-            tau = step - nstep + 1
-            if tau >= 0:
-                min_idx = tau + 1
-                max_idx = min(tau + nstep, final_step)
-                rho = 1.0
-                returns = 0.0
+                tau = step - nstep + 1
+                if tau >= 0:
+                    # tau + 1
+                    min_idx = 1
+                    # min(tau + nstep, final_step)
+                    max_idx = min(nstep, len(experiences))
+                    rho = 1.0
+                    returns = 0.0
 
-                for i in range(min_idx, max_idx + 1):
-                    if i < max_idx:
-                        rho *= policy_probability_fn(
-                            policy, experiences[i]
-                        ) / collect_policy_probability_fn(
-                            collect_policy, experiences[i]
-                        )
-                    returns += (gamma ** (i - tau - 1)) * experiences[i - 1].reward
-                if tau + nstep < final_step:
-                    returns += (gamma**nstep) * qtable[
-                        state_id_fn(experiences[tau + nstep].observation),
-                        action_id_fn(experiences[tau + nstep].action),
-                    ]
+                    for i in range(min_idx, max_idx + 1):
+                        if i < max_idx:
+                            rho *= policy_probability_fn(
+                                policy, experiences[i]
+                            ) / collect_policy_probability_fn(
+                                collect_policy, experiences[i]
+                            )
+                        # gamma ** (i - tau - 1); experiences[i - 1]
+                        returns += (gamma ** (i - 1)) * experiences[i - 1].reward
+                    if tau + nstep < final_step:
+                        returns += (gamma**nstep) * qtable[
+                            state_id_fn(experiences[nstep - 1].observation),
+                            action_id_fn(experiences[nstep - 1].action),
+                        ]
 
-                state_id = state_id_fn(experiences[tau].observation)
-                action_id = action_id_fn(experiences[tau].action)
-                alpha = lrs(episode=episode, step=steps_counter)
-                qtable[state_id, action_id] += (
-                    alpha * rho * (returns - qtable[state_id, action_id])
-                )
-            steps_counter += 1
-            if tau == final_step - 1:
-                break
+                    state_id = state_id_fn(experiences[0].observation)
+                    action_id = action_id_fn(experiences[0].action)
+                    alpha = lrs(episode=episode, step=steps_counter)
+                    qtable[state_id, action_id] += (
+                        alpha * rho * (returns - qtable[state_id, action_id])
+                    )
+                    experiences = experiences[1:]
+                steps_counter += 1
+                if tau == final_step - 1:
+                    break
 
         # need to copy qtable because it's a mutable numpy array
-        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(qtable))
+        yield PolicyEvalSnapshot(steps=step + 1, values=copy.deepcopy(qtable))

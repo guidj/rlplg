@@ -12,10 +12,10 @@ in policy evaluation algorithms.
 import gymnasium as gym
 import numpy as np
 import pytest
-
 from rlplg import core
 from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies, policyeval
+
 from tests import defaults
 
 
@@ -475,13 +475,15 @@ def test_onpolicy_nstep_td_state_values_with_two_nstep_and_two_episodes(
     V(2) = 0 + 0.1 * -1
     V(2) = -0.1
 
+    V(s) = [-0.2, -0.2, -0.1, 0]
+
     Episode 2:
-    V(0) = V(0) + 0.1 * (G - V(0)) | G = -2 + -0.1
-    V(0) = -0.2 + 0.1 * (-2.1 - (-0.2))
-    V(0) = -0.2 + 0.1 * (-1.9)
-    V(0) = -0.39
+    V(0) = V(0) + 0.1 * (G - V(0)) | G = -2 + -0.2
+    V(0) = -0.2 + 0.1 * (-2.2 - (-0.2))
+    V(0) = -0.2 + 0.1 * (-2.0)
+    V(0) = -0.4
     ...
-    V(2) = V(2) + 0.1 * (G - V(2)) | G = -1 + 0
+    V(2) = V(2) + 0.1 * (G - V(2)) | G = -1 + -0.1
     V(2) = -0.1 + 0.1 * (-1 - (-0.1))
     V(2) = -0.1 + 0.1 * (-0.9)
     V(2) = -0.19
@@ -508,7 +510,7 @@ def test_onpolicy_nstep_td_state_values_with_two_nstep_and_two_episodes(
     np.testing.assert_allclose(snapshot.values, [-0.2, -0.2, -0.1, 0])
     snapshot = next(output_iter)
     assert snapshot.steps == 4
-    np.testing.assert_allclose(snapshot.values, [-0.39, -0.38, -0.19, 0.0])
+    np.testing.assert_allclose(snapshot.values, [-0.4, -0.39, -0.19, 0.0])
 
 
 def test_offpolicy_monte_carlo_action_values_with_one_episode(
@@ -704,7 +706,7 @@ def test_offpolicy_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
     assert snapshot.steps == 4
     np.testing.assert_array_almost_equal(
         snapshot.values,
-        np.array([[0.0, -0.379525], [0.0, -0.3705], [0.0, -0.19], [0.0, 0.0]]),
+        np.array([[0.0, -0.388099], [0.0, -0.379525], [0.0, -0.19], [0.0, 0.0]]),
     )
 
 
