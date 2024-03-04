@@ -31,6 +31,7 @@ def generate_episodes(
         enviroment: environment to use.
         policy: for rollout.
         num_episodes: number of rollout episodes.
+        max_episode_steps: maximum steps before truncating an episode.
 
     Yields:
         Trajectory instances from episodic rollouts, one step at a time.
@@ -57,7 +58,7 @@ def generate_episode(
     Args:
         enviroment: environment to use.
         policy: for rollout.
-        num_episodes: number of rollout episodes.
+        max_steps: maximum steps before truncating an episode.
 
     Yields:
         Trajectory instances from episodic rollouts, one step at a time.
