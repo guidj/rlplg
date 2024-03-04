@@ -30,14 +30,13 @@ def onpolicy_sarsa_control(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyControlSnapshot, None, None]:
     """
     On-policy Control Sarsa.
@@ -78,9 +77,7 @@ def onpolicy_sarsa_control(
     for episode in range(num_episodes):
         experiences: List[core.TrajectoryStep] = []
         returns = 0.0
-        for step, traj_step in enumerate(
-            generate_episodes(environment, egreedy_policy, 1)
-        ):
+        for step, traj_step in enumerate(generate_episode(environment, egreedy_policy)):
             experiences.append(traj_step)
             returns += traj_step.reward
             if step - 1 >= 0:
@@ -117,14 +114,13 @@ def onpolicy_qlearning_control(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyControlSnapshot, None, None]:
     """
     Implements Q-learning, using epsilon-greedy as a collection (behavior) policy.
@@ -158,9 +154,7 @@ def onpolicy_qlearning_control(
     for episode in range(num_episodes):
         experiences: List[core.TrajectoryStep] = []
         returns = 0.0
-        for step, traj_step in enumerate(
-            generate_episodes(environment, egreedy_policy, 1)
-        ):
+        for step, traj_step in enumerate(generate_episode(environment, egreedy_policy)):
             experiences.append(traj_step)
             returns += traj_step.reward
             if step - 1 > 0:
@@ -199,14 +193,13 @@ def onpolicy_nstep_sarsa_control(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyControlSnapshot, None, None]:
     """
     n-step TD learning.
@@ -247,9 +240,7 @@ def onpolicy_nstep_sarsa_control(
         final_step = np.iinfo(np.int64).max
         experiences: List[core.TrajectoryStep] = []
         returns = 0.0
-        for step, traj_step in enumerate(
-            generate_episodes(environment, egreedy_policy, 1)
-        ):
+        for step, traj_step in enumerate(generate_episode(environment, egreedy_policy)):
             experiences.append(traj_step)
             returns += traj_step.reward
             if step - 1 > 0:

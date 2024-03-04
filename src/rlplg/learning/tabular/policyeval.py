@@ -26,14 +26,13 @@ def onpolicy_first_visit_monte_carlo_action_values(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     First-Visit Monte Carlo Prediction.
@@ -51,7 +50,7 @@ def onpolicy_first_visit_monte_carlo_action_values(
         action_id_fn: A function that maps actions to an int ID for
             the Q(s,a) table.
         initial_qtable: Initial action-value estimates.
-        generate_episodes: A function that generates episodic
+        generate_episode: A function that generates episodic
             trajectories given an environment and policy.
 
     Yields:
@@ -74,7 +73,7 @@ def onpolicy_first_visit_monte_carlo_action_values(
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        _experiences = list(generate_episodes(environment, policy, 1))
+        _experiences = list(generate_episode(environment, policy))
         # reverse list and ammortize state visits
         experiences: List[core.TrajectoryStep] = []
         while len(_experiences) > 0:
@@ -115,14 +114,13 @@ def onpolicy_sarsa_action_values(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     On-policy Sarsa Prediction.
@@ -144,7 +142,7 @@ def onpolicy_sarsa_action_values(
         action_id_fn: A function that maps actions to an int ID for
             the Q(s,a) table.
         initial_qtable: Initial action-value estimates.
-        generate_episodes: A function that generates episodic
+        generate_episode: A function that generates episodic
             trajectories given an environment and policy.
 
     Yields:
@@ -157,7 +155,7 @@ def onpolicy_sarsa_action_values(
     steps_counter = 0
     for episode in range(num_episodes):
         experiences: List[core.TrajectoryStep] = []
-        for step, traj_step in enumerate(generate_episodes(environment, policy, 1)):
+        for step, traj_step in enumerate(generate_episode(environment, policy)):
             experiences.append(traj_step)
             if step - 1 >= 0:
                 state_id = state_id_fn(experiences[0].observation)
@@ -186,14 +184,13 @@ def onpolicy_first_visit_monte_carlo_state_values(
     gamma: float,
     state_id_fn: Callable[[Any], int],
     initial_values: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     First-Visit Monte Carlo Prediction.
@@ -208,7 +205,7 @@ def onpolicy_first_visit_monte_carlo_state_values(
         state_id_fn: A function that maps observations to an int ID for
             the V(s) table.
         initial_values: Initial state-value estimates.
-        generate_episodes: A function that generates episodic
+        generate_episode: A function that generates episodic
             trajectories given an environment and policy.
 
     Yields:
@@ -223,7 +220,7 @@ def onpolicy_first_visit_monte_carlo_state_values(
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences_ = list(generate_episodes(environment, policy, 1))
+        experiences_ = list(generate_episode(environment, policy))
         # reverse list and ammortize state visits
         experiences: List[core.TrajectoryStep] = []
         while len(experiences_) > 0:
@@ -260,14 +257,13 @@ def onpolicy_one_step_td_state_values(
     gamma: float,
     state_id_fn: Callable[[Any], int],
     initial_values: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     TD(0) or one-step TD.
@@ -283,7 +279,7 @@ def onpolicy_one_step_td_state_values(
         state_id_fn: A function that maps observations to an int ID for
             the V(s) table.
         initial_values: Initial state-value estimates.
-        generate_episodes: A function that generates episodic
+        generate_episode: A function that generates episodic
             trajectories given an environment and policy.
 
     Yields:
@@ -296,7 +292,7 @@ def onpolicy_one_step_td_state_values(
     steps_counter = 0
     for episode in range(num_episodes):
         experiences: List[core.TrajectoryStep] = []
-        for step, traj_step in enumerate(generate_episodes(environment, policy, 1)):
+        for step, traj_step in enumerate(generate_episode(environment, policy)):
             experiences.append(traj_step)
             if step - 1 >= 0:
                 state_id = state_id_fn(experiences[0].observation)
@@ -323,14 +319,13 @@ def onpolicy_nstep_td_state_values(
     nstep: int,
     state_id_fn: Callable[[Any], int],
     initial_values: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     n-step TD learning.
@@ -346,7 +341,7 @@ def onpolicy_nstep_td_state_values(
         state_id_fn: A function that maps observations to an int ID for
             the V(s) table.
         initial_values: Initial state-value estimates.
-        generate_episodes: A function that generates episodic
+        generate_episode: A function that generates episodic
             trajectories given an environment and policy.
 
     Yields:
@@ -360,7 +355,7 @@ def onpolicy_nstep_td_state_values(
     for episode in range(num_episodes):
         experiences: List[core.TrajectoryStep] = []
         final_step = np.iinfo(np.int64).max
-        for step, traj_step in enumerate(generate_episodes(environment, policy, 1)):
+        for step, traj_step in enumerate(generate_episode(environment, policy)):
             experiences.append(traj_step)
             if step - 1 >= 0:
                 if step < final_step:
@@ -409,14 +404,13 @@ def offpolicy_monte_carlo_action_values(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """Off-policy MC Prediction.
     Estimates Q (table) for a fixed policy pi.
@@ -443,7 +437,7 @@ def offpolicy_monte_carlo_action_values(
         action_id_fn: A function that maps actions to an int ID for
             the Q(s,a) table.
         initial_qtable: Initial action-value estimates.
-        generate_episodes: A function that generates episodic
+        generate_episode: A function that generates episodic
             trajectories given an environment and policy.
 
     Yields:
@@ -459,7 +453,7 @@ def offpolicy_monte_carlo_action_values(
     cu_sum = np.zeros_like(initial_qtable)
 
     for _ in range(num_episodes):
-        experiences = list(generate_episodes(environment, collect_policy, 1))
+        experiences = list(generate_episode(environment, collect_policy))
         num_steps = len(experiences)
         returns, weight = 0.0, 1.0
         # process from the ending
@@ -541,14 +535,13 @@ def offpolicy_nstep_sarsa_action_values(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     Off-policy n-step Sarsa Prediction.
@@ -576,7 +569,7 @@ def offpolicy_nstep_sarsa_action_values(
         action_id_fn: A function that maps actions to an int ID for
             the Q(s,a) table.
         initial_qtable: Initial action-value estimates.
-        generate_episodes: A function that generates episodic
+        generate_episode: A function that generates episodic
             trajectories given an environment and policy.
 
     Yields:
@@ -593,9 +586,7 @@ def offpolicy_nstep_sarsa_action_values(
     for episode in range(num_episodes):
         final_step = np.iinfo(np.int64).max
         experiences: List[core.TrajectoryStep] = []
-        for step, traj_step in enumerate(
-            generate_episodes(environment, collect_policy, 1)
-        ):
+        for step, traj_step in enumerate(generate_episode(environment, collect_policy)):
             experiences.append(traj_step)
             if step - 1 >= 0:
                 if step < final_step:
