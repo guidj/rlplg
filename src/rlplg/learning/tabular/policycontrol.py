@@ -60,7 +60,7 @@ def onpolicy_sarsa_control(
             trajectories given an environment and policy.
 
     Yields:
-        A tuple of steps (count) and q-table.
+        A `PolicyControlSnapshot` for each episode.
 
     Note: the first reward (Sutton & Barto) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
@@ -140,7 +140,7 @@ def onpolicy_qlearning_control(
             trajectories given an environment and policy.
 
     Yields:
-        A tuple of steps (count) and q-table.
+        A `PolicyControlSnapshot` for each episode.
     """
     egreedy_policy = policies.PyEpsilonGreedyPolicy(
         policy=policies.PyQGreedyPolicy(
@@ -202,8 +202,7 @@ def onpolicy_nstep_sarsa_control(
     ] = envplay.generate_episode,
 ) -> Generator[PolicyControlSnapshot, None, None]:
     """
-    n-step TD learning.
-    Estimates V(s) for a fixed policy pi.
+    n-step SARSA learning for policy control.
     Source: https://en.wikipedia.org/wiki/Temporal_difference_learning
 
     Args:
@@ -222,7 +221,7 @@ def onpolicy_nstep_sarsa_control(
             trajectories given an environment and policy.
 
     Yields:
-        A tuple of steps (count) and v-table.
+        A `PolicyControlSnapshot` for each episode.
 
     Note: the first reward (in Sutton & Barto, 2018) is R_{1} for R_{0 + 1};
     So index wise, we subtract reward access references by one.
