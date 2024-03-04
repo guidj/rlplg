@@ -20,14 +20,13 @@ def gradient_monte_carlo_state_values(
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     estimator: modelspec.ApproxFn,
-    generate_episodes: Callable[
+    generate_episode: Callable[
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episodes,
+    ] = envplay.generate_episode,
 ) -> Generator[Tuple[int, modelspec.ApproxFn], None, None]:
     """
     Gradient monte-carlo based uses returns to
@@ -36,7 +35,7 @@ def gradient_monte_carlo_state_values(
     steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episodes(environment, policy, 1))
+        experiences = list(generate_episode(environment, policy))
         episode_return = np.sum([experience.reward for experience in experiences])
         # while step isn't last
         for experience in experiences:
