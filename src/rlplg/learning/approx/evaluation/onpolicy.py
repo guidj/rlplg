@@ -24,7 +24,6 @@ def gradient_monte_carlo_state_values(
         [
             gym.Env,
             core.PyPolicy,
-            int,
         ],
         Generator[core.TrajectoryStep, None, None],
     ] = envplay.generate_episode,
@@ -36,7 +35,7 @@ def gradient_monte_carlo_state_values(
     steps_counter = 0
     for episode in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        experiences = list(generate_episode(environment, policy, np.inf))
+        experiences = list(generate_episode(environment, policy))
         episode_return = np.sum([experience.reward for experience in experiences])
         # while step isn't last
         for experience in experiences:
