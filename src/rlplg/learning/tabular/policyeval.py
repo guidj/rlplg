@@ -430,7 +430,6 @@ def onpolicy_nstep_td_state_values(
                 state_id = state_id_fn(experiences[tau].observation)
                 alpha = lrs(episode=episode, step=steps_counter)
                 values[state_id] += alpha * (returns - values[state_id])
-
                 steps_counter += 1
             step += 1
         # need to copy qtable because it's a mutable numpy array
