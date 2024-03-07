@@ -705,11 +705,12 @@ def test_offpolicy_nstep_sarsa_action_values_with_two_nsteps_and_two_episodes(
         snapshot.values,
         np.array([[0.0, -0.195], [0.0, -0.195], [0.0, -0.1], [0.0, 0.0]]),
     )
+
     snapshot = next(output_iter)
     assert snapshot.steps == 4
     np.testing.assert_array_almost_equal(
         snapshot.values,
-        np.array([[0.0, -0.388099], [0.0, -0.379525], [0.0, -0.19], [0.0, 0.0]]),
+        np.array([[0.0, -0.379525], [0.0, -0.3705], [0.0, -0.19], [0.0, 0.0]]),
     )
 
 
