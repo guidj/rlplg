@@ -154,24 +154,39 @@ def onpolicy_sarsa_action_values(
     qtable = copy.deepcopy(initial_qtable)
     steps_counter = 0
     for episode in range(num_episodes):
-        experiences: List[core.TrajectoryStep] = []
-        for step, traj_step in enumerate(generate_episode(environment, policy)):
-            experiences.append(traj_step)
-            if step - 1 >= 0:
-                state_id = state_id_fn(experiences[0].observation)
-                action_id = action_id_fn(experiences[0].action)
-                reward = experiences[0].reward
+        experiences: Dict[int, core.TrajectoryStep] = {}
+        trajectory = generate_episode(environment, policy)
+        step = 0
+        # `traj_step_idx` tracks the step in the traj
+        traj_step_idx = 0
+        while True:
+            try:
+                traj_step = next(trajectory)
+                experiences[traj_step_idx] = traj_step
+                traj_step_idx += 1
+            except StopIteration:
+                break
 
-                next_state_id = state_id_fn(experiences[1].observation)
-                next_action_id = action_id_fn(experiences[1].action)
-                alpha = lrs(episode=episode, step=steps_counter)
-                qtable[state_id, action_id] += alpha * (
-                    reward
-                    + gamma * qtable[next_state_id, next_action_id]
-                    - qtable[state_id, action_id]
-                )
-                steps_counter += 1
-                experiences = experiences[1:]
+            # SARSA requires at least one next state
+            if len(experiences) < 2:
+                continue
+            # keep the last n steps
+            experiences.pop(step - 2, None)
+
+            state_id = state_id_fn(experiences[step].observation)
+            action_id = action_id_fn(experiences[step].action)
+            reward = experiences[step].reward
+
+            next_state_id = state_id_fn(experiences[step + 1].observation)
+            next_action_id = action_id_fn(experiences[step + 1].action)
+            alpha = lrs(episode=episode, step=steps_counter)
+            qtable[state_id, action_id] += alpha * (
+                reward
+                + gamma * qtable[next_state_id, next_action_id]
+                - qtable[state_id, action_id]
+            )
+            steps_counter += 1
+            step += 1
 
         # need to copy qtable because it's a mutable numpy array
         yield PolicyEvalSnapshot(steps=step + 1, values=copy.deepcopy(qtable))
