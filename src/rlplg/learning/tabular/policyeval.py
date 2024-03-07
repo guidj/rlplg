@@ -1,7 +1,7 @@
 import collections
 import copy
 import dataclasses
-from typing import Any, Callable, DefaultDict, Generator, List, Tuple
+from typing import Any, Callable, DefaultDict, Dict, Generator, List, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -350,41 +350,58 @@ def onpolicy_nstep_td_state_values(
     Note: the first reward (in Sutton & Barto, 2018) is R_{1} for R_{0 + 1};
     So index wise, we subtract reward access references by one.
     """
+
     values = copy.deepcopy(initial_values)
     steps_counter = 0
     for episode in range(num_episodes):
-        experiences: List[core.TrajectoryStep] = []
         final_step = np.iinfo(np.int64).max
-        for step, traj_step in enumerate(generate_episode(environment, policy)):
-            experiences.append(traj_step)
-            if step - 1 >= 0:
-                if step < final_step:
-                    if experiences[1].terminated or experiences[1].truncated:
-                        final_step = step + 1
-                tau = step - nstep + 1
-                if tau >= 0:
-                    # tau + 1
-                    min_idx = 1
-                    # min(tau + nstep, final_step)
-                    max_idx = min(nstep, len(experiences))
-                    returns = 0.0
+        experiences: Dict[int, core.TrajectoryStep] = {}
+        trajectory = generate_episode(environment, policy)
+        step = 0
+        # `traj_step_idx` tracks the step in the traj
+        traj_step_idx = 0
+        # In the absence of a step as terminal
+        # or truncated, `empty_steps` prevents
+        # infinite loops
+        empty_steps = 0
+        while True:
+            if step > final_step or empty_steps > nstep:
+                break
+            try:
+                traj_step = next(trajectory)
+                experiences[traj_step_idx] = traj_step
+                traj_step_idx += 1
+            except StopIteration:
+                empty_steps += 1
 
-                    for i in range(min_idx, max_idx + 1):
-                        # gamma ** (i - tau - 1); experiences[i - 1]
-                        returns += (gamma ** (i - 1)) * experiences[i - 1].reward
-                    if tau + nstep < final_step:
-                        # tau + nstep
-                        returns += (gamma**nstep) * values[
-                            state_id_fn(experiences[nstep - 1].observation),
-                        ]
-                    # tau
-                    state_id = state_id_fn(experiences[0].observation)
-                    alpha = lrs(episode=episode, step=steps_counter)
-                    values[state_id] += alpha * (returns - values[state_id])
-                    experiences = experiences[1:]
+            # SARSA requires at least one next state
+            if len(experiences) < 2:
+                continue
+            # keep the last n steps
+            experiences.pop(step - nstep, None)
+
+            if step < final_step:
+                if experiences[step + 1].terminated or experiences[step + 1].truncated:
+                    final_step = step + 1
+            tau = step - nstep + 1
+            if tau >= 0:
+                min_idx = tau + 1
+                max_idx = min(tau + nstep, final_step)
+                returns = 0.0
+                for i in range(min_idx, max_idx + 1):
+                    returns += (gamma ** (i - tau - 1)) * experiences[i - 1].reward
+                if tau + nstep < final_step:
+                    returns += (gamma**nstep) * values[
+                        state_id_fn(experiences[tau + nstep].observation),
+                    ]
+                state_id = state_id_fn(experiences[tau].observation)
+                alpha = lrs(episode=episode, step=steps_counter)
+                values[state_id] += alpha * (returns - values[state_id])
+
                 steps_counter += 1
+            step += 1
         # need to copy qtable because it's a mutable numpy array
-        yield PolicyEvalSnapshot(steps=step + 1, values=copy.deepcopy(values))
+        yield PolicyEvalSnapshot(steps=traj_step_idx, values=copy.deepcopy(values))
 
 
 def offpolicy_monte_carlo_action_values(
