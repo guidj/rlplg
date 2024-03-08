@@ -111,7 +111,7 @@ def onpolicy_sarsa_control(
             )
             # update the qtable before generating the
             # next step in the trajectory
-            setattr(egreedy_policy.exploit_policy, "_state_action_value_table", qtable)
+            egreedy_policy.exploit_policy.set_action_values(qtable)
             steps_counter += 1
             step += 1
 
@@ -205,7 +205,7 @@ def onpolicy_qlearning_control(
             )
             # update the qtable before generating the
             # next step in the trajectory
-            setattr(egreedy_policy.exploit_policy, "_state_action_value_table", qtable)
+            egreedy_policy.exploit_policy.set_action_values(qtable)
             steps_counter += 1
             step += 1
 
@@ -322,11 +322,7 @@ def onpolicy_nstep_sarsa_control(
                 )
                 # update the qtable before generating the
                 # next step in the trajectory
-                setattr(
-                    egreedy_policy.exploit_policy,
-                    "_state_action_value_table",
-                    qtable,
-                )
+                egreedy_policy.exploit_policy.set_action_values(qtable)
                 steps_counter += 1
             step += 1
         # need to copy qtable because it's a mutable numpy array
