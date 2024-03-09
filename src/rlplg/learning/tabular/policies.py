@@ -140,6 +140,12 @@ class PyQGreedyPolicy(core.PyPolicy):
             info=policy_info,
         )
 
+    def set_action_values(self, action_values: np.ndarray) -> None:
+        """
+        Overrides q-table.
+        """
+        self._state_action_value_table = action_values
+
 
 class PyEpsilonGreedyPolicy(core.PyPolicy):
     """
