@@ -144,7 +144,7 @@ class PyQGreedyPolicy(core.PyPolicy):
         """
         Overrides q-table.
         """
-        self._state_action_value_table = copy.deepcopy(action_values)
+        self._state_action_value_table = action_values
 
 
 class PyEpsilonGreedyPolicy(core.PyPolicy):

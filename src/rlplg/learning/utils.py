@@ -9,6 +9,7 @@ import numpy as np
 from numpy.typing import DTypeLike
 
 from rlplg import core
+from rlplg.learning.tabular import policies
 
 
 def policy_prob_fn(policy: core.PyPolicy, traj: core.TrajectoryStep) -> float:
@@ -75,3 +76,15 @@ def nan_or_inf(array: Union[np.ndarray, int, float]) -> bool:
     is_nan: bool = np.any(np.isnan(array)).item()
     is_inf: bool = np.any(np.isinf(array)).item()
     return is_nan or is_inf
+
+
+def create_egreedy_policy(
+    initial_qtable: np.ndarray, state_id_fn: Callable[[Any], int], epsilon: float
+) -> policies.PyEpsilonGreedyPolicy:
+    return policies.PyEpsilonGreedyPolicy(
+        policy=policies.PyQGreedyPolicy(
+            state_id_fn=state_id_fn, action_values=initial_qtable
+        ),
+        num_actions=initial_qtable.shape[1],
+        epsilon=epsilon,
+    )

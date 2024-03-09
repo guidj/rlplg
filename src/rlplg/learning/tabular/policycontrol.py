@@ -10,8 +10,11 @@ import gymnasium as gym
 import numpy as np
 
 from rlplg import core, envplay
+from rlplg.learning import utils
 from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
+
+EntityIdFn = Callable[[Any], int]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -30,6 +33,9 @@ def onpolicy_sarsa_control(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
+    create_egreedy_policy: Callable[
+        [np.ndarray, EntityIdFn, float], policies.PyEpsilonGreedyPolicy
+    ] = utils.create_egreedy_policy,
     generate_episode: Callable[
         [
             gym.Env,
@@ -65,14 +71,8 @@ def onpolicy_sarsa_control(
     Note: the first reward (Sutton & Barto) is R_{1} for R_{0 + 1};
     So index wise, we subtract them all by one.
     """
-    egreedy_policy = policies.PyEpsilonGreedyPolicy(
-        policy=policies.PyQGreedyPolicy(
-            state_id_fn=state_id_fn, action_values=initial_qtable
-        ),
-        num_actions=initial_qtable.shape[1],
-        epsilon=epsilon,
-    )
     qtable = copy.deepcopy(initial_qtable)
+    egreedy_policy = create_egreedy_policy(qtable, state_id_fn, epsilon)
     steps_counter = 0
     for episode in range(num_episodes):
         experiences: Dict[int, core.TrajectoryStep] = {}
@@ -130,6 +130,9 @@ def onpolicy_qlearning_control(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
+    create_egreedy_policy: Callable[
+        [np.ndarray, EntityIdFn, float], policies.PyEpsilonGreedyPolicy
+    ] = utils.create_egreedy_policy,
     generate_episode: Callable[
         [
             gym.Env,
@@ -158,14 +161,8 @@ def onpolicy_qlearning_control(
     Yields:
         A `PolicyControlSnapshot` for each episode.
     """
-    egreedy_policy = policies.PyEpsilonGreedyPolicy(
-        policy=policies.PyQGreedyPolicy(
-            state_id_fn=state_id_fn, action_values=initial_qtable
-        ),
-        num_actions=initial_qtable.shape[1],
-        epsilon=epsilon,
-    )
     qtable = copy.deepcopy(initial_qtable)
+    egreedy_policy = create_egreedy_policy(qtable, state_id_fn, epsilon)
     steps_counter = 0
     for episode in range(num_episodes):
         experiences: Dict[int, core.TrajectoryStep] = {}
@@ -225,6 +222,9 @@ def onpolicy_nstep_sarsa_control(
     state_id_fn: Callable[[Any], int],
     action_id_fn: Callable[[Any], int],
     initial_qtable: np.ndarray,
+    create_egreedy_policy: Callable[
+        [np.ndarray, EntityIdFn, float], policies.PyEpsilonGreedyPolicy
+    ] = utils.create_egreedy_policy,
     generate_episode: Callable[
         [
             gym.Env,
@@ -259,13 +259,7 @@ def onpolicy_nstep_sarsa_control(
     So index wise, we subtract reward access references by one.
     """
     qtable = copy.deepcopy(initial_qtable)
-    egreedy_policy = policies.PyEpsilonGreedyPolicy(
-        policy=policies.PyQGreedyPolicy(
-            state_id_fn=state_id_fn, action_values=initial_qtable
-        ),
-        num_actions=initial_qtable.shape[1],
-        epsilon=epsilon,
-    )
+    egreedy_policy = create_egreedy_policy(qtable, state_id_fn, epsilon)
     steps_counter = 0
     for episode in range(num_episodes):
         final_step = np.iinfo(np.int64).max
