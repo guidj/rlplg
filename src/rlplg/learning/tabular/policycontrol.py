@@ -1,5 +1,5 @@
 """
-Policy evaluation methods.
+Policy control methods.
 """
 
 import copy
