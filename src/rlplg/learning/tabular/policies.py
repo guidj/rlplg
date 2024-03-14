@@ -125,7 +125,6 @@ class PyQGreedyPolicy(core.PyPolicy):
         )
         action = self._rng.choice(candidate_actions)
         if self.emit_log_probability:
-            # the best arm has 1.0 probability of being chosen
             policy_info = {
                 "log_probability": np.array(
                     np.log(1.0 / len(candidate_actions)), dtype=np.float32
