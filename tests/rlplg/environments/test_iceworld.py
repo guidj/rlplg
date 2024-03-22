@@ -6,9 +6,9 @@ import pytest
 from gymnasium import spaces
 from hypothesis import strategies as st
 from PIL import Image as image
-
 from rlplg import core
 from rlplg.environments import iceworld
+
 from tests.rlplg import dynamics
 from tests.rlplg.environments import worlds
 
@@ -99,6 +99,22 @@ def test_iceworld_transition_into_lake():
     assert truncated is False
     assert info == {}
 
+    obs, reward, terminated, truncated, info = environment.step(iceworld.RIGHT)
+    assert_observation(
+        obs,
+        {
+            "start": (3, 0),
+            "agent": (3, 1),
+            "lakes": [(3, 1)],
+            "goals": [(3, 11)],
+            "size": (4, 12),
+        },
+    )
+    assert reward == 0
+    assert terminated is True
+    assert truncated is False
+    assert info == {}
+
 
 def test_iceworld_final_step():
     environment = iceworld.IceWorld(
@@ -117,6 +133,22 @@ def test_iceworld_final_step():
         },
     )
     assert reward == -1.0
+    assert terminated is True
+    assert truncated is False
+    assert info == {}
+
+    obs, reward, terminated, truncated, info = environment.step(iceworld.RIGHT)
+    assert_observation(
+        obs,
+        {
+            "start": (3, 0),
+            "agent": (3, 1),
+            "lakes": [],
+            "goals": [(3, 1)],
+            "size": (4, 12),
+        },
+    )
+    assert reward == 0
     assert terminated is True
     assert truncated is False
     assert info == {}
