@@ -6,9 +6,9 @@ import pytest
 from gymnasium import spaces
 from hypothesis import strategies as st
 from PIL import Image as image
-
 from rlplg import core
 from rlplg.environments import gridworld
+
 from tests.rlplg import dynamics
 from tests.rlplg.environments import worlds
 
@@ -117,6 +117,22 @@ def test_gridworld_final_step():
         },
     )
     assert reward == -1.0
+    assert terminated is True
+    assert truncated is False
+    assert info == {}
+
+    obs, reward, terminated, truncated, info = environment.step(gridworld.RIGHT)
+    assert_observation(
+        obs,
+        {
+            "start": (3, 0),
+            "agent": (3, 1),
+            "cliffs": [],
+            "exits": [(3, 1)],
+            "size": (4, 12),
+        },
+    )
+    assert reward == 0
     assert terminated is True
     assert truncated is False
     assert info == {}

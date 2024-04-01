@@ -79,12 +79,14 @@ def nan_or_inf(array: Union[np.ndarray, int, float]) -> bool:
 
 
 def create_egreedy_policy(
-    initial_qtable: np.ndarray, state_id_fn: Callable[[Any], int], epsilon: float
+    initial_values: np.ndarray, state_id_fn: Callable[[Any], int], epsilon: float
 ) -> policies.PyEpsilonGreedyPolicy:
+    if len(initial_values.shape) != 2:
+        raise ValueError(f"Expecting a 2D array. Got: {initial_values.shape}")
     return policies.PyEpsilonGreedyPolicy(
         policy=policies.PyQGreedyPolicy(
-            state_id_fn=state_id_fn, action_values=initial_qtable
+            state_id_fn=state_id_fn, action_values=initial_values
         ),
-        num_actions=initial_qtable.shape[1],
+        num_actions=initial_values.shape[1],
         epsilon=epsilon,
     )

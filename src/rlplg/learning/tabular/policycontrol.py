@@ -4,17 +4,17 @@ Policy control methods.
 
 import copy
 import dataclasses
-from typing import Any, Callable, Dict, Generator
+import typing
+from typing import Dict, Generator
 
 import gymnasium as gym
 import numpy as np
 
 from rlplg import core, envplay
+from rlplg.core import MapsToIntId
 from rlplg.learning import utils
 from rlplg.learning.opt import schedules
 from rlplg.learning.tabular import policies
-
-EntityIdFn = Callable[[Any], int]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -24,25 +24,27 @@ class PolicyControlSnapshot:
     action_values: np.ndarray
 
 
+class CreatesEGreedyPolicy(typing.Protocol):
+    def __call__(
+        self,
+        initial_values: np.ndarray,
+        state_id_fn: MapsToIntId,
+        epsilon: float,
+    ) -> policies.PyEpsilonGreedyPolicy:
+        ...
+
+
 def onpolicy_sarsa_control(
     environment: gym.Env,
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     gamma: float,
     epsilon: float,
-    state_id_fn: Callable[[Any], int],
-    action_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
+    action_id_fn: MapsToIntId,
     initial_qtable: np.ndarray,
-    create_egreedy_policy: Callable[
-        [np.ndarray, EntityIdFn, float], policies.PyEpsilonGreedyPolicy
-    ] = utils.create_egreedy_policy,
-    generate_episode: Callable[
-        [
-            gym.Env,
-            core.PyPolicy,
-        ],
-        Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episode,
+    create_egreedy_policy: CreatesEGreedyPolicy = utils.create_egreedy_policy,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
 ) -> Generator[PolicyControlSnapshot, None, None]:
     """
     On-policy Control Sarsa.
@@ -127,19 +129,11 @@ def onpolicy_qlearning_control(
     lrs: schedules.LearningRateSchedule,
     gamma: float,
     epsilon: float,
-    state_id_fn: Callable[[Any], int],
-    action_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
+    action_id_fn: MapsToIntId,
     initial_qtable: np.ndarray,
-    create_egreedy_policy: Callable[
-        [np.ndarray, EntityIdFn, float], policies.PyEpsilonGreedyPolicy
-    ] = utils.create_egreedy_policy,
-    generate_episode: Callable[
-        [
-            gym.Env,
-            core.PyPolicy,
-        ],
-        Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episode,
+    create_egreedy_policy: CreatesEGreedyPolicy = utils.create_egreedy_policy,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
 ) -> Generator[PolicyControlSnapshot, None, None]:
     """
     Implements Q-learning, using epsilon-greedy as a collection (behavior) policy.
@@ -219,19 +213,11 @@ def onpolicy_nstep_sarsa_control(
     gamma: float,
     epsilon: float,
     nstep: int,
-    state_id_fn: Callable[[Any], int],
-    action_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
+    action_id_fn: MapsToIntId,
     initial_qtable: np.ndarray,
-    create_egreedy_policy: Callable[
-        [np.ndarray, EntityIdFn, float], policies.PyEpsilonGreedyPolicy
-    ] = utils.create_egreedy_policy,
-    generate_episode: Callable[
-        [
-            gym.Env,
-            core.PyPolicy,
-        ],
-        Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episode,
+    create_egreedy_policy: CreatesEGreedyPolicy = utils.create_egreedy_policy,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
 ) -> Generator[PolicyControlSnapshot, None, None]:
     """
     n-step SARSA learning for policy control.

@@ -1,12 +1,13 @@
 import collections
 import copy
 import dataclasses
-from typing import Any, Callable, DefaultDict, Dict, Generator, List, Tuple
+from typing import Callable, DefaultDict, Dict, Generator, List, Tuple
 
 import gymnasium as gym
 import numpy as np
 
 from rlplg import core, envplay
+from rlplg.core import MapsToIntId
 from rlplg.learning.opt import schedules
 
 MCUpdate = collections.namedtuple("MCUpdate", ["returns", "cu_sum", "value", "weight"])
@@ -23,16 +24,10 @@ def onpolicy_first_visit_monte_carlo_action_values(
     environment: gym.Env,
     num_episodes: int,
     gamma: float,
-    state_id_fn: Callable[[Any], int],
-    action_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
+    action_id_fn: MapsToIntId,
     initial_qtable: np.ndarray,
-    generate_episode: Callable[
-        [
-            gym.Env,
-            core.PyPolicy,
-        ],
-        Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episode,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     First-Visit Monte Carlo Prediction.
@@ -111,16 +106,10 @@ def onpolicy_sarsa_action_values(
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     gamma: float,
-    state_id_fn: Callable[[Any], int],
-    action_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
+    action_id_fn: MapsToIntId,
     initial_qtable: np.ndarray,
-    generate_episode: Callable[
-        [
-            gym.Env,
-            core.PyPolicy,
-        ],
-        Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episode,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     On-policy Sarsa Prediction.
@@ -198,15 +187,9 @@ def onpolicy_first_visit_monte_carlo_state_values(
     environment: gym.Env,
     num_episodes: int,
     gamma: float,
-    state_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
     initial_values: np.ndarray,
-    generate_episode: Callable[
-        [
-            gym.Env,
-            core.PyPolicy,
-        ],
-        Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episode,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     First-Visit Monte Carlo Prediction.
@@ -271,15 +254,9 @@ def onpolicy_one_step_td_state_values(
     num_episodes: int,
     lrs: schedules.LearningRateSchedule,
     gamma: float,
-    state_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
     initial_values: np.ndarray,
-    generate_episode: Callable[
-        [
-            gym.Env,
-            core.PyPolicy,
-        ],
-        Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episode,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     TD(0) or one-step TD.
@@ -349,15 +326,9 @@ def onpolicy_nstep_td_state_values(
     lrs: schedules.LearningRateSchedule,
     gamma: float,
     nstep: int,
-    state_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
     initial_values: np.ndarray,
-    generate_episode: Callable[
-        [
-            gym.Env,
-            core.PyPolicy,
-        ],
-        Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episode,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """
     n-step TD learning.
@@ -450,16 +421,10 @@ def offpolicy_monte_carlo_action_values(
         [core.PyPolicy, core.TrajectoryStep],
         float,
     ],
-    state_id_fn: Callable[[Any], int],
-    action_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
+    action_id_fn: MapsToIntId,
     initial_qtable: np.ndarray,
-    generate_episode: Callable[
-        [
-            gym.Env,
-            core.PyPolicy,
-        ],
-        Generator[core.TrajectoryStep, None, None],
-    ] = envplay.generate_episode,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
 ) -> Generator[PolicyEvalSnapshot, None, None]:
     """Off-policy MC Prediction.
     Estimates Q (table) for a fixed policy pi.
@@ -581,8 +546,8 @@ def offpolicy_nstep_sarsa_action_values(
         [core.PyPolicy, core.TrajectoryStep],
         float,
     ],
-    state_id_fn: Callable[[Any], int],
-    action_id_fn: Callable[[Any], int],
+    state_id_fn: MapsToIntId,
+    action_id_fn: MapsToIntId,
     initial_qtable: np.ndarray,
     generate_episode: Callable[
         [
