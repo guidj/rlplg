@@ -6,9 +6,12 @@ import abc
 import base64
 import dataclasses
 import hashlib
+import typing
 from typing import (
     Any,
+    Callable,
     Dict,
+    Generator,
     List,
     Mapping,
     Optional,
@@ -33,6 +36,7 @@ StateTransition = Mapping[int, Sequence[Tuple[float, int, float, bool]]]
 EnvTransition = Mapping[int, StateTransition]
 MutableStateTransition = Dict[int, List[Tuple[float, int, float, bool]]]
 MutableEnvTransition = Dict[int, MutableStateTransition]
+MapsToIntId = Callable[[Any], int]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -250,6 +254,13 @@ class EnvMdp(Mdp):
             The mapping of state-action transition.
         """
         return self.__transition
+
+
+class GeneratesEpisode(typing.Protocol):
+    def __call__(
+        self, environment: gym.Env, policy: PyPolicy, max_steps: Optional[int] = None
+    ) -> Generator[TrajectoryStep, None, None]:
+        ...
 
 
 def infer_env_terminal_states(transition: EnvTransition) -> Set[int]:
