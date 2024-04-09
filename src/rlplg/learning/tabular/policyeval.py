@@ -68,16 +68,21 @@ def onpolicy_first_visit_monte_carlo_action_values(
 
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
-        _experiences = list(generate_episode(environment, policy))
+        experiences_ = list(generate_episode(environment, policy))
+        num_steps = len(experiences_)
         # reverse list and ammortize state visits
         experiences: List[core.TrajectoryStep] = []
-        while len(_experiences) > 0:
-            experience = _experiences.pop()
+        while len(experiences_) > 0:
+            experience = experiences_.pop()
             state_action_visits_remaining[visit_key(experience)] += 1
             experiences.append(experience)
 
         episode_return = 0.0
-        for experience in experiences:
+        while True:
+            try:
+                experience = experiences.pop(0)
+            except IndexError:
+                break
             key = visit_key(experience)
             state_action_visits_remaining[key] -= 1
             reward = experience.reward
@@ -97,7 +102,7 @@ def onpolicy_first_visit_monte_carlo_action_values(
                     )
 
         # need to copy values because it's a mutable numpy array
-        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(qtable))
+        yield PolicyEvalSnapshot(steps=num_steps, values=copy.deepcopy(qtable))
 
 
 def onpolicy_sarsa_action_values(
@@ -220,6 +225,7 @@ def onpolicy_first_visit_monte_carlo_state_values(
     for _ in range(num_episodes):
         # This can be memory intensive, for long episodes and large state/action representations.
         experiences_ = list(generate_episode(environment, policy))
+        num_steps = len(experiences_)
         # reverse list and ammortize state visits
         experiences: List[core.TrajectoryStep] = []
         while len(experiences_) > 0:
@@ -228,7 +234,11 @@ def onpolicy_first_visit_monte_carlo_state_values(
             experiences.append(experience)
 
         episode_return = 0.0
-        for experience in experiences:
+        while True:
+            try:
+                experience = experiences.pop(0)
+            except IndexError:
+                break
             state_id = state_id_fn(experience.observation)
             reward = experience.reward
             episode_return = gamma * episode_return + reward
@@ -245,7 +255,7 @@ def onpolicy_first_visit_monte_carlo_state_values(
                 state_updates[state_id] += 1
 
         # need to copy values because it's a mutable numpy array
-        yield PolicyEvalSnapshot(steps=len(experiences), values=copy.deepcopy(values))
+        yield PolicyEvalSnapshot(steps=num_steps, values=copy.deepcopy(values))
 
 
 def onpolicy_one_step_td_state_values(
@@ -471,36 +481,35 @@ def offpolicy_monte_carlo_action_values(
         num_steps = len(experiences)
         returns, weight = 0.0, 1.0
         # process from the ending
-        iterator = reversed(experiences)
         while weight != 0.0:
             try:
-                experience = next(iterator)
-                state_id, action_id, reward = (
-                    state_id_fn(experience.observation),
-                    action_id_fn(experience.action),
-                    experience.reward,
-                )
-                policy_prob = policy_probability_fn(policy, experience)
-                collect_policy_prob = collect_policy_probability_fn(
-                    collect_policy, experience
-                )
-                rho = policy_prob / collect_policy_prob
-                (
-                    returns,
-                    cu_sum[state_id, action_id],
-                    qtable[state_id, action_id],
-                    weight,
-                ) = offpolicy_monte_carlo_action_values_step(
-                    reward=reward,
-                    returns=returns,
-                    cu_sum=cu_sum[state_id, action_id],
-                    weight=weight,
-                    value=qtable[state_id, action_id],
-                    rho=rho,
-                    gamma=gamma,
-                )
-            except StopIteration:
+                experience = experiences.pop()
+            except IndexError:
                 break
+            state_id, action_id, reward = (
+                state_id_fn(experience.observation),
+                action_id_fn(experience.action),
+                experience.reward,
+            )
+            policy_prob = policy_probability_fn(policy, experience)
+            collect_policy_prob = collect_policy_probability_fn(
+                collect_policy, experience
+            )
+            rho = policy_prob / collect_policy_prob
+            (
+                returns,
+                cu_sum[state_id, action_id],
+                qtable[state_id, action_id],
+                weight,
+            ) = offpolicy_monte_carlo_action_values_step(
+                reward=reward,
+                returns=returns,
+                cu_sum=cu_sum[state_id, action_id],
+                weight=weight,
+                value=qtable[state_id, action_id],
+                rho=rho,
+                gamma=gamma,
+            )
         # need to copy qtable because it's a mutable numpy array
         yield PolicyEvalSnapshot(steps=num_steps, values=copy.deepcopy(qtable))
 
