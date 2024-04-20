@@ -91,15 +91,18 @@ def onpolicy_first_visit_monte_carlo_action_values(
             if state_action_visits_remaining[key] == 0:
                 state_action_updates[key] += 1
                 state_id, action_id = key
-                if state_action_updates[key] == 1:
-                    # first value
-                    qtable[state_id, action_id] = episode_return
+                if experience.terminated:
+                    qtable[state_id, action_id] = 0.0
                 else:
-                    # average returns
-                    qtable[state_id, action_id] = qtable[state_id, action_id] + (
-                        (episode_return - qtable[state_id, action_id])
-                        / state_action_updates[key]
-                    )
+                    if state_action_updates[key] == 1:
+                        # first value
+                        qtable[state_id, action_id] = episode_return
+                    else:
+                        # average returns
+                        qtable[state_id, action_id] = qtable[state_id, action_id] + (
+                            (episode_return - qtable[state_id, action_id])
+                            / state_action_updates[key]
+                        )
 
         # need to copy values because it's a mutable numpy array
         yield PolicyEvalSnapshot(steps=num_steps, values=copy.deepcopy(qtable))
@@ -175,11 +178,15 @@ def onpolicy_sarsa_action_values(
             next_state_id = state_id_fn(experiences[step + 1].observation)
             next_action_id = action_id_fn(experiences[step + 1].action)
             alpha = lrs(episode=episode, step=steps_counter)
-            qtable[state_id, action_id] += alpha * (
-                reward
-                + gamma * qtable[next_state_id, next_action_id]
-                - qtable[state_id, action_id]
-            )
+
+            if experiences[step].terminated:
+                qtable[state_id, action_id] = 0.0
+            else:
+                qtable[state_id, action_id] += alpha * (
+                    reward
+                    + gamma * qtable[next_state_id, next_action_id]
+                    - qtable[state_id, action_id]
+                )
             steps_counter += 1
             step += 1
 
@@ -244,14 +251,19 @@ def onpolicy_first_visit_monte_carlo_state_values(
             episode_return = gamma * episode_return + reward
             state_visits[state_id] -= 1
 
+            # update non-terminal states
             if state_visits[state_id] == 0:
-                if state_updates[state_id] == 0:
-                    # first value
-                    values[state_id] = episode_return
+                if experience.terminated:
+                    values[state_id] = 0.0
                 else:
-                    values[state_id] = values[state_id] + (
-                        (episode_return - values[state_id]) / state_updates[state_id]
-                    )
+                    if state_updates[state_id] == 0:
+                        # first value
+                        values[state_id] = episode_return
+                    else:
+                        values[state_id] = values[state_id] + (
+                            (episode_return - values[state_id])
+                            / state_updates[state_id]
+                        )
                 state_updates[state_id] += 1
 
         # need to copy values because it's a mutable numpy array
@@ -317,11 +329,15 @@ def onpolicy_one_step_td_state_values(
             state_id = state_id_fn(experiences[step].observation)
             next_state_id = state_id_fn(experiences[step + 1].observation)
             alpha = lrs(episode=episode, step=steps_counter)
-            values[state_id] += alpha * (
-                experiences[step].reward
-                + gamma * values[next_state_id]
-                - values[state_id]
-            )
+
+            if experiences[step].terminated:
+                values[state_id] = 0.0
+            else:
+                values[state_id] += alpha * (
+                    experiences[step].reward
+                    + gamma * values[next_state_id]
+                    - values[state_id]
+                )
             steps_counter += 1
             step += 1
 
@@ -410,7 +426,10 @@ def onpolicy_nstep_td_state_values(
                     ]
                 state_id = state_id_fn(experiences[tau].observation)
                 alpha = lrs(episode=episode, step=steps_counter)
-                values[state_id] += alpha * (returns - values[state_id])
+                if experiences[tau].terminated:
+                    values[state_id] = 0.0
+                else:
+                    values[state_id] += alpha * (returns - values[state_id])
                 steps_counter += 1
             step += 1
         # need to copy qtable because it's a mutable numpy array
@@ -496,10 +515,11 @@ def offpolicy_monte_carlo_action_values(
                 collect_policy, experience
             )
             rho = policy_prob / collect_policy_prob
+
             (
                 returns,
                 cu_sum[state_id, action_id],
-                qtable[state_id, action_id],
+                state_value,
                 weight,
             ) = offpolicy_monte_carlo_action_values_step(
                 reward=reward,
@@ -510,6 +530,10 @@ def offpolicy_monte_carlo_action_values(
                 rho=rho,
                 gamma=gamma,
             )
+            if experience.terminated:
+                qtable[state_id, action_id] = 0.0
+            else:
+                qtable[state_id, action_id] = state_value
         # need to copy qtable because it's a mutable numpy array
         yield PolicyEvalSnapshot(steps=num_steps, values=copy.deepcopy(qtable))
 
@@ -660,9 +684,13 @@ def offpolicy_nstep_sarsa_action_values(
                 state_id = state_id_fn(experiences[tau].observation)
                 action_id = action_id_fn(experiences[tau].action)
                 alpha = lrs(episode=episode, step=steps_counter)
-                qtable[state_id, action_id] += (
-                    alpha * rho * (returns - qtable[state_id, action_id])
-                )
+
+                if experiences[tau].terminated:
+                    qtable[state_id, action_id] = 0.0
+                else:
+                    qtable[state_id, action_id] += (
+                        alpha * rho * (returns - qtable[state_id, action_id])
+                    )
                 steps_counter += 1
             if tau == final_step - 1:
                 break
