@@ -76,7 +76,6 @@ commands = [["uv", "run", "mkdocs", "build"]]
 
 [tool.tox.env.manifest]
 deps = ["check-manifest"]
-skip_install = true
 commands = [["check-manifest"]]
 
 [tool.tox.env.check-formatting]

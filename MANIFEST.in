@@ -18,5 +18,8 @@ include pyproject.toml
 include Makefile
 recursive-include src *.typed
 
+# deps
+include uv.lock
+
 # notebooks
 recursive-include notebooks *.ipynb
