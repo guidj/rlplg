@@ -17,7 +17,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 urls = {Homepage = "https://github.com/guidj/rlplg"}
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "gymnasium>=0.29.1",
     "pillow>=10.4.0",
@@ -61,7 +61,7 @@ no_package = true
 use_develop = true
 
 [tool.tox.env_run_base]
-base_python = ["3.12"]
+base_python = ["3.12", "3.11"]
 deps = ["-r{toxinidir}/pyproject.toml"]
 install_command = ["uv", "pip", "install", "{opts}", "{packages}"]
 allowlist_externals = ["uv"]
