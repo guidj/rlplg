@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rlplg"
-version = "0.20.2"
+version = "0.20.3"
 authors = [{name = "guilherme", email = "guilherme@dsv.su.se"}]
 maintainers = [{name = "guilherme", email = "guilherme@dsv.su.se"}]
 description = "RL-Playground"
@@ -38,7 +38,7 @@ where = ["src"]
 namespaces = false
 
 [tool.bumpver]
-current_version = "0.20.2"
+current_version = "0.20.3"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message = "bump version {old_version} -> {new_version}"
 tag_message = "{new_version}"
