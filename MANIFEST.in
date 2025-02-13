@@ -1,6 +1,5 @@
 # Include anything required to run the library that is *not* a Python file in `src/`
-include *.txt tox.ini .coveragerc *.rst *.md
-include *.in
+include .coveragerc *.rst *.md
 recursive-include tests *.py
 exclude mkdocs.yml
 
@@ -15,10 +14,8 @@ recursive-include sbin *.sh
 recursive-include assets *.h5
 
 # config
-include .isort.cfg
-include .bumpversion.cfg
+include pyproject.toml
 include Makefile
-include mypy.ini
 recursive-include src *.typed
 
 # notebooks
