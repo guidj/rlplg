@@ -66,7 +66,7 @@ def iterative_policy_evaluation(
             delta,
             np.abs(current_state_values - new_state_values),
         )
-        if np.alltrue(delta < accuracy):
+        if np.all(delta < accuracy):
             return m_state_values[0, :]
 
 

@@ -1,4 +1,4 @@
-gymnasium>=0.28.1
-pillow>=8.1.0
-scipy>=1.8.1
-numpy>=1.23.5
+gymnasium>=0.29.1
+pillow>=10.4.0
+scipy>=1.14.1
+numpy>=1.26.4

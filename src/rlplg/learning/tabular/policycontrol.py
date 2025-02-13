@@ -30,8 +30,7 @@ class CreatesEGreedyPolicy(typing.Protocol):
         initial_values: np.ndarray,
         state_id_fn: MapsToIntId,
         epsilon: float,
-    ) -> policies.PyEpsilonGreedyPolicy:
-        ...
+    ) -> policies.PyEpsilonGreedyPolicy: ...
 
 
 def onpolicy_sarsa_control(

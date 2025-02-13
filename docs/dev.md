@@ -1,6 +1,14 @@
 # Setup Development
 
-Create a new virtual environment with for your supported Python version. Within that virtualenv:
+Create a new virtual environment with for your supported Python version. 
+
+Then, install `uv` and `tox`.
+
+```shell
+pip install uv tox -v
+```
+
+Within that virtualenv:
 
 ```shell
 $ pip install -r dev-requirements.txt -e .f

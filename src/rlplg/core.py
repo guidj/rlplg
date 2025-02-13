@@ -259,8 +259,7 @@ class EnvMdp(Mdp):
 class GeneratesEpisode(typing.Protocol):
     def __call__(
         self, environment: gym.Env, policy: PyPolicy, max_steps: Optional[int] = None
-    ) -> Generator[TrajectoryStep, None, None]:
-        ...
+    ) -> Generator[TrajectoryStep, None, None]: ...
 
 
 def infer_env_terminal_states(transition: EnvTransition) -> Set[int]:
