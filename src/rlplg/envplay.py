@@ -7,7 +7,7 @@ import math
 from typing import Generator, Optional
 
 import gymnasium as gym
-from gymnasium.wrappers import time_limit
+from gymnasium import wrappers as gym_wrappers
 
 from rlplg import core
 from rlplg.core import TimeStep
@@ -64,7 +64,7 @@ def generate_episode(
         Trajectory instances from episodic rollouts, one step at a time.
     """
     if max_steps is not None:
-        environment = time_limit.TimeLimit(environment, max_episode_steps=max_steps)
+        environment = gym_wrappers.TimeLimit(environment, max_episode_steps=max_steps)
     obs, _ = environment.reset()
     policy_state = policy.get_initial_state()
     time_step: TimeStep = obs, math.nan, False, False, {}
