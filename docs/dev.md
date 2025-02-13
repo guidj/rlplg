@@ -1,29 +1,23 @@
 # Setup Development
 
-Create a new virtual environment with for your supported Python version. 
+First, install uv to create a virtual env
 
 Then, install `uv` and `tox`.
 
 ```shell
-pip install uv tox -v
+brew install uv -v
+# creates a virtual env under .venv
+uv tool install tox
 ```
 
 Within that virtualenv:
 
 ```shell
-$ pip install -r dev-requirements.txt -e .f
+$ uv sync
 ```
 
 This will install development dependencies, followed by installing this package itself as ["editable"](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs).
 
-
-## Creating Agents, Policies and Environments
-
-The simplest approach to creating environments and policies is to use the *Py compatible APIs in OpenAI Gym with python semantics (standard types, for loops, comprehensions) and numpy.
-These can be wrapped into tensorflow compatiable version.
-For tabular use cases, the numpy version can be more efficient.
-
-It's easier to test, debug, and update.
 
 ## Run Tests
 
@@ -58,7 +52,7 @@ $ tox
 
 # run a specific environment
 $ tox -e docs
-$ tox -e py36
+$ tox -e test
 ```
 
 See [tox's documentation](https://tox.readthedocs.io/en/latest/) for more information.
@@ -66,15 +60,8 @@ See [tox's documentation](https://tox.readthedocs.io/en/latest/) for more inform
 
 ## Managing dependencies
 
-This repository uses `pip-tools` to manage dependencies.
-Requirements are specified in input files, e.g. [requirements.in](../requirements.in).
-To compile them, install `pip-tools` (`pip install pip-tools`) and run
-
-```
-pip-compile requirements.in
-```
-
-It will produce a `requirements.txt` file.
+This repository uses `uv` to manage dependencies.
+Requirements are specified in input files, e.g. [pyproject.toml](../pyproject.toml).
 
 ## Generate Documentation
 

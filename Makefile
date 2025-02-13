@@ -1,16 +1,9 @@
-pip-compile: requirements.in test-requirements.in docs-requirements.in dev-requirements.in rendering-requirements.in
-	uv pip compile --no-emit-index-url --no-emit-find-links requirements.in -o requirements.txt
-	uv pip compile --no-emit-index-url --no-emit-find-links test-requirements.in -o test-requirements.txt
-	uv pip compile --no-emit-index-url --no-emit-find-links docs-requirements.in -o docs-requirements.txt
-	uv pip compile --no-emit-index-url --no-emit-find-links dev-requirements.in -o dev-requirements.txt
-	uv pip compile --no-emit-index-url --no-emit-find-links rendering-requirements.in -o rendering-requirements.txt
-
-pip-install:
-	uv pip install -r dev-requirements.txt -e .
+pip-sync:
+	uv sync
 
 format:
-	ruff format src tests
-	ruff check --fix
+	uv run ruff format src tests
+	uv run ruff check --fix
 
 test-coverage:
-	pytest --cov-report=html --cov=src tests
+	uv run pytest --cov-report=html --cov=src tests
