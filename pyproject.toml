@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rlplg"
-version = "0.19.11"
+version = "0.20.1"
 authors = [{name = "guilherme", email = "guilherme@dsv.su.se"}]
 maintainers = [{name = "guilherme", email = "guilherme@dsv.su.se"}]
 description = "RL-Playground"
@@ -52,6 +52,9 @@ push = "True"
 [tool.bumpver.file_patterns]
 "src/rlplg/__init__.py" = [
     '^__version__ = "{version}"$',
+]
+"pyproject.toml" = [
+    '^version = "{version}"$',
 ]
 
 [tool.tox]
