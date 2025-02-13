@@ -13,6 +13,10 @@ from rlplg.learning import utils
 from rlplg.learning.approx import modelspec
 from rlplg.learning.opt import schedules
 
+# TODO: This fn needs to know that approfn is a linear function;
+# TODO: the approximatr and method are coupled
+# TODO: this is why they used agents in tf agents
+
 
 def gradient_monte_carlo_state_values(
     policy: core.PyPolicy,
@@ -40,15 +44,17 @@ def gradient_monte_carlo_state_values(
         # while step isn't last
         for experience in experiences:
             alpha = lrs(episode=episode, step=steps_counter)
-            state_value = estimator.predict(experience.observation)
-            gradients = estimator.gradients(experience.observation)
-            weights = estimator.weights()
-            new_weights = weights + alpha * (episode_return - state_value) * gradients
-
+            state_value, gradients = estimator.predict_and_gradients(
+                experience.observation
+            )
             if utils.nan_or_inf(state_value):
                 raise RuntimeError(f"Value estimate is NaN or Inf: {state_value}")
             if utils.nan_or_inf(gradients):
                 raise RuntimeError(f"Gradients are NaN or Inf: {gradients}")
+
+            weights = estimator.weights()
+            new_weights = weights + alpha * (episode_return - state_value) * gradients
+
             estimator.assign_weights(new_weights)
             # update returns for the next state
             episode_return -= experience.reward

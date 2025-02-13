@@ -41,5 +41,5 @@ There is a penalty of $-1$ for every move, with the exception of actions taken i
 ```
 from rlplg import envsuite
 
-env_spec = envsuite.load(name="TowerOfHanoi", is_slippery=False)
+env_spec = envsuite.load(name="TowerOfHanoi")
 ```

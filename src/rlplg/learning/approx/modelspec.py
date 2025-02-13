@@ -114,3 +114,30 @@ class ApproxFn:
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(model: {self._model})"
+
+
+class Agent:
+    def initialize():
+        """"""
+
+    def train(
+        experience: Any,
+    ):
+        """"""
+
+    @property
+    def estimator():
+        """"""
+
+        # state_value = agent.predict(experience.observation)
+        # gradients = agent.gradients(experience.observation)
+        # weights = agent.weights()
+        # new_weights = (
+        #     weights + learning_rate * (episode_return - state_value) * gradients
+        # )
+
+        # if utils.nan_or_inf(state_value):
+        #     raise RuntimeError(f"Value estimate is NaN or Inf: {state_value}")
+        # if utils.nan_or_inf(gradients):
+        #     raise RuntimeError(f"Gradients are NaN or Inf: {gradients}")
+        # agent.assign_weights(new_weights)

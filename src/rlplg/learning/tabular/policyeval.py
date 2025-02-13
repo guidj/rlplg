@@ -1,7 +1,7 @@
 import collections
 import copy
 import dataclasses
-from typing import Callable, DefaultDict, Dict, Generator, List, Tuple
+from typing import Any, Callable, DefaultDict, Dict, Generator, List, Tuple
 
 import gymnasium as gym
 import numpy as np
@@ -106,6 +106,35 @@ def onpolicy_first_visit_monte_carlo_action_values(
 
         # need to copy values because it's a mutable numpy array
         yield PolicyEvalSnapshot(steps=num_steps, values=copy.deepcopy(qtable))
+
+
+class ValueFn:
+    def get_init():
+        pass
+
+    def get_value(state: Any):
+        pass
+        # internally convert to in
+        # look value
+        # return
+
+    def update(state: Any, returns: float):
+        pass
+        # self.w is internal
+
+
+# def onpolicy_sarsa_action_values(
+#     policy: core.PyPolicy,
+#     environment: gym.Env,
+#     num_episodes: int,
+#     lrs: schedules.LearningRateSchedule,
+#     gamma: float,
+#     ValueFn {
+#         init: get_init_value,
+
+#     }
+#     generate_episode: core.GeneratesEpisode = envplay.generate_episode,
+# ) -> Generator[PolicyEvalSnapshot, None, None]:
 
 
 def onpolicy_sarsa_action_values(

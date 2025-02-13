@@ -40,6 +40,32 @@ def onpolicy_sarsa_control(
     lrs: schedules.LearningRateSchedule,
     gamma: float,
     epsilon: float,
+    initial_qtable: np.ndarray,
+    create_egreedy_policy: CreatesEGreedyPolicy = utils.create_egreedy_policy,
+    generate_episode: core.GeneratesEpisode = envplay.generate_episode,
+):
+    pass
+
+
+class Policy:
+    pass
+
+    # get_init
+    # get_value()?
+    # get_action(state) -> env understandable action
+    # do mapping internally
+    # update()
+
+    # define wrappers for environments elsewhere;
+    # pass the right wrapper
+
+
+def onpolicy_sarsa_control(
+    environment: gym.Env,
+    num_episodes: int,
+    lrs: schedules.LearningRateSchedule,
+    gamma: float,
+    epsilon: float,
     state_id_fn: MapsToIntId,
     action_id_fn: MapsToIntId,
     initial_qtable: np.ndarray,
