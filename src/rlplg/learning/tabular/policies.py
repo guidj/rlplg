@@ -167,7 +167,7 @@ class PyEpsilonGreedyPolicy(core.PyPolicy):
         if emit_log_probability != getattr(policy, "emit_log_probability"):
             raise ValueError(
                 f"""emit_log_probability differs between given policy and constructor argument:
-                policy.emit_log_probability={getattr(policy, 'emit_log_probability')},
+                policy.emit_log_probability={getattr(policy, "emit_log_probability")},
                 emit_log_probability={emit_log_probability}""",
             )
 
