@@ -38,25 +38,25 @@ where = ["src"]
 namespaces = false
 
 [tool.bumpver]
-current_version = '"0.20.2"'
-version_pattern = '"MAJOR.MINOR.PATCH[PYTAGNUM]"'
-commit_message = '"bump version {old_version} -> {new_version}"'
-tag_message = '"{new_version}"'
-tag_scope = '"default"'
-pre_commit_hook = '""'
-post_commit_hook = '""'
+current_version = "0.20.2"
+version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
+commit_message = "bump version {old_version} -> {new_version}"
+tag_message = "{new_version}"
+tag_scope = "default"
+pre_commit_hook = ""
+post_commit_hook = ""
 commit = "True"
 tag = "True"
 push = "True"
 
 [tool.bumpver.file_patterns]
-"src/rlplg/__init__.py" = [
-    '^__version__ = "{version}"$',
-]
 "pyproject.toml" = [
     '^version = "{version}"$',
     '^current_version = "{version}"$',
 
+]
+"src/rlplg/__init__.py" = [
+    '^__version__ = "{version}"$',
 ]
 
 [tool.tox]
