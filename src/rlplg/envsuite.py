@@ -156,7 +156,7 @@ def __parse_gym_env_desc(environment: gym.Env) -> core.EnvDesc:
         if isinstance(environment.action_space, spaces.Discrete)
         else np.inf
     )
-    return core.EnvDesc(num_states=num_states, num_actions=num_actions)
+    return core.EnvDesc(num_states=num_states, num_actions=num_actions)  # type: ignore
 
 
 def __parse_gym_env_transition(environment: gym.Env) -> EnvTransition:
