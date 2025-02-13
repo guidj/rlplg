@@ -1,5 +1,5 @@
 -r requirements.txt
 -r test-requirements.txt
 -r docs-requirements.txt
-bumpversion>=0.5.3
+bumpver
 ruff>=0.8.6
