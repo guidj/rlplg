@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rlplg"
-version = "0.19.11"
+version = "0.20.3"
 authors = [{name = "guilherme", email = "guilherme@dsv.su.se"}]
 maintainers = [{name = "guilherme", email = "guilherme@dsv.su.se"}]
 description = "RL-Playground"
@@ -38,18 +38,23 @@ where = ["src"]
 namespaces = false
 
 [tool.bumpver]
-current_version = '"0.20.1"'
-version_pattern = '"MAJOR.MINOR.PATCH[PYTAGNUM]"'
-commit_message = '"bump version {old_version} -> {new_version}"'
-tag_message = '"{new_version}"'
-tag_scope = '"default"'
-pre_commit_hook = '""'
-post_commit_hook = '""'
+current_version = "0.20.3"
+version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
+commit_message = "bump version {old_version} -> {new_version}"
+tag_message = "{new_version}"
+tag_scope = "default"
+pre_commit_hook = ""
+post_commit_hook = ""
 commit = "True"
 tag = "True"
 push = "True"
 
 [tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    '^version = "{version}"$',
+    '^current_version = "{version}"$',
+
+]
 "src/rlplg/__init__.py" = [
     '^__version__ = "{version}"$',
 ]
