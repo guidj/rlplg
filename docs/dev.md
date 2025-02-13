@@ -2,10 +2,10 @@
 
 Create a new virtual environment with for your supported Python version. 
 
-Then, install `uv`
+Then, install `uv` and `tox`.
 
 ```shell
-pip install uv
+pip install uv tox -v
 ```
 
 Within that virtualenv:
