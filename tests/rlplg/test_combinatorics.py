@@ -28,11 +28,9 @@ def test_interger_to_sequence(space_size: int, sequence_length: int):
 def test_sequence_to_integer(space_size: int, sequence_length: int, samples: int):
     for _ in range(samples):
         sequence = tuple(
-            np.random.default_rng()
-            .integers(0, space_size, size=sequence_length)
-            .tolist()
+            np.random.default_rng().integers(0, space_size, size=sequence_length)
         )
-        index = combinatorics.sequence_to_integer(space_size, sequence=sequence)
+        index = combinatorics.sequence_to_integer(space_size, sequence=sequence)  # type: ignore
         assert 0 <= index < space_size**sequence_length
 
     # largest sequence
@@ -62,7 +60,7 @@ def test_interger_to_sequence_round_trip(space_size: int, sequence_length: int):
 )
 def test_sequence_to_integer_round_trip(space_size: int, sequence_length: int):
     sequence = tuple(
-        np.random.default_rng().integers(0, space_size, size=sequence_length).tolist()
+        np.random.default_rng().integers(0, space_size, size=sequence_length)
     )
     output_integer = combinatorics.sequence_to_integer(
         space_size=space_size, sequence=sequence
