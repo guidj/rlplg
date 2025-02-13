@@ -87,17 +87,17 @@ Documentation can be generated and viewed via `mkdocs`:
 
 ## Release a New Version
 
-To bump a version run [`bumpversion`](https://pypi.org/project/bumpversion/) accordingly. For example:
+To bump a version run [`bump-my-version`](https://github.com/callowayproject/bump-my-version) accordingly. For example:
 
 ```sh
 # micro/patch version from 0.0.1 to 0.0.2
-bumpversion --current-version 0.0.1 patch
+bumpver update --patch
 
 # minor version from 0.0.2 to 0.1.0
-bumpversion --current-version 0.0.2 minor
+bumpver update --minor
 
 # major version from 0.1.0 to 1.0.0
-bumpversion --current-version 0.1.0 major
+bumpver update --major
 ```
 
 Running `bumpversion` will create a commit and tag it automatically. Turn this off in `setup.cfg`.
