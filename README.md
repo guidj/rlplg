@@ -1,27 +1,20 @@
 # rlplg
 
-RL Playground is a library that implements a set of discrete state and action space environments,
-as well as algorithms for policy evaluation and control.
+A set of gymansium compatible environments, with finite states and actions, for reinforcement learning.
+These enviroments are primarily designed for tabular problems.
 
-## Supported Environments
+## Environments
 
-  - In library
-    - [ABCSeq](docs/envs/abcseq.md)
-    - [GridWorld](docs/envs/gridworld.md)
-    - [IceWorld](docs/envs/iceworld.md)    
-    - [StateRandomWalk](docs/envs/staterandomwalk.md)
-    - [RedGreen](docs/envs/redgreen.md)
-    - [TowerOfHanoir](docs/envs/towerofhanoi.md)
-  - From [Gymnasium](https://gymnasium.farama.org/)
-    - [FrozenLake-v1](https://gymnasium.farama.org/environments/toy_text/frozen_lake/)
-    - [Taxi-v3](https://gymnasium.farama.org/environments/toy_text/taxi/)
-    - [CliffWalking-v0](https://gymnasium.farama.org/environments/toy_text/cliff_walking/)
+  - [ABCSeq](docs/envs/abcseq.md)
+  - [GridWorld](docs/envs/gridworld.md)
+  - [IceWorld](docs/envs/iceworld.md)    
+  - [StateRandomWalk](docs/envs/staterandomwalk.md)
+  - [RedGreen](docs/envs/redgreen.md)
+  - [TowerOfHanoir](docs/envs/towerofhanoi.md)
 
 ## Usage
 
-You can find examples of evaluation/control under [src/rlplg/examples/](src/rlplg/examples/).
-
-Some of them have 2D rendering - to run the GUI, install packages in [rendering-requirements.txt](rendering-requirements.txt).
+Examples are avaiable in [src/rlplg/examples/](src/rlplg/examples/).
 
 ## Setup Development
 
