@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
-from rlplg import core
 from rlplg.core import InitState, TimeStep
 from rlplg.environments import abcseq
 from tests.rlplg import dynamics
@@ -28,7 +27,7 @@ def test_abcseq_init(length: int, distance_penalty: bool):
     )
     dynamics.assert_transition_mapping(
         environment.transition,
-        env_desc=core.EnvDesc(num_states=length + 1, num_actions=length),
+        env_dim=(length + 1, length),
     )
 
 
