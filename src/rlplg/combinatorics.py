@@ -18,10 +18,10 @@ def sequence_to_integer(space_size: int, sequence: Sequence[int]) -> int:
         sequence_size: the length of the sequence of digits.
         index: the index of the unique sequence.
     """
-    id = 0
+    id_ = 0
     for idx, value_index in enumerate(reversed(sequence)):
-        id = id + value_index * int(pow(space_size, idx))
-    return id
+        id_ = id_ + value_index * int(pow(space_size, idx))
+    return id_
 
 
 def interger_to_sequence(
