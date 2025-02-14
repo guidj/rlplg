@@ -252,7 +252,9 @@ class GridWorldRenderer:
         elif mode == "rgb_array":
             if self.sprites is None:
                 raise RuntimeError(f"No sprites fo reder in {mode} mode.")
-            return observation_as_image(self.sprites, as_grid_3d(observation), last_move)
+            return observation_as_image(
+                self.sprites, as_grid_3d(observation), last_move
+            )
         elif mode == "human":
             if self.viewer is None:
                 raise RuntimeError(
@@ -680,14 +682,9 @@ def position_as_string(
      - If the agent is on an exit, returns Ē
 
     """
-    if (
-        grid_3d[LAYER_AGENT, pos_x, pos_y]
-        and grid_3d[LAYER_CLIFF, pos_x, pos_y]
-    ):
+    if grid_3d[LAYER_AGENT, pos_x, pos_y] and grid_3d[LAYER_CLIFF, pos_x, pos_y]:
         return "[x̄]"
-    elif (
-        grid_3d[LAYER_AGENT, pos_x, pos_y] and grid_3d[LAYER_EXIT, pos_x, pos_y]
-    ):
+    elif grid_3d[LAYER_AGENT, pos_x, pos_y] and grid_3d[LAYER_EXIT, pos_x, pos_y]:
         return "[Ē]"
     elif grid_3d[LAYER_CLIFF, pos_x, pos_y] == 1:
         return "[X]"

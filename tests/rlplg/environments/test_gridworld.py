@@ -249,7 +249,7 @@ def test_apply_action_going_down(x: int, y: int):
     y=st.integers(min_value=0, max_value=worlds.WIDTH - 1),
 )
 def test_apply_action_going_left(x: int, y: int):
-    obs : Mapping[str, Any]= {
+    obs: Mapping[str, Any] = {
         "id": None,
         "start": (0, 0),
         "agent": (x, y),
