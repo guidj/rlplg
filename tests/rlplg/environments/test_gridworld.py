@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Sequence, Tuple
+from typing import Any, Iterable, Mapping, Sequence, Tuple
 
 import hypothesis
 import numpy as np
@@ -192,7 +192,7 @@ def test_states_mapping():
     y=st.integers(min_value=0, max_value=worlds.WIDTH - 1),
 )
 def test_apply_action_going_up(x: int, y: int):
-    obs = {
+    obs: Mapping[str, Any] = {
         "id": None,
         "start": (0, 0),
         "agent": (x, y),
@@ -220,7 +220,7 @@ def test_apply_action_going_up(x: int, y: int):
     y=st.integers(min_value=0, max_value=worlds.WIDTH - 1),
 )
 def test_apply_action_going_down(x: int, y: int):
-    obs = {
+    obs: Mapping[str, Any] = {
         "id": None,
         "start": (0, 0),
         "agent": (x, y),
@@ -249,7 +249,7 @@ def test_apply_action_going_down(x: int, y: int):
     y=st.integers(min_value=0, max_value=worlds.WIDTH - 1),
 )
 def test_apply_action_going_left(x: int, y: int):
-    obs = {
+    obs : Mapping[str, Any]= {
         "id": None,
         "start": (0, 0),
         "agent": (x, y),
@@ -277,7 +277,7 @@ def test_apply_action_going_left(x: int, y: int):
     y=st.integers(min_value=0, max_value=worlds.WIDTH - 1),
 )
 def test_apply_action_going_right(x: int, y: int):
-    obs = {
+    obs: Mapping[str, Any] = {
         "id": None,
         "start": (0, 0),
         "agent": (x, y),
@@ -388,7 +388,7 @@ def test_as_grid():
         get_state_id=mock_get_state_id,
     )
 
-    output = gridworld.as_grid(observation)
+    output = gridworld.as_grid_3d(observation)
     expected = np.array(
         [
             np.array([[1, 0, 0, 0], [0, 0, 0, 0]]),

@@ -200,7 +200,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         if self.render_mode == "rgb_array":
-            return as_grid(self._observation)
+            return as_grid_3d(self._observation)
         return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
@@ -230,7 +230,7 @@ class GridWorldRenderer:
     def render(
         self,
         mode: str,
-        observation: np.ndarray,
+        observation: Mapping[str, Any],
         last_move: Optional[Any],
         caption: Optional[str],
         sleep: Optional[float] = 0.05,
@@ -252,7 +252,7 @@ class GridWorldRenderer:
         elif mode == "rgb_array":
             if self.sprites is None:
                 raise RuntimeError(f"No sprites fo reder in {mode} mode.")
-            return observation_as_image(self.sprites, observation, last_move)
+            return observation_as_image(self.sprites, as_grid_3d(observation), last_move)
         elif mode == "human":
             if self.viewer is None:
                 raise RuntimeError(
@@ -262,13 +262,13 @@ class GridWorldRenderer:
                 raise RuntimeError(f"No sprites fo reder in {mode} mode.")
 
             self.viewer.imshow(
-                observation_as_image(self.sprites, observation, last_move)
+                observation_as_image(self.sprites, as_grid_3d(observation), last_move)
             )
             if isinstance(caption, str):
                 self.viewer.window.set_caption(caption)
             return self.viewer.isopen
         elif mode == "ansi":
-            return observation_as_string(observation, last_move)
+            return observation_as_string(as_grid_3d(observation), last_move)
         else:
             raise RuntimeError(
                 f"Unknown mode: {mode}. Exepcted of one: {self.metadata['render.modes']}"
@@ -448,7 +448,7 @@ def create_observation(
     agent: Tuple[int, int],
     cliffs: Sequence[Tuple[int, int]],
     exits: Sequence[Tuple[int, int]],
-    get_state_id: Mapping[Tuple[int, int], int],
+    get_state_id: Callable[[Tuple[int, int]], int],
 ) -> Mapping[str, Any]:
     """
     Creates an observation representation - a mapping of the layers of the grid,
@@ -529,7 +529,7 @@ def validate_starting_grid(
 
 def create_obs_state_id_fn(
     states: Mapping[Tuple[int, int], int],
-) -> Callable[[Mapping[str, Any]], int]:
+) -> Callable[[Tuple[int, int]], int]:
     """
     Creates a function that returns an integer state ID for a given observation.
 
@@ -569,7 +569,7 @@ def create_position_from_state_id_fn(
     return position_from_state_id
 
 
-def as_grid(observation: Mapping[str, Any]) -> np.ndarray:
+def as_grid_3d(observation: Mapping[str, Any]) -> np.ndarray:
     """
     Creates a 3D array representation of the grid, with 1s where
     there is an item of the layer and 0 otherwise.
@@ -605,18 +605,18 @@ def image_as_array(img: image.Image) -> np.ndarray:
 
 def observation_as_image(
     sprites: Sprites,
-    observation: np.ndarray,
+    grid_3d: np.ndarray,
     last_move: Optional[Any],
 ) -> np.ndarray:
     """
     Converts an observation to an image (matrix).
     """
-    _, height, width = observation.shape
+    _, height, width = grid_3d.shape
     rows = []
     for pos_x in range(height):
         row = []
         for pos_y in range(width):
-            pos = position_as_string(observation, pos_x, pos_y, last_move)
+            pos = position_as_string(grid_3d, pos_x, pos_y, last_move)
             if pos in set(["[X]", "[x̄]"]):
                 row.append(sprites.cliff_sprite)
             elif pos in set(["[S]"] + [f"[{move}]" for move in MOVES]):
@@ -645,15 +645,15 @@ def _hborder(size: int) -> np.ndarray:
     return np.array([[COLOR_SILVER] * size], dtype=np.uint8)
 
 
-def observation_as_string(observation: np.ndarray, last_move: Optional[Any]) -> str:
+def observation_as_string(grid_3d: np.ndarray, last_move: Optional[Any]) -> str:
     """
     Converts an observation to a string.
     """
-    _, height, width = observation.shape
+    _, height, width = grid_3d.shape
     out = io.StringIO()
     for pos_x in range(height):
         for pos_y in range(width):
-            out.write(position_as_string(observation, pos_x, pos_y, last_move))
+            out.write(position_as_string(grid_3d, pos_x, pos_y, last_move))
         out.write("\n")
 
     out.write("\n\n")
@@ -664,7 +664,7 @@ def observation_as_string(observation: np.ndarray, last_move: Optional[Any]) -> 
 
 
 def position_as_string(
-    observation: Mapping[str, Any], pos_x: int, pos_y: int, last_move: Optional[Any]
+    grid_3d: np.ndarray, pos_x: int, pos_y: int, last_move: Optional[Any]
 ) -> str:
     """
     Given a position:
@@ -681,19 +681,19 @@ def position_as_string(
 
     """
     if (
-        observation[LAYER_AGENT, pos_x, pos_y]
-        and observation[LAYER_CLIFF, pos_x, pos_y]
+        grid_3d[LAYER_AGENT, pos_x, pos_y]
+        and grid_3d[LAYER_CLIFF, pos_x, pos_y]
     ):
         return "[x̄]"
     elif (
-        observation[LAYER_AGENT, pos_x, pos_y] and observation[LAYER_EXIT, pos_x, pos_y]
+        grid_3d[LAYER_AGENT, pos_x, pos_y] and grid_3d[LAYER_EXIT, pos_x, pos_y]
     ):
         return "[Ē]"
-    elif observation[LAYER_CLIFF, pos_x, pos_y] == 1:
+    elif grid_3d[LAYER_CLIFF, pos_x, pos_y] == 1:
         return "[X]"
-    elif observation[LAYER_EXIT, pos_x, pos_y] == 1:
+    elif grid_3d[LAYER_EXIT, pos_x, pos_y] == 1:
         return "[E]"
-    elif observation[LAYER_AGENT, pos_x, pos_y] == 1:
+    elif grid_3d[LAYER_AGENT, pos_x, pos_y] == 1:
         if last_move is not None:
             return f"[{MOVES[last_move]}]"
         return "[S]"
