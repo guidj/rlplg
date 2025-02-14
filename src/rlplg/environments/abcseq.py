@@ -41,19 +41,19 @@ Notes:
 """
 
 import copy
-from typing import Any, Mapping, Optional, SupportsInt, Tuple
+from typing import Any, Mapping, Optional, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import core, npsci
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "ABCSeq"
 MIN_SEQ_LENGTH = 1
 LETTERS = [chr(value) for value in range(ord("A"), ord("Z") + 1)]
 NUM_TOKENS = len(LETTERS)
+OBS_KEY_ID = "id"
 OBS_KEY_POS = "pos"
 OBS_KEY_LENGTH = "length"
 OBS_KEY_DIST_PENALTY = "distance_penalty"
@@ -80,6 +80,7 @@ class ABCSeq(gym.Env[Mapping[str, int], int]):
         self.action_space = spaces.Discrete(self.length)
         self.observation_space = spaces.Dict(
             {
+                "id": spaces.Discrete(length + 1),
                 "length": spaces.Box(low=self.length, high=self.length, dtype=np.int64),
                 "distance_penalty": spaces.Discrete(2),
                 "pos": spaces.Discrete(self.length + 1),
@@ -94,7 +95,7 @@ class ABCSeq(gym.Env[Mapping[str, int], int]):
             for action in range(self.length):
                 self.transition[state][action] = []
                 next_state_obs, reward = apply_action(state_obs, action)
-                next_state_id = get_state_id(next_state_obs)
+                next_state_id = next_state_obs[OBS_KEY_ID]
                 for next_state in range(self.length + 1):
                     prob = 1.0 if next_state == next_state_id else 0.0
                     actual_reward = reward if next_state == next_state_id else 0.0
@@ -155,26 +156,6 @@ class ABCSeq(gym.Env[Mapping[str, int], int]):
         return self._seed
 
 
-class ABCSeqMdpDiscretizer(core.MdpDiscretizer):
-    """
-    Creates an environment discrete maps for states and actions.
-    """
-
-    def state(self, observation: Mapping[str, int]) -> int:
-        """
-        Maps an observation to a state ID.
-        """
-        del self
-        return get_state_id(observation)
-
-    def action(self, action: SupportsInt) -> int:
-        """
-        Maps an agent action to an action ID.
-        """
-        del self
-        return int(action)
-
-
 def apply_action(
     observation: Mapping[str, int], action: int
 ) -> Tuple[Mapping[str, int], float]:
@@ -200,6 +181,7 @@ def _step_observation(observation: Mapping[str, int], action: int) -> Mapping[st
     # Check action in within bounds
     if action < observation[OBS_KEY_LENGTH] and observation[OBS_KEY_POS] == action:
         new_observation[OBS_KEY_POS] += 1
+    new_observation[OBS_KEY_ID] = new_observation[OBS_KEY_POS]
     return new_observation
 
 
@@ -244,6 +226,7 @@ def beginning_state(length: int, distance_penalty: bool) -> Mapping[str, int]:
     return {
         OBS_KEY_LENGTH: length,
         OBS_KEY_POS: 0,
+        OBS_KEY_ID: 0,
         OBS_KEY_DIST_PENALTY: int(distance_penalty),
     }
 
@@ -256,46 +239,19 @@ def is_terminal_state(observation: Mapping[str, int]) -> bool:
     return observation[OBS_KEY_POS] == observation[OBS_KEY_LENGTH]
 
 
-def create_env_spec(length: int, distance_penalty: bool) -> core.EnvSpec:
-    """
-    Creates an env spec for ABCSeq.
-    """
-    environment = ABCSeq(length=length, distance_penalty=distance_penalty)
-    discretizer = ABCSeqMdpDiscretizer()
-    mdp = core.EnvMdp(
-        env_desc=core.EnvDesc(num_states=length + 1, num_actions=length),
-        transition=environment.transition,
-    )
-    return core.EnvSpec(
-        name=ENV_NAME,
-        level=str(length),
-        environment=environment,
-        discretizer=discretizer,
-        mdp=mdp,
-    )
-
-
-def get_state_id(observation: Mapping[str, int]) -> int:
-    """
-    Discretizes an observation to an `int` state Id.
-    Returns:
-        The int `state` corresponding to the observation.
-    """
-    return observation[OBS_KEY_POS]
-
-
 def state_observation(
-    state_id: int, length: int, distance_penalty: bool
+    pos: int, length: int, distance_penalty: bool
 ) -> Mapping[str, int]:
     """
     Given a state ID for an environment, returns an observation.
     """
-    if state_id > length:
-        raise ValueError(f"State id should be <= length: {state_id} > {length}")
+    if pos > length:
+        raise ValueError(f"State id should be <= length: {pos} > {length}")
     return {
         OBS_KEY_LENGTH: length,
         OBS_KEY_DIST_PENALTY: distance_penalty,
-        OBS_KEY_POS: state_id,
+        OBS_KEY_POS: pos,
+        OBS_KEY_ID: pos,
     }
 
 
@@ -312,5 +268,5 @@ def state_representation(observation: Mapping[str, Any]) -> np.ndarray:
     output = [1, 1, 1, 0, 0]
     """
     array = np.zeros(shape=(observation[OBS_KEY_LENGTH] + 1,), dtype=np.int64)
-    array[0 : npsci.item(observation[OBS_KEY_POS]) + 1] = 1
+    array[0 : observation[OBS_KEY_POS] + 1] = 1
     return array

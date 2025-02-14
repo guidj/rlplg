@@ -18,14 +18,13 @@ import contextlib
 import copy
 import io
 import sys
-from typing import Any, Callable, Mapping, Optional, Sequence, SupportsInt, Tuple
+from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from PIL import Image as image
 
-from rlplg import core
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "IceWorld"
@@ -52,35 +51,22 @@ MAPS = {
     ],
 }
 
+LAYER_AGENT = 0
+LAYER_LAKE = 1
+LAYER_GOAL = 2
 
-class Layers:
-    """
-    Layers spec.
-    """
-
-    agent = 0
-    lake = 1
-    goal = 2
-
-
-class Strings:
-    """
-    Env keys.
-    """
-
-    size = "size"
-    agent = "agent"
-    lakes = "lakes"
-    goals = "goals"
-    start = "start"
+OBS_KEY_ID = "id"
+OBS_KEY_SIZE = "size"
+OBS_KEY_AGENT = "agent"
+OBS_KEY_LAKES = "lakes"
+OBS_KEY_GOALS = "goals"
+OBS_KEY_START = "start"
 
 
 class IceWorld(gym.Env[Mapping[str, Any], int]):
     """
     IceWorld environment.
     """
-
-    _num_layers = 3
 
     def __init__(
         self,
@@ -99,11 +85,14 @@ class IceWorld(gym.Env[Mapping[str, Any], int]):
         self._start = start
         self._lakes = set(lakes)
         self._goals = set(goals)
+        num_states = self._height * self._width
+        num_actions = len(MOVES)
 
         # left, right, up, down
         self.action_space = spaces.Discrete(len(MOVES))
         self.observation_space = spaces.Dict(
             {
+                "id": spaces.Discrete(num_states),
                 "start": spaces.Tuple(
                     (spaces.Discrete(self._height), spaces.Discrete(self._width))
                 ),
@@ -147,10 +136,11 @@ class IceWorld(gym.Env[Mapping[str, Any], int]):
                 )
                 for next_state in range(num_states):
                     next_state_pos = divmod(next_state, self._width)
-                    prob = 1.0 if next_obs[Strings.agent] == next_state_pos else 0.0
+                    prob = 1.0 if next_obs[OBS_KEY_AGENT] == next_state_pos else 0.0
                     actual_reward = (
-                        reward if next_obs[Strings.agent] == next_state_pos else 0.0
+                        reward if next_obs[OBS_KEY_AGENT] == next_state_pos else 0.0
                     )
+
                     # transition to a goal
                     terminated = state != next_state and (
                         next_state_pos in (self._goals | self._lakes)
@@ -177,7 +167,7 @@ class IceWorld(gym.Env[Mapping[str, Any], int]):
             )
         next_observation, reward = apply_action(self._observation, action)
         self._observation = next_observation
-        finished = self._observation[Strings.agent] in (self._goals | self._lakes)
+        finished = self._observation[OBS_KEY_AGENT] in (self._goals | self._lakes)
         return copy.copy(self._observation), reward, finished, False, {}
 
     def reset(
@@ -222,52 +212,7 @@ class IceWorld(gym.Env[Mapping[str, Any], int]):
         return self._seed
 
 
-class IceWorldMdpDiscretizer(core.MdpDiscretizer):
-    """
-    Creates an environment discrete maps for states and actions.
-    """
-
-    def state(self, observation: Mapping[str, Any]) -> int:
-        """
-        Maps an observation to a state ID.
-        """
-        pos: Tuple[int, int] = observation[Strings.agent]
-        size: Tuple[int, int] = observation[Strings.size]
-        row, col = pos
-        _, cols = size
-        return row * cols + col
-
-    def action(self, action: SupportsInt) -> int:
-        """
-        Maps an agent action to an action ID.
-        """
-        del self
-        return int(action)
-
-
-def create_envspec_from_map(
-    map: Optional[str] = None, map_name: Optional[str] = None
-) -> core.EnvSpec:
-    """
-    Parses a map file and create an environment from
-    the parameters.
-    """
-    if map and map_name:
-        raise ValueError("Both `map` and `map_name` can't be defined.")
-
-    if map:
-        spec = map.splitlines()
-    elif map_name:
-        if map_name not in MAPS:
-            raise ValueError(f"Unknown `map_name`: {map_name}")
-        spec = MAPS[map_name]
-    else:
-        raise ValueError("Either `map` or `map_name` must be provided.")
-    size, lakes, goals, start = parse_map_from_text(spec)
-    return create_env_spec(size=size, lakes=lakes, goals=goals, start=start)
-
-
-def parse_map_from_text(map: Sequence[str]):
+def parse_map_from_text(grid_map: Sequence[str]):
     """
     Parses map from a list of row
     definitions.
@@ -276,7 +221,7 @@ def parse_map_from_text(map: Sequence[str]):
     goals = []
     start = None
     height, width = 0, 0
-    for pos_x, line in enumerate(map):
+    for pos_x, line in enumerate(grid_map):
         row = line.strip()
         width = max(width, len(row))
         for pos_y, elem in enumerate(row):
@@ -288,33 +233,6 @@ def parse_map_from_text(map: Sequence[str]):
                 start = (pos_x, pos_y)
         height += 1
     return (height, width), lakes, goals, start
-
-
-def create_env_spec(
-    size: Tuple[int, int],
-    lakes: Sequence[Tuple[int, int]],
-    goals: Sequence[Tuple[int, int]],
-    start: Tuple[int, int],
-) -> core.EnvSpec:
-    """
-    Creates an env spec from a gridworld config.
-    """
-    environment = IceWorld(size=size, lakes=lakes, goals=goals, start=start)
-    discretizer = IceWorldMdpDiscretizer()
-    height, width = size
-    num_states = height * width
-    num_actions = len(MOVES)
-    mdp = core.EnvMdp(
-        env_desc=core.EnvDesc(num_states=num_states, num_actions=num_actions),
-        transition=environment.transition,
-    )
-    return core.EnvSpec(
-        name=ENV_NAME,
-        level=core.encode_env((size, sorted(lakes), sorted(goals), start)),
-        environment=environment,
-        discretizer=discretizer,
-        mdp=mdp,
-    )
 
 
 def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:
@@ -329,22 +247,24 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
         The reward for the action and new state.
     """
 
-    next_position = _step(observation, action)
-    reward = _step_reward(observation, next_position=next_position)
-    next_observation = dict(observation)
-    next_observation[Strings.agent] = next_position
-    return next_observation, reward
+    next_pos = _step(observation, action)
+    reward = _step_reward(observation, next_position=next_pos)
+    next_obs = dict(observation)
+    next_obs[OBS_KEY_AGENT] = next_pos
+    # row * cols + col
+    next_obs[OBS_KEY_ID] = next_pos[0] * next_obs[OBS_KEY_SIZE][0] + next_pos[1]
+    return next_obs, reward
 
 
 def _step(observation: Mapping[str, Any], action: int) -> Tuple[int, int]:
     # If in goal or lake, stay
-    if (observation[Strings.agent] in observation[Strings.goals]) or (
-        observation[Strings.agent] in observation[Strings.lakes]
+    if (observation[OBS_KEY_AGENT] in observation[OBS_KEY_GOALS]) or (
+        observation[OBS_KEY_AGENT] in observation[OBS_KEY_LAKES]
     ):
-        pos: Tuple[int, int] = observation[Strings.agent]
+        pos: Tuple[int, int] = observation[OBS_KEY_AGENT]
         return pos
-    pos_x, pos_y = observation[Strings.agent]
-    height, width = observation[Strings.size]
+    pos_x, pos_y = observation[OBS_KEY_AGENT]
+    height, width = observation[OBS_KEY_SIZE]
     if action == LEFT:
         pos_y = max(pos_y - 1, 0)
     elif action == RIGHT:
@@ -360,12 +280,12 @@ def _step_reward(
     observation: Mapping[str, Any], next_position: Tuple[int, int]
 ) -> float:
     # terminal state (current pos)
-    if (observation[Strings.agent] in observation[Strings.goals]) or (
-        observation[Strings.agent] in observation[Strings.lakes]
+    if (observation[OBS_KEY_AGENT] in observation[OBS_KEY_GOALS]) or (
+        observation[OBS_KEY_AGENT] in observation[OBS_KEY_LAKES]
     ):
         return 0.0
-    elif next_position in observation[Strings.lakes]:
-        height, width = observation[Strings.size]
+    elif next_position in observation[OBS_KEY_LAKES]:
+        height, width = observation[OBS_KEY_SIZE]
         return LAKE_PENALTY_MULT * height * width  # type: ignore
     return MOVE_PENALTY
 
@@ -382,11 +302,12 @@ def create_observation(
     and other information.
     """
     return {
-        Strings.start: start,
-        Strings.agent: agent,
-        Strings.lakes: lakes,
-        Strings.goals: goals,
-        Strings.size: size,
+        OBS_KEY_ID: start[0] * size[0] + start[1],
+        OBS_KEY_START: start,
+        OBS_KEY_AGENT: agent,
+        OBS_KEY_LAKES: lakes,
+        OBS_KEY_GOALS: goals,
+        OBS_KEY_SIZE: size,
     }
 
 
@@ -488,15 +409,15 @@ def as_grid(observation: Mapping[str, Any]) -> np.ndarray:
         A stack of 2D grids, with binary flags to indicate the presence layer elements.
     """
 
-    agent = np.zeros(shape=observation[Strings.size], dtype=np.int64)
-    lake = np.zeros(shape=observation[Strings.size], dtype=np.int64)
-    goal = np.zeros(shape=observation[Strings.size], dtype=np.int64)
+    agent = np.zeros(shape=observation[OBS_KEY_SIZE], dtype=np.int64)
+    lake = np.zeros(shape=observation[OBS_KEY_SIZE], dtype=np.int64)
+    goal = np.zeros(shape=observation[OBS_KEY_SIZE], dtype=np.int64)
     # Place agent at the start.
     # There is only one (x, y) pair.
-    agent[observation[Strings.agent]] = 1
-    for pos_x, pos_y in observation[Strings.lakes]:
+    agent[observation[OBS_KEY_AGENT]] = 1
+    for pos_x, pos_y in observation[OBS_KEY_LAKES]:
         lake[pos_x, pos_y] = 1
-    for pos_x, pos_y in observation[Strings.goals]:
+    for pos_x, pos_y in observation[OBS_KEY_GOALS]:
         goal[pos_x, pos_y] = 1
     return np.stack([agent, lake, goal])
 
@@ -546,21 +467,17 @@ def position_as_string(
      - If the agent is on a goal, returns Ē
 
     """
-    if (
-        observation[Layers.agent, pos_x, pos_y]
-        and observation[Layers.lake, pos_x, pos_y]
-    ):
+    if observation[LAYER_AGENT, pos_x, pos_y] and observation[LAYER_LAKE, pos_x, pos_y]:
         return "[Ħ]"
     elif (
-        observation[Layers.agent, pos_x, pos_y]
-        and observation[Layers.goal, pos_x, pos_y]
+        observation[LAYER_AGENT, pos_x, pos_y] and observation[LAYER_GOAL, pos_x, pos_y]
     ):
         return "[Ğ]"
-    elif observation[Layers.lake, pos_x, pos_y] == 1:
+    elif observation[LAYER_LAKE, pos_x, pos_y] == 1:
         return "[H]"
-    elif observation[Layers.goal, pos_x, pos_y] == 1:
+    elif observation[LAYER_GOAL, pos_x, pos_y] == 1:
         return "[G]"
-    elif observation[Layers.agent, pos_x, pos_y] == 1:
+    elif observation[LAYER_AGENT, pos_x, pos_y] == 1:
         if last_move is not None:
             return f"[{MOVES[last_move]}]"
         return "[S]"

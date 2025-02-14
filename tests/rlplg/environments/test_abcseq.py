@@ -20,6 +20,7 @@ def test_abcseq_init(length: int, distance_penalty: bool):
     assert environment.action_space == spaces.Discrete(length)
     assert environment.observation_space == spaces.Dict(
         {
+            "id": spaces.Discrete(length + 1),
             "length": spaces.Box(low=length, high=length, dtype=np.int64),
             "distance_penalty": spaces.Discrete(2),
             "pos": spaces.Discrete(length + 1),
@@ -44,52 +45,106 @@ def test_abcseq_simple_sequence():
     environment = abcseq.ABCSeq(length, distance_penalty=True)
     assert_init_state(
         environment.reset(),
-        ({"length": 4, "distance_penalty": True, "pos": 0}, {}),
+        ({"length": 4, "distance_penalty": True, "pos": 0, "id": 0}, {}),
     )
     # final step, prematurely
     assert_time_step(
         environment.step(3),
-        ({"length": 4, "distance_penalty": True, "pos": 0}, -4.0, False, False, {}),
+        (
+            {"length": 4, "distance_penalty": True, "pos": 0, "id": 0},
+            -4.0,
+            False,
+            False,
+            {},
+        ),
     )
     # first token
     assert_time_step(
         environment.step(0),
-        ({"length": 4, "distance_penalty": True, "pos": 1}, -1.0, False, False, {}),
+        (
+            {"length": 4, "distance_penalty": True, "pos": 1, "id": 1},
+            -1.0,
+            False,
+            False,
+            {},
+        ),
     )
     # second token
     assert_time_step(
         environment.step(1),
-        ({"length": 4, "distance_penalty": True, "pos": 2}, -1.0, False, False, {}),
+        (
+            {"length": 4, "distance_penalty": True, "pos": 2, "id": 2},
+            -1.0,
+            False,
+            False,
+            {},
+        ),
     )
     # skip ahead
     assert_time_step(
         environment.step(3),
-        ({"length": 4, "distance_penalty": True, "pos": 2}, -2.0, False, False, {}),
+        (
+            {"length": 4, "distance_penalty": True, "pos": 2, "id": 2},
+            -2.0,
+            False,
+            False,
+            {},
+        ),
     )
     # going backwards
     assert_time_step(
         environment.step(0),
-        ({"length": 4, "distance_penalty": True, "pos": 2}, -4.0, False, False, {}),
+        (
+            {"length": 4, "distance_penalty": True, "pos": 2, "id": 2},
+            -4.0,
+            False,
+            False,
+            {},
+        ),
     )
     # continue, third token
     assert_time_step(
         environment.step(2),
-        ({"length": 4, "distance_penalty": True, "pos": 3}, -1.0, False, False, {}),
+        (
+            {"length": 4, "distance_penalty": True, "pos": 3, "id": 3},
+            -1.0,
+            False,
+            False,
+            {},
+        ),
     )
     # complete
     assert_time_step(
         environment.step(3),
-        ({"length": 4, "distance_penalty": True, "pos": 4}, -1.0, True, False, {}),
+        (
+            {"length": 4, "distance_penalty": True, "pos": 4, "id": 4},
+            -1.0,
+            True,
+            False,
+            {},
+        ),
     )
     # move in the terminal state
     assert_time_step(
         environment.step(0),
-        ({"length": 4, "distance_penalty": True, "pos": 4}, 0.0, True, False, {}),
+        (
+            {"length": 4, "distance_penalty": True, "pos": 4, "id": 4},
+            0.0,
+            True,
+            False,
+            {},
+        ),
     )
     # another move in the terminal state
     assert_time_step(
         environment.step(4),
-        ({"length": 4, "distance_penalty": True, "pos": 4}, 0.0, True, False, {}),
+        (
+            {"length": 4, "distance_penalty": True, "pos": 4, "id": 4},
+            0.0,
+            True,
+            False,
+            {},
+        ),
     )
 
 
@@ -127,18 +182,6 @@ def test_abcseq_render_with_invalid_modes(length: int, distance_penalty: bool):
             environment.render()
 
 
-def test_abcseqmdpdiscretizer():
-    discretizer = abcseq.ABCSeqMdpDiscretizer()
-    assert discretizer.state({"length": 4, "distance_penalty": True, "pos": 0}) == 0
-    assert discretizer.state({"length": 4, "distance_penalty": True, "pos": 1}) == 1
-    assert discretizer.state({"length": 4, "distance_penalty": True, "pos": 2}) == 2
-    assert discretizer.state({"length": 4, "distance_penalty": True, "pos": 3}) == 3
-
-    assert discretizer.action(0) == 0
-    assert discretizer.action(1) == 1
-    assert discretizer.action(3) == 3
-
-
 @hypothesis.given(
     completed=st.integers(min_value=0, max_value=10),
     missing=st.integers(min_value=1, max_value=10),
@@ -150,10 +193,11 @@ def test_apply_action_with_unsorted_tokens_and_action_is_the_next(
         {"length": completed + missing, "distance_penalty": True, "pos": completed},
         action=completed,
     )
-    output_obs == {
+    assert output_obs == {
+        "id": completed + 1,
         "length": completed + missing,
         "distance_penalty": True,
-        "pos": completed,
+        "pos": completed + 1,
     }
     assert output_reward == -1.0
 
@@ -165,7 +209,12 @@ def test_apply_action_with_unsorted_tokens_and_action_is_the_next(
 def test_apply_action_with_unsorted_tokens_and_action_is_skipped_head(
     completed: int, missing: int
 ):
-    obs = {"length": completed + missing, "distance_penalty": True, "pos": completed}
+    obs = {
+        "length": completed + missing,
+        "distance_penalty": True,
+        "pos": completed,
+        "id": completed,
+    }
     skipped_steps = np.random.default_rng().integers(low=1, high=missing + 1)
     output_obs, output_reward = abcseq.apply_action(
         obs, action=completed + skipped_steps
@@ -181,7 +230,12 @@ def test_apply_action_with_unsorted_tokens_and_action_is_skipped_head(
 def test_apply_action_with_unsorted_tokens_and_action_is_behind(
     completed: int, missing: int
 ):
-    obs = {"length": completed + missing, "distance_penalty": True, "pos": completed}
+    obs = {
+        "length": completed + missing,
+        "distance_penalty": True,
+        "pos": completed,
+        "id": completed,
+    }
     action = np.random.default_rng().integers(low=0, high=completed)
     # num tokens ahead + behind + 1 for rotation
     output_obs, output_reward = abcseq.apply_action(obs, action=action)
@@ -193,7 +247,12 @@ def test_apply_action_with_unsorted_tokens_and_action_is_behind(
     completed=st.integers(min_value=1, max_value=10),
 )
 def test_apply_action_with_completed_sequence_action_is_end(completed: int):
-    obs = {"length": completed, "distance_penalty": True, "pos": completed}
+    obs = {
+        "length": completed,
+        "distance_penalty": True,
+        "pos": completed,
+        "id": completed,
+    }
     output_obs, output_reward = abcseq.apply_action(obs, action=completed)
     assert output_obs == obs
     assert output_reward == 0.0
@@ -204,7 +263,12 @@ def test_apply_action_with_completed_sequence_action_is_end(completed: int):
     missing=st.integers(min_value=1, max_value=10),
 )
 def test_apply_action_without_distance_penalty(completed: int, missing: int):
-    obs = {"length": completed + missing, "distance_penalty": False, "pos": completed}
+    obs = {
+        "length": completed + missing,
+        "distance_penalty": False,
+        "pos": completed,
+        "id": completed,
+    }
     action = np.random.default_rng().integers(low=0, high=completed)
     # num tokens ahead + behind + 1 for rotation
     output_obs, output_reward = abcseq.apply_action(obs, action=action)
@@ -216,7 +280,12 @@ def test_apply_action_without_distance_penalty(completed: int, missing: int):
     completed=st.integers(min_value=1, max_value=10),
 )
 def test_apply_action_without_distance_penalty_and_completed_sequence(completed: int):
-    obs = {"length": completed, "distance_penalty": False, "pos": completed}
+    obs = {
+        "length": completed,
+        "distance_penalty": False,
+        "pos": completed,
+        "id": completed,
+    }
     action = np.random.default_rng().integers(low=0, high=completed)
     # num tokens ahead + behind + 1 for rotation
     output_obs, output_reward = abcseq.apply_action(obs, action=action)
@@ -244,28 +313,6 @@ def test_is_terminal_state():
         {"length": 2, "distance_penalty": True, "pos": 1}
     )
     assert abcseq.is_terminal_state({"length": 2, "distance_penalty": True, "pos": 2})
-
-
-def test_state_id():
-    # (starting state)
-    assert abcseq.get_state_id({"distance_penalty": True, "pos": 0}) == 0
-    assert abcseq.get_state_id({"distance_penalty": True, "pos": 1}) == 1
-    assert abcseq.get_state_id({"distance_penalty": True, "pos": 2}) == 2
-
-
-@hypothesis.given(
-    length=st.integers(min_value=1, max_value=10), distance_penalty=st.booleans()
-)
-@hypothesis.settings(deadline=None)
-def test_abcseq_create_env_spec(length: int, distance_penalty: bool):
-    env_spec = abcseq.create_env_spec(length, distance_penalty=distance_penalty)
-    assert env_spec.name == "ABCSeq"
-    assert env_spec.level == str(length)
-    assert isinstance(env_spec.environment, abcseq.ABCSeq)
-    assert isinstance(env_spec.discretizer, abcseq.ABCSeqMdpDiscretizer)
-    assert env_spec.mdp.env_desc.num_states == length + 1
-    assert env_spec.mdp.env_desc.num_actions == length
-    assert len(env_spec.mdp.transition) == length + 1
 
 
 def assert_time_step(output: TimeStep, expected: TimeStep) -> None:

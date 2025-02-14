@@ -23,6 +23,7 @@ def test_state_randomwalk_init(steps: int):
     assert environment.action_space == spaces.Discrete(2)
     assert environment.observation_space == spaces.Dict(
         {
+            "id": spaces.Discrete(steps),
             "pos": spaces.Discrete(steps),
             "steps": spaces.Box(low=steps, high=steps, dtype=np.int64),
             "right_end_reward": spaces.Box(low=1, high=1, dtype=np.float32),
@@ -46,12 +47,12 @@ def test_state_randomwalk_with_invalid_steps(steps: int):
 def test_state_randomwalk_reset(steps: int):
     environment = randomwalk.StateRandomWalk(steps=steps)
     obs, info = environment.reset()
+    pos = steps // 2 - 1 if steps % 2 == 0 else steps // 2
     assert_observation(
         obs,
         {
-            "pos": np.array(
-                steps // 2 - 1 if steps % 2 == 0 else steps // 2, dtype=np.int64
-            ),
+            "id": pos,
+            "pos": pos,
             "steps": steps,
             "right_end_reward": 1.0,
             "left_end_reward": 0.0,
@@ -136,6 +137,7 @@ def test_state_randomwalk_end_right_sequence():
     assert_observation(
         obs,
         {
+            "id": 2,
             "pos": 2,
             "steps": 5,
             "right_end_reward": 1.0,
@@ -149,6 +151,7 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(0),
         (
             {
+                "id": 1,
                 "pos": 1,
                 "steps": 5,
                 "right_end_reward": 1.0,
@@ -166,6 +169,7 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(1),
         (
             {
+                "id": 2,
                 "pos": 2,
                 "steps": 5,
                 "right_end_reward": 1.0,
@@ -183,6 +187,7 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(1),
         (
             {
+                "id": 3,
                 "pos": 3,
                 "steps": 5,
                 "right_end_reward": 1.0,
@@ -200,6 +205,7 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(1),
         (
             {
+                "id": 4,
                 "pos": 4,
                 "steps": 5,
                 "right_end_reward": 1.0,
@@ -218,6 +224,7 @@ def test_state_randomwalk_end_right_sequence():
         environment.step(1),
         (
             {
+                "id": 4,
                 "pos": 4,
                 "steps": 5,
                 "right_end_reward": 1.0,
@@ -254,23 +261,6 @@ def test_state_randomwalk_render_with_invalid_modes(steps: int):
             environment.render()
 
 
-@hypothesis.given(
-    state=st.integers(min_value=0, max_value=100),
-    action=st.integers(min_value=0, max_value=100),
-)
-def test_state_randomwalk_discretizer(state: int, action: int):
-    discretizer = randomwalk.StateRandomWalkMdpDiscretizer()
-    assert (
-        discretizer.state(
-            {
-                "pos": np.array(state, dtype=np.int64),
-            }
-        )
-        == state
-    )
-    assert discretizer.action(action) == action
-
-
 @hypothesis.given(steps=st.integers(min_value=3, max_value=100))
 def test_is_finished(steps: int):
     assert randomwalk.is_finished(
@@ -294,25 +284,6 @@ def test_is_finished(steps: int):
         )
 
 
-@hypothesis.given(steps=st.integers(min_value=3, max_value=100))
-@hypothesis.settings(deadline=None)
-def test_create_env_spec(steps: int):
-    env_spec = randomwalk.create_env_spec(steps=steps)
-    assert env_spec.name == "StateRandomWalk"
-    assert len(env_spec.level) > 0
-    assert isinstance(env_spec.environment, randomwalk.StateRandomWalk)
-    assert isinstance(env_spec.discretizer, randomwalk.StateRandomWalkMdpDiscretizer)
-    assert env_spec.mdp.env_desc.num_states == steps
-    assert env_spec.mdp.env_desc.num_actions == 2
-    assert len(env_spec.mdp.transition) == steps
-
-
-@hypothesis.given(pos=st.integers(min_value=3, max_value=100))
-def test_get_state_id(pos: int):
-    # other fields are unucessary
-    assert randomwalk.get_state_id({"pos": pos}) == pos
-
-
 def test_state_representation():
     np.testing.assert_array_equal(
         randomwalk.state_representation({"pos": 1, "steps": 3}),
@@ -333,7 +304,7 @@ def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
 
 
 def assert_observation(output: Any, expected: Any) -> None:
-    assert len(output) == 5
+    assert len(output) == 6
     for key, value in expected.items():  # type: ignore
         assert key in output
         np.testing.assert_allclose(output[key], value)

@@ -14,13 +14,12 @@ Combined with a random policy, it should produce the same effect.
 
 import copy
 import math
-from typing import Any, Mapping, Optional, SupportsInt, Tuple
+from typing import Any, Mapping, Optional, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import core
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "StateRandomWalk"
@@ -32,6 +31,7 @@ LEFT_REWARD = 0
 STEP_REWARD = 0
 OBS_KEY_POS = "pos"
 OBS_KEY_STEPS = "steps"
+OBS_KEY_ID = "id"
 OBS_KEY_LEFT_END_REWARD = "left_end_reward"
 OBS_KEY_RIGHT_END_REWARD = "right_end_reward"
 OBS_KEY_STEP_REWARD = "step_reward"
@@ -77,6 +77,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         self.action_space = spaces.Discrete(len(ACTIONS))
         self.observation_space = spaces.Dict(
             {
+                OBS_KEY_ID: spaces.Discrete(steps),
                 OBS_KEY_POS: spaces.Discrete(steps),
                 OBS_KEY_STEPS: spaces.Box(low=steps, high=steps, dtype=np.int64),
                 OBS_KEY_RIGHT_END_REWARD: spaces.Box(
@@ -105,7 +106,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
                 next_state_obs, reward = apply_action(
                     observation=state_obs, action=action
                 )
-                next_state_id = get_state_id(next_state_obs)
+                next_state_id = next_state_obs[OBS_KEY_ID]
                 for next_state in range(self.steps):
                     prob = 1.0 if next_state == next_state_id else 0.0
                     actual_reward = reward if next_state == next_state_id else 0.0
@@ -130,7 +131,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
             action: A policy's chosen action.
 
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -163,7 +164,7 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
         Renders a view of the environment's current
         state.
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -179,26 +180,6 @@ class StateRandomWalk(gym.Env[Mapping[str, Any], int]):
             self._seed = seed
             self._rng = np.random.default_rng(self._seed)
         return self._seed
-
-
-class StateRandomWalkMdpDiscretizer(core.MdpDiscretizer):
-    """
-    Creates an environment discrete maps for states and actions.
-    """
-
-    def state(self, observation: Mapping[str, Any]) -> int:
-        """
-        Maps an observation to a state ID.
-        """
-        del self
-        return get_state_id(observation)
-
-    def action(self, action: SupportsInt) -> int:
-        """
-        Maps an agent action to an action ID.
-        """
-        del self
-        return int(action)
 
 
 def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:
@@ -230,6 +211,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
             reward = new_observation[OBS_KEY_RIGHT_END_REWARD]
         elif new_observation[OBS_KEY_POS] == 0:  # left end
             reward = new_observation[OBS_KEY_LEFT_END_REWARD]
+    new_observation[OBS_KEY_ID] = new_observation[OBS_KEY_POS]
     return new_observation, reward + step_reward
 
 
@@ -244,6 +226,7 @@ def state_observation(
     Generates the starting state.
     """
     return {
+        OBS_KEY_ID: pos,
         OBS_KEY_POS: pos,
         OBS_KEY_STEPS: steps,
         OBS_KEY_RIGHT_END_REWARD: right_end_reward,
@@ -258,44 +241,6 @@ def is_finished(observation: Mapping[str, Any]) -> bool:
     observation is a new state from taking the `action` passed in.
     """
     return observation[OBS_KEY_POS] in set((0, observation[OBS_KEY_STEPS] - 1))
-
-
-def create_env_spec(
-    steps: int,
-    left_end_reward: float = LEFT_REWARD,
-    right_end_reward: float = RIGHT_REWARD,
-    step_reward: float = STEP_REWARD,
-) -> core.EnvSpec:
-    """
-    Creates an env spec from a config.
-    """
-    environment = StateRandomWalk(
-        steps=steps,
-        left_end_reward=left_end_reward,
-        right_end_reward=right_end_reward,
-        step_reward=step_reward,
-    )
-    discretizer = StateRandomWalkMdpDiscretizer()
-    num_states = steps
-    num_actions = len(ACTIONS)
-    return core.EnvSpec(
-        name=ENV_NAME,
-        level=core.encode_env((steps, left_end_reward, right_end_reward, step_reward)),
-        environment=environment,
-        discretizer=discretizer,
-        mdp=core.EnvMdp(
-            env_desc=core.EnvDesc(num_states=num_states, num_actions=num_actions),
-            transition=environment.transition,
-        ),
-    )
-
-
-def get_state_id(observation: Mapping[str, Any]) -> int:
-    """
-    Computes an integer ID that represents that state.
-    """
-    pos: int = observation[OBS_KEY_POS]
-    return pos
 
 
 def state_representation(observation: Mapping[str, Any]) -> np.ndarray:

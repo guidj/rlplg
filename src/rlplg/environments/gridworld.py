@@ -15,14 +15,13 @@ import os
 import os.path
 import sys
 import time
-from typing import Any, Callable, Mapping, Optional, Sequence, SupportsInt, Tuple
+from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from PIL import Image as image
 
-from rlplg import core
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "GridWorld"
@@ -40,34 +39,22 @@ CLIFF_BG = "cliff-bg.png"
 ACTOR = "actor.png"
 
 
-class Layers:
-    """
-    Layers spec.
-    """
+LAYER_AGENT = 0
+LAYER_CLIFF = 1
+LAYER_EXIT = 2
 
-    agent = 0
-    cliff = 1
-    exit = 2
-
-
-class Strings:
-    """
-    Env keys.
-    """
-
-    size = "size"
-    agent = "agent"
-    cliffs = "cliffs"
-    exits = "exits"
-    start = "start"
+OBS_KEY_ID = "id"
+OBS_KEY_SIZE = "size"
+OBS_KEY_AGENT = "agent"
+OBS_KEY_CLIFFS = "cliffs"
+OBS_KEY_EXITS = "exits"
+OBS_KEY_START = "start"
 
 
 class GridWorld(gym.Env[Mapping[str, Any], int]):
     """
     GridWorld environment.
     """
-
-    _num_layers = 3
 
     def __init__(
         self,
@@ -87,10 +74,23 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
         self._cliffs = set(cliffs)
         self._exits = set(exits)
 
+        states_mapping_ = states_mapping(
+            size=self._size,
+            cliffs=tuple(self._cliffs),
+        )
+        self.__get_state_id = create_obs_state_id_fn(states=states_mapping_)
+
+        num_states = len(states_mapping_)
+        num_actions = len(MOVES)
+        self.__reverse_state_mapping = {
+            value: key for key, value in states_mapping_.items()
+        }
+
         # left, right, up, down
         self.action_space = spaces.Discrete(len(MOVES))
         self.observation_space = spaces.Dict(
             {
+                "id": spaces.Discrete(num_states),
                 "start": spaces.Tuple(
                     (spaces.Discrete(self._height), spaces.Discrete(self._width))
                 ),
@@ -114,15 +114,6 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                 ),
             }
         )
-        states_mapping_ = states_mapping(
-            size=self._size,
-            cliffs=tuple(self._cliffs),
-        )
-        num_states = len(states_mapping_)
-        num_actions = len(MOVES)
-        self.__reverse_state_mapping = {
-            value: key for key, value in states_mapping_.items()
-        }
         self.transition: MutableEnvTransition = {}
         for state in range(num_states):
             self.transition[state] = {}
@@ -136,14 +127,16 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                         agent=state_pos,
                         cliffs=tuple(self._cliffs),
                         exits=tuple(self._exits),
+                        get_state_id=self.__get_state_id,
                     ),
-                    action,
+                    action=action,
+                    get_state_id=self.__get_state_id,
                 )
                 for next_state in range(num_states):
                     next_state_pos = self.__reverse_state_mapping[next_state]
-                    prob = 1.0 if next_obs[Strings.agent] == next_state_pos else 0.0
+                    prob = 1.0 if next_obs[OBS_KEY_AGENT] == next_state_pos else 0.0
                     actual_reward = (
-                        reward if next_obs[Strings.agent] == next_state_pos else 0.0
+                        reward if next_obs[OBS_KEY_AGENT] == next_state_pos else 0.0
                     )
                     # transition to an exit
                     terminated = state != next_state and (next_state_pos in self._exits)
@@ -167,9 +160,11 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
-        next_observation, reward = apply_action(self._observation, action)
+        next_observation, reward = apply_action(
+            self._observation, action=action, get_state_id=self.__get_state_id
+        )
         self._observation = next_observation
-        finished = self._observation[Strings.agent] in self._exits
+        finished = self._observation[OBS_KEY_AGENT] in self._exits
         # Note: obs fields are immutable;
         # so shallow copies suffice to prevent tampering with
         # internal state.
@@ -191,6 +186,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
             agent=self._start,
             cliffs=tuple(self._cliffs),
             exits=tuple(self._exits),
+            get_state_id=self.__get_state_id,
         )
         return copy.copy(self._observation), {}
 
@@ -204,7 +200,7 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         if self.render_mode == "rgb_array":
-            return as_grid(self._observation)
+            return as_grid_3d(self._observation)
         return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
@@ -215,33 +211,6 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
             self._seed = seed
             self._rng = np.random.default_rng(self._seed)
         return self._seed
-
-
-class GridWorldMdpDiscretizer(core.MdpDiscretizer):
-    """
-    Creates an environment discrete maps for states and actions.
-    """
-
-    def __init__(
-        self,
-        size: Tuple[int, int],
-        cliffs: Sequence[Tuple[int, int]],
-    ):
-        _states_mapping = states_mapping(size=size, cliffs=cliffs)
-        self.__state_fn = create_state_id_fn(states=_states_mapping)
-
-    def state(self, observation: Mapping[str, Any]) -> int:
-        """
-        Maps an observation to a state ID.
-        """
-        return self.__state_fn(observation)
-
-    def action(self, action: SupportsInt) -> int:
-        """
-        Maps an agent action to an action ID.
-        """
-        del self
-        return int(action)
 
 
 class GridWorldRenderer:
@@ -261,7 +230,7 @@ class GridWorldRenderer:
     def render(
         self,
         mode: str,
-        observation: np.ndarray,
+        observation: Mapping[str, Any],
         last_move: Optional[Any],
         caption: Optional[str],
         sleep: Optional[float] = 0.05,
@@ -283,7 +252,9 @@ class GridWorldRenderer:
         elif mode == "rgb_array":
             if self.sprites is None:
                 raise RuntimeError(f"No sprites fo reder in {mode} mode.")
-            return observation_as_image(self.sprites, observation, last_move)
+            return observation_as_image(
+                self.sprites, as_grid_3d(observation), last_move
+            )
         elif mode == "human":
             if self.viewer is None:
                 raise RuntimeError(
@@ -293,13 +264,13 @@ class GridWorldRenderer:
                 raise RuntimeError(f"No sprites fo reder in {mode} mode.")
 
             self.viewer.imshow(
-                observation_as_image(self.sprites, observation, last_move)
+                observation_as_image(self.sprites, as_grid_3d(observation), last_move)
             )
             if isinstance(caption, str):
                 self.viewer.window.set_caption(caption)
             return self.viewer.isopen
         elif mode == "ansi":
-            return observation_as_string(observation, last_move)
+            return observation_as_string(as_grid_3d(observation), last_move)
         else:
             raise RuntimeError(
                 f"Unknown mode: {mode}. Exepcted of one: {self.metadata['render.modes']}"
@@ -373,15 +344,6 @@ class BlueMoonSprites(Sprites):
         return self._actor_sprite
 
 
-def create_envspec_from_grid_text(grid: str) -> core.EnvSpec:
-    """
-    Parses a grid file and create an environment from
-    the parameters.
-    """
-    size, cliffs, exits, start = parse_grid_from_text(grid.splitlines())
-    return create_env_spec(size=size, cliffs=cliffs, exits=exits, start=start)
-
-
 def parse_grid_from_text(grid: Sequence[str]):
     """
     Parses grid from text files.
@@ -402,33 +364,6 @@ def parse_grid_from_text(grid: Sequence[str]):
                 start = (pos_x, pos_y)
         height += 1
     return (height, width), cliffs, exits, start
-
-
-def create_env_spec(
-    size: Tuple[int, int],
-    cliffs: Sequence[Tuple[int, int]],
-    exits: Sequence[Tuple[int, int]],
-    start: Tuple[int, int],
-) -> core.EnvSpec:
-    """
-    Creates an env spec from a gridworld config.
-    """
-    environment = GridWorld(size=size, cliffs=cliffs, exits=exits, start=start)
-    discretizer = GridWorldMdpDiscretizer(size=size, cliffs=cliffs)
-    height, width = size
-    num_states = height * width - len(cliffs)
-    num_actions = len(MOVES)
-    mdp = core.EnvMdp(
-        env_desc=core.EnvDesc(num_states=num_states, num_actions=num_actions),
-        transition=environment.transition,
-    )
-    return core.EnvSpec(
-        name=ENV_NAME,
-        level=core.encode_env((size, sorted(cliffs), sorted(exits), start)),
-        environment=environment,
-        discretizer=discretizer,
-        mdp=mdp,
-    )
 
 
 def states_mapping(
@@ -453,7 +388,11 @@ def states_mapping(
     return {value: key for key, value in enumerate(sorted(states))}
 
 
-def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:
+def apply_action(
+    observation: Mapping[str, Any],
+    action: int,
+    get_state_id: Callable[[Tuple[int, int]], int],
+) -> Tuple[Any, float]:
     """
     One step transition of the MDP.
 
@@ -465,23 +404,24 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
         The reward for the action and new state.
     """
 
-    next_position = _step(observation, action)
-    reward = _step_reward(observation, next_position=next_position)
-    if next_position in observation[Strings.cliffs]:
+    next_pos = _step(observation, action)
+    reward = _step_reward(observation, next_position=next_pos)
+    if next_pos in observation[OBS_KEY_CLIFFS]:
         # send back to the beginning
-        next_position = observation[Strings.start]
+        next_pos = observation[OBS_KEY_START]
     next_observation = dict(observation)
-    next_observation[Strings.agent] = next_position
+    next_observation[OBS_KEY_AGENT] = next_pos
+    next_observation[OBS_KEY_ID] = get_state_id(next_pos)
     return next_observation, reward
 
 
 def _step(observation: Mapping[str, Any], action: int) -> Tuple[int, int]:
     # If in exit, stay
-    if observation[Strings.agent] in observation[Strings.exits]:
-        pos: Tuple[int, int] = observation[Strings.agent]
+    if observation[OBS_KEY_AGENT] in observation[OBS_KEY_EXITS]:
+        pos: Tuple[int, int] = observation[OBS_KEY_AGENT]
         return pos
-    pos_x, pos_y = observation[Strings.agent]
-    height, width = observation[Strings.size]
+    pos_x, pos_y = observation[OBS_KEY_AGENT]
+    height, width = observation[OBS_KEY_SIZE]
     if action == LEFT:
         pos_y = max(pos_y - 1, 0)
     elif action == RIGHT:
@@ -497,9 +437,9 @@ def _step_reward(
     observation: Mapping[str, Any], next_position: Tuple[int, int]
 ) -> float:
     # terminal state (current pos)
-    if observation[Strings.agent] in observation[Strings.exits]:
+    if observation[OBS_KEY_AGENT] in observation[OBS_KEY_EXITS]:
         return TERMINAL_REWARD
-    if next_position in observation[Strings.cliffs]:
+    if next_position in observation[OBS_KEY_CLIFFS]:
         return CLIFF_PENALTY
     return MOVE_PENALTY
 
@@ -510,17 +450,19 @@ def create_observation(
     agent: Tuple[int, int],
     cliffs: Sequence[Tuple[int, int]],
     exits: Sequence[Tuple[int, int]],
+    get_state_id: Callable[[Tuple[int, int]], int],
 ) -> Mapping[str, Any]:
     """
     Creates an observation representation - a mapping of the layers of the grid,
     and other information.
     """
     return {
-        Strings.start: start,
-        Strings.agent: agent,
-        Strings.cliffs: cliffs,
-        Strings.exits: exits,
-        Strings.size: size,
+        OBS_KEY_ID: get_state_id(start),
+        OBS_KEY_START: start,
+        OBS_KEY_AGENT: agent,
+        OBS_KEY_CLIFFS: cliffs,
+        OBS_KEY_EXITS: exits,
+        OBS_KEY_SIZE: size,
     }
 
 
@@ -587,9 +529,9 @@ def validate_starting_grid(
                 raise ValueError(f"Starting on an exit: ({exit_})")
 
 
-def create_state_id_fn(
+def create_obs_state_id_fn(
     states: Mapping[Tuple[int, int], int],
-) -> Callable[[Mapping[str, Any]], int]:
+) -> Callable[[Tuple[int, int]], int]:
     """
     Creates a function that returns an integer state ID for a given observation.
 
@@ -599,18 +541,10 @@ def create_state_id_fn(
         A callable that takes an observation and returns a state ID.
     """
 
-    def state_id(observation: Mapping[str, Any]) -> int:
-        """
-        A function that takes an observation and returns a state ID.
+    def obs_to_state_id(agent_position: Tuple[int, int]) -> int:
+        return states[agent_position]
 
-        Args:
-            observation: a state observation.
-        Returns:
-            An integer state ID.
-        """
-        return states[observation[Strings.agent]]
-
-    return state_id
+    return obs_to_state_id
 
 
 def create_position_from_state_id_fn(
@@ -637,7 +571,7 @@ def create_position_from_state_id_fn(
     return position_from_state_id
 
 
-def as_grid(observation: Mapping[str, Any]) -> np.ndarray:
+def as_grid_3d(observation: Mapping[str, Any]) -> np.ndarray:
     """
     Creates a 3D array representation of the grid, with 1s where
     there is an item of the layer and 0 otherwise.
@@ -648,15 +582,15 @@ def as_grid(observation: Mapping[str, Any]) -> np.ndarray:
         A stack of 2D grids, with binary flags to indicate the presence layer elements.
     """
 
-    agent = np.zeros(shape=observation[Strings.size], dtype=np.int64)
-    cliff = np.zeros(shape=observation[Strings.size], dtype=np.int64)
-    exit_ = np.zeros(shape=observation[Strings.size], dtype=np.int64)
+    agent = np.zeros(shape=observation[OBS_KEY_SIZE], dtype=np.int64)
+    cliff = np.zeros(shape=observation[OBS_KEY_SIZE], dtype=np.int64)
+    exit_ = np.zeros(shape=observation[OBS_KEY_SIZE], dtype=np.int64)
     # Place agent at the start.
     # There is only one (x, y) pair.
-    agent[observation[Strings.agent]] = 1
-    for pos_x, pos_y in observation[Strings.cliffs]:
+    agent[observation[OBS_KEY_AGENT]] = 1
+    for pos_x, pos_y in observation[OBS_KEY_CLIFFS]:
         cliff[pos_x, pos_y] = 1
-    for pos_x, pos_y in observation[Strings.exits]:
+    for pos_x, pos_y in observation[OBS_KEY_EXITS]:
         exit_[pos_x, pos_y] = 1
     return np.stack([agent, cliff, exit_])
 
@@ -673,18 +607,18 @@ def image_as_array(img: image.Image) -> np.ndarray:
 
 def observation_as_image(
     sprites: Sprites,
-    observation: np.ndarray,
+    grid_3d: np.ndarray,
     last_move: Optional[Any],
 ) -> np.ndarray:
     """
     Converts an observation to an image (matrix).
     """
-    _, height, width = observation.shape
+    _, height, width = grid_3d.shape
     rows = []
     for pos_x in range(height):
         row = []
         for pos_y in range(width):
-            pos = position_as_string(observation, pos_x, pos_y, last_move)
+            pos = position_as_string(grid_3d, pos_x, pos_y, last_move)
             if pos in set(["[X]", "[x̄]"]):
                 row.append(sprites.cliff_sprite)
             elif pos in set(["[S]"] + [f"[{move}]" for move in MOVES]):
@@ -713,15 +647,15 @@ def _hborder(size: int) -> np.ndarray:
     return np.array([[COLOR_SILVER] * size], dtype=np.uint8)
 
 
-def observation_as_string(observation: np.ndarray, last_move: Optional[Any]) -> str:
+def observation_as_string(grid_3d: np.ndarray, last_move: Optional[Any]) -> str:
     """
     Converts an observation to a string.
     """
-    _, height, width = observation.shape
+    _, height, width = grid_3d.shape
     out = io.StringIO()
     for pos_x in range(height):
         for pos_y in range(width):
-            out.write(position_as_string(observation, pos_x, pos_y, last_move))
+            out.write(position_as_string(grid_3d, pos_x, pos_y, last_move))
         out.write("\n")
 
     out.write("\n\n")
@@ -732,7 +666,7 @@ def observation_as_string(observation: np.ndarray, last_move: Optional[Any]) -> 
 
 
 def position_as_string(
-    observation: np.ndarray, pos_x: int, pos_y: int, last_move: Optional[Any]
+    grid_3d: np.ndarray, pos_x: int, pos_y: int, last_move: Optional[Any]
 ) -> str:
     """
     Given a position:
@@ -748,21 +682,15 @@ def position_as_string(
      - If the agent is on an exit, returns Ē
 
     """
-    if (
-        observation[Layers.agent, pos_x, pos_y]
-        and observation[Layers.cliff, pos_x, pos_y]
-    ):
+    if grid_3d[LAYER_AGENT, pos_x, pos_y] and grid_3d[LAYER_CLIFF, pos_x, pos_y]:
         return "[x̄]"
-    elif (
-        observation[Layers.agent, pos_x, pos_y]
-        and observation[Layers.exit, pos_x, pos_y]
-    ):
+    elif grid_3d[LAYER_AGENT, pos_x, pos_y] and grid_3d[LAYER_EXIT, pos_x, pos_y]:
         return "[Ē]"
-    elif observation[Layers.cliff, pos_x, pos_y] == 1:
+    elif grid_3d[LAYER_CLIFF, pos_x, pos_y] == 1:
         return "[X]"
-    elif observation[Layers.exit, pos_x, pos_y] == 1:
+    elif grid_3d[LAYER_EXIT, pos_x, pos_y] == 1:
         return "[E]"
-    elif observation[Layers.agent, pos_x, pos_y] == 1:
+    elif grid_3d[LAYER_AGENT, pos_x, pos_y] == 1:
         if last_move is not None:
             return f"[{MOVES[last_move]}]"
         return "[S]"

@@ -469,7 +469,7 @@ wheels = [
 
 [[package]]
 name = "rlplg"
-version = "0.20.2"
+version = "0.21.2"
 source = { editable = "." }
 dependencies = [
     { name = "gymnasium" },

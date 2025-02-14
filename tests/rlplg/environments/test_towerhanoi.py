@@ -18,8 +18,11 @@ def test_towerofhanoi_init(disks: int):
     assert environment.action_space == spaces.Discrete(6)
     assert environment.observation_space == spaces.Dict(
         {
+            "id": spaces.Discrete(
+                3**disks,
+            ),
             "num_pegs": spaces.Box(low=3, high=3, dtype=np.int64),
-            "state": spaces.Tuple([spaces.Discrete(3) for _ in range(disks)]),
+            "towers": spaces.Tuple([spaces.Discrete(3) for _ in range(disks)]),
         }
     )
     dynamics.assert_transition_mapping(
@@ -39,8 +42,9 @@ def test_towerofhanoi_with_two_disks():
     environment = towerhanoi.TowerOfHanoi(num_disks=2)
     obs, info = environment.reset()
     assert obs == {
+        "id": 0,
         "num_pegs": 3,
-        "state": (0, 0),
+        "towers": (0, 0),
     }
     assert info == {}
 
@@ -50,8 +54,9 @@ def test_towerofhanoi_with_two_disks():
         environment.step(5),
         (
             {
+                "id": 0,
                 "num_pegs": 3,
-                "state": (0, 0),
+                "towers": (0, 0),
             },
             -1.0,
             False,
@@ -66,8 +71,9 @@ def test_towerofhanoi_with_two_disks():
         environment.step(0),
         (
             {
+                "id": 3,
                 "num_pegs": 3,
-                "state": (1, 0),
+                "towers": (1, 0),
             },
             -1.0,
             False,
@@ -82,8 +88,9 @@ def test_towerofhanoi_with_two_disks():
         environment.step(1),
         (
             {
+                "id": 5,
                 "num_pegs": 3,
-                "state": (1, 2),
+                "towers": (1, 2),
             },
             -1.0,
             False,
@@ -99,8 +106,9 @@ def test_towerofhanoi_with_two_disks():
         environment.step(5),
         (
             {
+                "id": 5,
                 "num_pegs": 3,
-                "state": (1, 2),
+                "towers": (1, 2),
             },
             -1.0,
             False,
@@ -115,8 +123,9 @@ def test_towerofhanoi_with_two_disks():
         environment.step(3),
         (
             {
+                "id": 8,
                 "num_pegs": 3,
-                "state": (2, 2),
+                "towers": (2, 2),
             },
             -1.0,
             True,
@@ -132,8 +141,9 @@ def test_towerofhanoi_with_two_disks():
             environment.step(action),
             (
                 {
+                    "id": 8,
                     "num_pegs": 3,
-                    "state": (2, 2),
+                    "towers": (2, 2),
                 },
                 0.0,
                 True,
@@ -147,8 +157,9 @@ def test_towerofhanoi_with_three_disks():
     environment = towerhanoi.TowerOfHanoi(num_disks=3)
     obs, info = environment.reset()
     assert obs == {
+        "id": 0,
         "num_pegs": 3,
-        "state": (0, 0, 0),
+        "towers": (0, 0, 0),
     }
     assert info == {}
 
@@ -158,8 +169,9 @@ def test_towerofhanoi_with_three_disks():
         environment.step(5),
         (
             {
+                "id": 0,
                 "num_pegs": 3,
-                "state": (0, 0, 0),
+                "towers": (0, 0, 0),
             },
             -1.0,
             False,
@@ -174,8 +186,9 @@ def test_towerofhanoi_with_three_disks():
         environment.step(1),
         (
             {
+                "id": 18,
                 "num_pegs": 3,
-                "state": (2, 0, 0),
+                "towers": (2, 0, 0),
             },
             -1.0,
             False,
@@ -190,8 +203,9 @@ def test_towerofhanoi_with_three_disks():
         environment.step(0),
         (
             {
+                "id": 21,
                 "num_pegs": 3,
-                "state": (2, 1, 0),
+                "towers": (2, 1, 0),
             },
             -1.0,
             False,
@@ -206,8 +220,9 @@ def test_towerofhanoi_with_three_disks():
         environment.step(0),
         (
             {
+                "id": 21,
                 "num_pegs": 3,
-                "state": (2, 1, 0),
+                "towers": (2, 1, 0),
             },
             -1.0,
             False,
@@ -222,8 +237,9 @@ def test_towerofhanoi_with_three_disks():
         environment.step(5),
         (
             {
+                "id": 12,
                 "num_pegs": 3,
-                "state": (1, 1, 0),
+                "towers": (1, 1, 0),
             },
             -1.0,
             False,
@@ -238,8 +254,9 @@ def test_towerofhanoi_with_three_disks():
         environment.step(1),
         (
             {
+                "id": 14,
                 "num_pegs": 3,
-                "state": (1, 1, 2),
+                "towers": (1, 1, 2),
             },
             -1.0,
             False,
@@ -254,8 +271,9 @@ def test_towerofhanoi_with_three_disks():
         environment.step(2),
         (
             {
+                "id": 5,
                 "num_pegs": 3,
-                "state": (0, 1, 2),
+                "towers": (0, 1, 2),
             },
             -1.0,
             False,
@@ -270,8 +288,9 @@ def test_towerofhanoi_with_three_disks():
         environment.step(3),
         (
             {
+                "id": 8,
                 "num_pegs": 3,
-                "state": (0, 2, 2),
+                "towers": (0, 2, 2),
             },
             -1.0,
             False,
@@ -286,8 +305,9 @@ def test_towerofhanoi_with_three_disks():
         environment.step(1),
         (
             {
+                "id": 26,
                 "num_pegs": 3,
-                "state": (2, 2, 2),
+                "towers": (2, 2, 2),
             },
             -1.0,
             True,
@@ -303,8 +323,9 @@ def test_towerofhanoi_with_three_disks():
             environment.step(action),
             (
                 {
+                    "id": 26,
                     "num_pegs": 3,
-                    "state": (2, 2, 2),
+                    "towers": (2, 2, 2),
                 },
                 0.0,
                 True,
@@ -328,33 +349,6 @@ def test_towerofhanoi_render_with_invalid_modes():
         environment.reset()
         with pytest.raises(NotImplementedError):
             environment.render()
-
-    discretizer = towerhanoi.TowerOfHanoiMdpDiscretizer()
-    assert discretizer.state({"num_pegs": 3, "state": (0, 0)}) == 0
-    assert discretizer.state({"num_pegs": 3, "state": (0, 1)}) == 1
-    assert discretizer.state({"num_pegs": 3, "state": (0, 2)}) == 2
-    assert discretizer.state({"num_pegs": 3, "state": (1, 0)}) == 3
-    assert discretizer.state({"num_pegs": 3, "state": (1, 1)}) == 4
-    assert discretizer.state({"num_pegs": 3, "state": (1, 2)}) == 5
-    assert discretizer.state({"num_pegs": 3, "state": (2, 0)}) == 6
-    assert discretizer.state({"num_pegs": 3, "state": (2, 1)}) == 7
-    assert discretizer.state({"num_pegs": 3, "state": (2, 2)}) == 8
-
-    assert discretizer.action(0) == 0
-    assert discretizer.action(1) == 1
-    assert discretizer.action(2) == 2
-
-
-def test_create_env_spec():
-    num_disks = 3
-    output = towerhanoi.create_env_spec(num_disks=num_disks)
-    assert isinstance(output, core.EnvSpec)
-    assert output.name == "TowerOfHanoi"
-    assert output.level == str(num_disks)
-    assert isinstance(output.discretizer, towerhanoi.TowerOfHanoiMdpDiscretizer)
-    assert output.mdp.env_desc.num_states == 3**num_disks
-    assert output.mdp.env_desc.num_actions == 6
-    assert len(output.mdp.transition) == 3**num_disks
 
 
 def assert_time_step(output: TimeStep, expected: TimeStep) -> None:

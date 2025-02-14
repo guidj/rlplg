@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Sequence, Tuple
+from typing import Any, Iterable, Mapping, Sequence, Tuple
 
 import hypothesis
 import numpy as np
@@ -18,6 +18,7 @@ def test_gridworld_init():
     assert environment.action_space == spaces.Discrete(4)
     assert environment.observation_space == spaces.Dict(
         {
+            "id": spaces.Discrete(4 * 12),
             "start": spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12))),
             "agent": spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12))),
             "cliffs": spaces.Sequence(
@@ -46,6 +47,7 @@ def test_gridworld_reset():
     assert_observation(
         obs,
         {
+            "id": 36,
             "start": (3, 0),
             "agent": (3, 0),
             "cliffs": [],
@@ -65,6 +67,7 @@ def test_gridworld_transition_step():
     assert_observation(
         obs,
         {
+            "id": 24,
             "start": (3, 0),
             "agent": (2, 0),
             "cliffs": [],
@@ -87,6 +90,7 @@ def test_gridworld_transition_into_cliff():
     assert_observation(
         obs,
         {
+            "id": 36,
             "start": (3, 0),
             "agent": (3, 0),  # sent back to the start
             "cliffs": [(3, 1)],
@@ -109,6 +113,7 @@ def test_gridworld_final_step():
     assert_observation(
         obs,
         {
+            "id": 37,
             "start": (3, 0),
             "agent": (3, 1),
             "cliffs": [],
@@ -125,6 +130,7 @@ def test_gridworld_final_step():
     assert_observation(
         obs,
         {
+            "id": 37,
             "start": (3, 0),
             "agent": (3, 1),
             "cliffs": [],
@@ -186,15 +192,19 @@ def test_states_mapping():
     y=st.integers(min_value=0, max_value=worlds.WIDTH - 1),
 )
 def test_apply_action_going_up(x: int, y: int):
-    obs = {
+    obs: Mapping[str, Any] = {
+        "id": None,
         "start": (0, 0),
         "agent": (x, y),
         "cliffs": [],
         "exits": [],
         "size": (worlds.HEIGHT, worlds.WIDTH),
     }
-    output_observation, output_reward = gridworld.apply_action(obs, gridworld.UP)
+    output_observation, output_reward = gridworld.apply_action(
+        obs, gridworld.UP, get_state_id=mock_get_state_id
+    )
     expected = {
+        "id": max(x - 1, 0) + y,
         "start": (0, 0),
         "agent": (max(x - 1, 0), y),
         "cliffs": [],
@@ -210,15 +220,19 @@ def test_apply_action_going_up(x: int, y: int):
     y=st.integers(min_value=0, max_value=worlds.WIDTH - 1),
 )
 def test_apply_action_going_down(x: int, y: int):
-    obs = {
+    obs: Mapping[str, Any] = {
+        "id": None,
         "start": (0, 0),
         "agent": (x, y),
         "cliffs": [],
         "exits": [],
         "size": (worlds.HEIGHT, worlds.WIDTH),
     }
-    output_observation, output_reward = gridworld.apply_action(obs, gridworld.DOWN)
+    output_observation, output_reward = gridworld.apply_action(
+        obs, gridworld.DOWN, get_state_id=mock_get_state_id
+    )
     expected_observation = {
+        "id": min(x + 1, worlds.HEIGHT - 1) + y,
         "start": (0, 0),
         "agent": (min(x + 1, worlds.HEIGHT - 1), y),
         "cliffs": [],
@@ -235,15 +249,19 @@ def test_apply_action_going_down(x: int, y: int):
     y=st.integers(min_value=0, max_value=worlds.WIDTH - 1),
 )
 def test_apply_action_going_left(x: int, y: int):
-    obs = {
+    obs: Mapping[str, Any] = {
+        "id": None,
         "start": (0, 0),
         "agent": (x, y),
         "cliffs": [],
         "exits": [],
         "size": (worlds.HEIGHT, worlds.WIDTH),
     }
-    output_observation, output_reward = gridworld.apply_action(obs, gridworld.LEFT)
+    output_observation, output_reward = gridworld.apply_action(
+        obs, gridworld.LEFT, get_state_id=mock_get_state_id
+    )
     expected = {
+        "id": x + max(0, y - 1),
         "start": (0, 0),
         "agent": (x, max(0, y - 1)),
         "cliffs": [],
@@ -259,15 +277,19 @@ def test_apply_action_going_left(x: int, y: int):
     y=st.integers(min_value=0, max_value=worlds.WIDTH - 1),
 )
 def test_apply_action_going_right(x: int, y: int):
-    obs = {
+    obs: Mapping[str, Any] = {
+        "id": None,
         "start": (0, 0),
         "agent": (x, y),
         "cliffs": [],
         "exits": [],
         "size": (worlds.HEIGHT, worlds.WIDTH),
     }
-    output_observation, output_reward = gridworld.apply_action(obs, gridworld.RIGHT)
+    output_observation, output_reward = gridworld.apply_action(
+        obs, gridworld.RIGHT, get_state_id=mock_get_state_id
+    )
     expected = {
+        "id": x + min(y + 1, worlds.WIDTH - 1),
         "start": (0, 0),
         "agent": (x, min(y + 1, worlds.WIDTH - 1)),
         "cliffs": [],
@@ -307,8 +329,11 @@ def test_create_observation(
         agent=starting_pos,
         cliffs=cliffs,
         exits=exits,
+        get_state_id=mock_get_state_id,
     )
+
     expected = {
+        "id": starting_pos[0] + starting_pos[1],
         "start": starting_pos,
         "agent": starting_pos,
         "cliffs": cliffs,
@@ -328,10 +353,10 @@ def test_create_observation(
 )
 def test_create_state_id_fn(states: Sequence[Tuple[int, int]]):
     states_mapping = {state: _id for _id, state in enumerate(states)}
-    state_id_fn = gridworld.create_state_id_fn(states_mapping)
-    for state, _id in states_mapping.items():
+    state_id_fn = gridworld.create_obs_state_id_fn(states_mapping)
+    for state, id_ in states_mapping.items():
         # duck type an observation
-        assert state_id_fn({"agent": state}) == _id
+        assert state_id_fn(state) == id_
 
 
 @hypothesis.given(
@@ -355,10 +380,15 @@ def test_as_grid():
     # soxo
     # ooog
     observation = gridworld.create_observation(
-        size=(2, 4), start=(0, 0), agent=(0, 0), cliffs=[(0, 2)], exits=[(1, 3)]
+        size=(2, 4),
+        start=(0, 0),
+        agent=(0, 0),
+        cliffs=[(0, 2)],
+        exits=[(1, 3)],
+        get_state_id=mock_get_state_id,
     )
 
-    output = gridworld.as_grid(observation)
+    output = gridworld.as_grid_3d(observation)
     expected = np.array(
         [
             np.array([[1, 0, 0, 0], [0, 0, 0, 0]]),
@@ -370,20 +400,9 @@ def test_as_grid():
     np.testing.assert_array_equal(output, expected)
 
 
-def test_create_env_spec():
-    env_spec = gridworld.create_env_spec(
-        size=(4, 12), cliffs=[], exits=[], start=(3, 0)
-    )
-    assert env_spec.name == "GridWorld"
-    assert len(env_spec.level) > 0
-    assert isinstance(env_spec.environment, gridworld.GridWorld)
-    assert isinstance(env_spec.discretizer, gridworld.GridWorldMdpDiscretizer)
-    assert env_spec.mdp.env_desc.num_states == 48
-    assert env_spec.mdp.env_desc.num_actions == 4
-    assert len(env_spec.mdp.transition) == 48
-
-
 def assert_observation(output: Any, expected: Any) -> None:
+    assert len(output) == len(expected)
+    np.testing.assert_array_equal(output["id"], expected["id"])
     np.testing.assert_array_equal(output["size"], expected["size"])
     np.testing.assert_array_equal(output["agent"], expected["agent"])
     np.testing.assert_array_equal(output["start"], expected["start"])
@@ -823,3 +842,7 @@ def sprites():
         actor_sprite = worlds.color_block(worlds.ACTOR_COLOR)
 
     return MockSprites()
+
+
+def mock_get_state_id(pos: Tuple[int, int]):
+    return pos[0] + pos[1]
