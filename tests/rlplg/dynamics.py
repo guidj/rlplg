@@ -1,20 +1,20 @@
-from typing import SupportsFloat
+from typing import SupportsFloat, Tuple
 
-from rlplg import core
 from rlplg.core import EnvTransition
 
 
 def assert_transition_mapping(
-    transition_mapping: EnvTransition, env_desc: core.EnvDesc
+    transition_mapping: EnvTransition, env_dim: Tuple[int, int]
 ):
-    assert len(transition_mapping) == env_desc.num_states
+    num_states, num_actions = env_dim
+    assert len(transition_mapping) == num_states
     for state, action_transitions in transition_mapping.items():
-        assert 0 <= state < env_desc.num_states
-        assert len(action_transitions) == env_desc.num_actions
+        assert 0 <= state < num_states
+        assert len(action_transitions) == num_actions
         for action, transitions in action_transitions.items():
-            assert 0 <= action < env_desc.num_actions
+            assert 0 <= action < num_actions
             for prob, next_state, reward, done in transitions:
                 assert 0 <= prob <= 1.0
-                assert 0 <= next_state < env_desc.num_states
+                assert 0 <= next_state < num_states
                 assert isinstance(reward, SupportsFloat)
                 assert isinstance(done, bool)

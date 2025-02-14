@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
-from rlplg import core
 from rlplg.core import TimeStep
 from rlplg.environments import redgreen
 from tests.rlplg import dynamics
@@ -30,7 +29,7 @@ def test_redgreen_init(cure: Sequence[str]):
     )
     dynamics.assert_transition_mapping(
         environment.transition,
-        env_desc=core.EnvDesc(num_states=len(cure_sequence) + 1, num_actions=3),
+        env_dim=(len(cure_sequence) + 1, 3),
     )
 
 

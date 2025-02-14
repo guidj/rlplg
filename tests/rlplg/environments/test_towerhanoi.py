@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
-from rlplg import core
 from rlplg.core import TimeStep
 from rlplg.environments import towerhanoi
 from tests.rlplg import dynamics
@@ -27,7 +26,7 @@ def test_towerofhanoi_init(disks: int):
     )
     dynamics.assert_transition_mapping(
         environment.transition,
-        env_desc=core.EnvDesc(num_states=3**disks, num_actions=6),
+        env_dim=(3**disks, 6),
     )
 
 

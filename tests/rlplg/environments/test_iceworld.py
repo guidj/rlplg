@@ -6,7 +6,6 @@ import pytest
 from gymnasium import spaces
 from hypothesis import strategies as st
 from PIL import Image as image
-from rlplg import core
 from rlplg.environments import iceworld
 
 from tests.rlplg import dynamics
@@ -34,9 +33,7 @@ def test_iceworld_init():
             ),
         }
     )
-    dynamics.assert_transition_mapping(
-        environment.transition, env_desc=core.EnvDesc(num_states=4 * 12, num_actions=4)
-    )
+    dynamics.assert_transition_mapping(environment.transition, env_dim=(4 * 12, 4))
 
 
 def test_iceworld_reset():
