@@ -17,13 +17,12 @@ zero for terminal state.
 """
 
 import copy
-from typing import Any, Mapping, Optional, Sequence, SupportsInt, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import core
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "RedGreenSeq"
@@ -35,6 +34,7 @@ ACTIONS = [RED_PILL, GREEN_PILL, WAIT]
 ACTION_NAME_MAPPING = {"red": RED_PILL, "green": GREEN_PILL, "wait": WAIT}
 OBS_KEY_CURE_SEQUENCE = "cure_sequence"
 OBS_KEY_POSITION = "pos"
+OBS_KEY_ID = "id"
 
 
 class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
@@ -59,6 +59,7 @@ class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
         self.action_space = spaces.Discrete(len(ACTIONS))
         self.observation_space = spaces.Dict(
             {
+                OBS_KEY_ID: spaces.Discrete(len(self.cure_sequence) + 1),
                 OBS_KEY_CURE_SEQUENCE: spaces.Sequence(spaces.Discrete(len(ACTIONS))),
                 OBS_KEY_POSITION: spaces.Discrete(len(self.cure_sequence) + 1),
             }
@@ -72,7 +73,7 @@ class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
                 next_state_obs, reward = apply_action(
                     observation=state_obs, action=action
                 )
-                next_state_id = get_state_id(next_state_obs)
+                next_state_id = next_state_obs[OBS_KEY_ID]
                 for next_state in range(len(self.cure_sequence) + 1):
                     prob = 1.0 if next_state == next_state_id else 0.0
                     actual_reward = reward if next_state == next_state_id else 0.0
@@ -96,7 +97,7 @@ class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
         Args:
             action: A policy's chosen action.
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -122,7 +123,7 @@ class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
         Renders a view of the environment's current
         state.
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -138,26 +139,6 @@ class RedGreenSeq(gym.Env[Mapping[str, Any], int]):
             self._seed = seed
             self._rng = np.random.default_rng(self._seed)
         return self._seed
-
-
-class RedGreenMdpDiscretizer(core.MdpDiscretizer):
-    """
-    Creates an environment discrete maps for states and actions.
-    """
-
-    def state(self, observation: Mapping[str, Any]) -> int:
-        """
-        Maps an observation to a state ID.
-        """
-        del self
-        return get_state_id(observation)
-
-    def action(self, action: SupportsInt) -> int:
-        """
-        Maps an agent action to an action ID.
-        """
-        del self
-        return int(action)
 
 
 def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:
@@ -197,6 +178,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     else:
         if action == observation[OBS_KEY_CURE_SEQUENCE][pos]:
             new_observation[OBS_KEY_POSITION] += 1
+            new_observation[OBS_KEY_ID] = new_observation[OBS_KEY_POSITION]
         reward = -1.0
     return new_observation, reward
 
@@ -207,33 +189,6 @@ def is_terminal_state(observation: Mapping[str, Any]) -> bool:
     """
     terminal_state = len(observation[OBS_KEY_CURE_SEQUENCE])
     return observation[OBS_KEY_POSITION] == terminal_state  # type: ignore
-
-
-def create_env_spec(cure: Sequence[str]) -> core.EnvSpec:
-    """
-    Creates an env spec from a gridworld config.
-    """
-    environment = RedGreenSeq(cure=cure)
-    discretizer = RedGreenMdpDiscretizer()
-    num_states = len(cure) + 1
-    num_actions = len(ACTIONS)
-    return core.EnvSpec(
-        name=ENV_NAME,
-        level=core.encode_env(cure),
-        environment=environment,
-        discretizer=discretizer,
-        mdp=core.EnvMdp(
-            env_desc=core.EnvDesc(num_states=num_states, num_actions=num_actions),
-            transition=environment.transition,
-        ),
-    )
-
-
-def get_state_id(observation: Mapping[str, Any]) -> int:
-    """
-    Computes an integer ID that represents that state.
-    """
-    return observation[OBS_KEY_POSITION]  # type: ignore
 
 
 def state_observation(cure_sequence: Sequence[int], pos: int) -> Mapping[str, Any]:
@@ -254,6 +209,7 @@ def state_observation(cure_sequence: Sequence[int], pos: int) -> Mapping[str, An
     return {
         OBS_KEY_CURE_SEQUENCE: cure_sequence,
         OBS_KEY_POSITION: pos,
+        OBS_KEY_ID: pos,
     }
 
 

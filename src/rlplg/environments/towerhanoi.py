@@ -27,19 +27,20 @@ Code based on https://github.com/xadahiya/toh-gym.
 import collections
 import copy
 import functools
-from typing import Any, Callable, List, Mapping, Optional, Sequence, SupportsInt, Tuple
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from rlplg import combinatorics, core
+from rlplg import combinatorics
 from rlplg.core import InitState, MutableEnvTransition, RenderType, TimeStep
 
 ENV_NAME = "TowerOfHanoi"
 ACTIONS = [(0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)]
 NUM_PEGS = 3
-OBS_KEY_STATE = "state"
+OBS_KEY_ID = "id"
+OBS_KEY_TOWERS = "towers"
 OBS_KEY_NUM_PEGS = "num_pegs"
 MIN_DISKS = 1
 MAX_DISKS = 9
@@ -62,35 +63,36 @@ class TowerOfHanoi(gym.Env[Mapping[str, Any], int]):
 
         self.num_disks = num_disks
         self.num_pegs = NUM_PEGS
+        num_states = self.num_pegs**self.num_disks
         self.render_mode = render_mode
         self.action_space = spaces.Discrete(len(ACTIONS))
         self.observation_space = spaces.Dict(
             {
+                OBS_KEY_ID: spaces.Discrete(num_states),
                 OBS_KEY_NUM_PEGS: spaces.Box(
                     low=self.num_pegs, high=self.num_pegs, dtype=np.int64
                 ),
-                OBS_KEY_STATE: spaces.Tuple(
+                OBS_KEY_TOWERS: spaces.Tuple(
                     [spaces.Discrete(self.num_pegs) for _ in range(self.num_disks)]
                 ),
             }
         )
 
         self.transition: MutableEnvTransition = {}
-        num_states = self.num_pegs**self.num_disks
         terminal_state = num_states - 1
-        state_id_to_state = create_state_id_to_state_fn(
+        state_id_to_obs = create_state_id_to_obs_fn(
             num_pegs=self.num_pegs, num_disks=self.num_disks
         )
         for state_id in range(num_states):
             self.transition[state_id] = {}
             # generate state
-            state_obs = state_id_to_state(state_id)
+            state_obs = state_id_to_obs(state_id)
             for action in range(len(ACTIONS)):
                 self.transition[state_id][action] = []
                 actual_next_state_obs, actual_reward = apply_action(
                     observation=state_obs, action=action
                 )
-                actual_next_state_id = get_state_id(actual_next_state_obs)
+                actual_next_state_id = actual_next_state_obs[OBS_KEY_ID]
                 for next_state_id in range(num_states):
                     prob = 1.0 if next_state_id == actual_next_state_id else 0.0
                     reward = (
@@ -116,7 +118,7 @@ class TowerOfHanoi(gym.Env[Mapping[str, Any], int]):
         Args:
             action: A policy's chosen action.
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
@@ -135,7 +137,7 @@ class TowerOfHanoi(gym.Env[Mapping[str, Any], int]):
         del options
         self.seed(seed)
         self._observation = state_observation(
-            num_pegs=self.num_pegs, state=(0,) * self.num_disks
+            num_pegs=self.num_pegs, towers=(0,) * self.num_disks
         )
         return copy.copy(self._observation), {}
 
@@ -144,12 +146,12 @@ class TowerOfHanoi(gym.Env[Mapping[str, Any], int]):
         Renders a view of the environment's current
         state.
         """
-        if self._observation == {}:
+        if not self._observation:
             raise RuntimeError(
                 f"{type(self).__name__} environment needs to be reset. Call the `reset` method."
             )
         if self.render_mode == "rgb_array":
-            return np.array(self._observation[OBS_KEY_STATE])
+            return np.array(self._observation[OBS_KEY_TOWERS])
         return super().render()
 
     def seed(self, seed: Optional[int] = None) -> Any:
@@ -160,26 +162,6 @@ class TowerOfHanoi(gym.Env[Mapping[str, Any], int]):
             self._seed = seed
             self._rng = np.random.default_rng(self._seed)
         return self._seed
-
-
-class TowerOfHanoiMdpDiscretizer(core.MdpDiscretizer):
-    """
-    Creates an environment discrete maps for states and actions.
-    """
-
-    def state(self, observation: Mapping[str, Any]) -> int:
-        """
-        Maps an observation to a state ID.
-        """
-        del self
-        return get_state_id(observation)
-
-    def action(self, action: SupportsInt) -> int:
-        """
-        Maps an agent action to an action ID.
-        """
-        del self
-        return int(action)
 
 
 def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, float]:
@@ -212,7 +194,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
             Nothing changes.
             reward = 0
     """
-    state = observation[OBS_KEY_STATE]
+    state = observation[OBS_KEY_TOWERS]
     new_observation = dict(observation)
     source, dest = ACTIONS[action]
     pegs: Mapping[int, List[int]] = collections.defaultdict(list)
@@ -231,8 +213,12 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     else:
         reward = -1.0
         # move top disk from source to dest
-        new_observation[OBS_KEY_STATE] = (
+        new_observation[OBS_KEY_TOWERS] = (
             state[: pegs[source][0]] + (dest,) + state[pegs[source][0] + 1 :]
+        )
+        new_observation[OBS_KEY_ID] = get_state_id(
+            num_pegs=new_observation[OBS_KEY_NUM_PEGS],
+            towers=new_observation[OBS_KEY_TOWERS],
         )
     return new_observation, reward
 
@@ -241,60 +227,44 @@ def is_terminal_state(observation: Mapping[str, Any]) -> bool:
     """
     Determines if the given state is terminal.
     """
-    for peg in observation[OBS_KEY_STATE]:
+    for peg in observation[OBS_KEY_TOWERS]:
         if peg != observation[OBS_KEY_NUM_PEGS] - 1:
             return False
     return True
 
 
-def create_env_spec(num_disks: int) -> core.EnvSpec:
-    """
-    Creates an env spec from a config.
-    """
-    environment = TowerOfHanoi(num_disks=num_disks)
-    discretizer = TowerOfHanoiMdpDiscretizer()
-    num_states = environment.num_pegs**num_disks
-    num_actions = len(ACTIONS)
-    return core.EnvSpec(
-        name=ENV_NAME,
-        level=str(num_disks),
-        environment=environment,
-        discretizer=discretizer,
-        mdp=core.EnvMdp(
-            env_desc=core.EnvDesc(num_states=num_states, num_actions=num_actions),
-            transition=environment.transition,
-        ),
-    )
-
-
-def get_state_id(observation: Mapping[str, Any]) -> int:
+def get_state_id(num_pegs: int, towers: Sequence[int]) -> int:
     """
     Computes an integer Id that represents that state.
     """
-    return combinatorics.sequence_to_integer(
-        space_size=observation[OBS_KEY_NUM_PEGS], sequence=observation[OBS_KEY_STATE]
-    )
+    return combinatorics.sequence_to_integer(space_size=num_pegs, sequence=towers)
 
 
-def create_state_id_to_state_fn(
+def create_state_id_to_obs_fn(
     num_pegs: int, num_disks: int, cache_size: int = 2**7
 ) -> Callable[[int], Mapping[str, Any]]:
+    """
+    Makes a function to consistently map
+    observations to unique `int` identifiers.
+    """
+
     @functools.lru_cache(maxsize=cache_size)
     def state_id_to_state(state_id: int) -> Mapping[str, Any]:
         """
         Generates a unique Id for a given state.
         """
-        return state_observation(
-            num_pegs=num_pegs,
-            state=combinatorics.interger_to_sequence(
+        return {
+            OBS_KEY_NUM_PEGS: num_pegs,
+            OBS_KEY_TOWERS: combinatorics.interger_to_sequence(
                 space_size=num_pegs, sequence_length=num_disks, index=state_id
             ),
-        )
+            OBS_KEY_ID: state_id,
+        }
 
     return state_id_to_state
 
 
-def state_observation(num_pegs: int, state: Sequence[int]) -> Mapping[str, Any]:
+def state_observation(num_pegs: int, towers: Sequence[int]) -> Mapping[str, Any]:
     """
     Generates a state observation, given an interger Id and the number
     of disks.
@@ -308,5 +278,6 @@ def state_observation(num_pegs: int, state: Sequence[int]) -> Mapping[str, Any]:
     """
     return {
         OBS_KEY_NUM_PEGS: num_pegs,
-        OBS_KEY_STATE: state,
+        OBS_KEY_TOWERS: towers,
+        OBS_KEY_ID: get_state_id(num_pegs=num_pegs, towers=towers),
     }

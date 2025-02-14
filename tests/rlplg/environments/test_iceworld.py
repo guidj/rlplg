@@ -18,6 +18,7 @@ def test_iceworld_init():
     assert environment.action_space == spaces.Discrete(4)
     assert environment.observation_space == spaces.Dict(
         {
+            "id": spaces.Discrete(4 * 12),
             "start": spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12))),
             "agent": spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12))),
             "lakes": spaces.Sequence(
@@ -46,6 +47,7 @@ def test_iceworld_reset():
     assert_observation(
         obs,
         {
+            "id": 12,
             "start": (3, 0),
             "agent": (3, 0),
             "lakes": [],
@@ -65,6 +67,7 @@ def test_iceworld_transition_step():
     assert_observation(
         obs,
         {
+            "id": 0,
             "start": (3, 0),
             "agent": (2, 0),
             "lakes": [],
@@ -87,6 +90,7 @@ def test_iceworld_transition_into_lake():
     assert_observation(
         obs,
         {
+            "id": 13,
             "start": (3, 0),
             "agent": (3, 1),
             "lakes": [(3, 1)],
@@ -103,6 +107,7 @@ def test_iceworld_transition_into_lake():
     assert_observation(
         obs,
         {
+            "id": 13,
             "start": (3, 0),
             "agent": (3, 1),
             "lakes": [(3, 1)],
@@ -125,6 +130,7 @@ def test_iceworld_final_step():
     assert_observation(
         obs,
         {
+            "id": 13,
             "start": (3, 0),
             "agent": (3, 1),
             "lakes": [],
@@ -141,6 +147,7 @@ def test_iceworld_final_step():
     assert_observation(
         obs,
         {
+            "id": 13,
             "start": (3, 0),
             "agent": (3, 1),
             "lakes": [],
@@ -195,6 +202,7 @@ def test_iceworld_seed():
 )
 def test_apply_action_going_up(x: int, y: int):
     obs = {
+        "id": None,
         "start": (0, 0),
         "agent": (x, y),
         "lakes": [],
@@ -203,6 +211,7 @@ def test_apply_action_going_up(x: int, y: int):
     }
     output_observation, output_reward = iceworld.apply_action(obs, iceworld.UP)
     expected = {
+        "id": 13,
         "start": (0, 0),
         "agent": (max(x - 1, 0), y),
         "lakes": [],
@@ -219,6 +228,7 @@ def test_apply_action_going_up(x: int, y: int):
 )
 def test_apply_action_going_down(x: int, y: int):
     obs = {
+        "id": None,
         "start": (0, 0),
         "agent": (x, y),
         "lakes": [],
@@ -227,6 +237,7 @@ def test_apply_action_going_down(x: int, y: int):
     }
     output_observation, output_reward = iceworld.apply_action(obs, iceworld.DOWN)
     expected_observation = {
+        "id": 5,
         "start": (0, 0),
         "agent": (min(x + 1, worlds.HEIGHT - 1), y),
         "lakes": [],
@@ -244,6 +255,7 @@ def test_apply_action_going_down(x: int, y: int):
 )
 def test_apply_action_going_left(x: int, y: int):
     obs = {
+        "id": None,
         "start": (0, 0),
         "agent": (x, y),
         "lakes": [],
@@ -252,6 +264,7 @@ def test_apply_action_going_left(x: int, y: int):
     }
     output_observation, output_reward = iceworld.apply_action(obs, iceworld.LEFT)
     expected = {
+        "id": 0,
         "start": (0, 0),
         "agent": (x, max(0, y - 1)),
         "lakes": [],
@@ -268,6 +281,7 @@ def test_apply_action_going_left(x: int, y: int):
 )
 def test_apply_action_going_right(x: int, y: int):
     obs = {
+        "id": None,
         "start": (0, 0),
         "agent": (x, y),
         "lakes": [],
@@ -276,6 +290,7 @@ def test_apply_action_going_right(x: int, y: int):
     }
     output_observation, output_reward = iceworld.apply_action(obs, iceworld.RIGHT)
     expected = {
+        "id": 1,
         "start": (0, 0),
         "agent": (x, min(y + 1, worlds.WIDTH - 1)),
         "lakes": [],
@@ -317,6 +332,7 @@ def test_create_observation(
         goals=goals,
     )
     expected = {
+        "id": 0,
         "start": starting_pos,
         "agent": starting_pos,
         "lakes": lakes,
@@ -362,18 +378,8 @@ def test_as_grid():
     np.testing.assert_array_equal(output, expected)
 
 
-def test_create_env_spec():
-    env_spec = iceworld.create_env_spec(size=(4, 12), lakes=[], goals=[], start=(3, 0))
-    assert env_spec.name == "IceWorld"
-    assert len(env_spec.level) > 0
-    assert isinstance(env_spec.environment, iceworld.IceWorld)
-    assert isinstance(env_spec.discretizer, iceworld.IceWorldMdpDiscretizer)
-    assert env_spec.mdp.env_desc.num_states == 48
-    assert env_spec.mdp.env_desc.num_actions == 4
-    assert len(env_spec.mdp.transition) == 48
-
-
 def assert_observation(output: Any, expected: Any) -> None:
+    assert len(output) == len(expected)
     np.testing.assert_array_equal(output["size"], expected["size"])
     output["agent"] == expected["agent"]
     output["start"] == expected["start"]
@@ -697,13 +703,3 @@ def test_position_as_string_on_lake_position_without_agent_and_after_move(
 
 def grid_as_string(rows: Iterable[Iterable[Any]]) -> Sequence[Any]:
     return "\n".join(["".join(row) for row in rows])
-
-
-@pytest.fixture(scope="module")
-def sprites():
-    class MockSprites(iceworld.Sprites):
-        lake_sprite = worlds.color_block(worlds.CLIFF_COLOR)
-        path_sprite = worlds.color_block(worlds.PATH_COLOR)
-        actor_sprite = worlds.color_block(worlds.ACTOR_COLOR)
-
-    return MockSprites()
