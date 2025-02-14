@@ -1,5 +1,5 @@
 __author__ = "guilherme"
-__version__ = "1.1.1"
+__version__ = "0.20.3"
 __email__ = "guilherme@dsv.su.se"
 __description__ = "RL-Playground"
 __uri__ = "https://github.com/guidj/rlplg"
