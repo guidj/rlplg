@@ -6,8 +6,8 @@ import pytest
 from gymnasium import spaces
 from hypothesis import strategies as st
 from PIL import Image as image
-from rlplg.environments import gridworld
 
+from rlplg.environments import gridworld
 from tests.rlplg import dynamics
 from tests.rlplg.environments import worlds
 

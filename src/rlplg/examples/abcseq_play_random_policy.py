@@ -9,9 +9,8 @@ import logging
 import math
 import random
 
-
-from rlplg.environments import abcseq
 from rlplg.core import TimeStep
+from rlplg.environments import abcseq
 
 
 @dataclasses.dataclass(frozen=True)
