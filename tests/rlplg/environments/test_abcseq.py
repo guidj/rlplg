@@ -4,9 +4,8 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
-from rlplg.core import InitState, TimeStep
 from rlplg.environments import abcseq
-from tests.rlplg import dynamics
+from tests.rlplg import asserts, dynamics
 
 
 @hypothesis.given(
@@ -42,12 +41,13 @@ def test_abcseq_init_with_invalid_length(length: int, distance_penalty: bool):
 def test_abcseq_simple_sequence():
     length = 4
     environment = abcseq.ABCSeq(length, distance_penalty=True)
-    assert_init_state(
-        environment.reset(),
-        ({"length": 4, "distance_penalty": True, "pos": 0, "id": 0}, {}),
+    obs, info = environment.reset()
+    asserts.assert_observation(
+        obs, {"length": 4, "distance_penalty": True, "pos": 0, "id": 0}
     )
+    assert info == {}
     # final step, prematurely
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(3),
         (
             {"length": 4, "distance_penalty": True, "pos": 0, "id": 0},
@@ -58,7 +58,7 @@ def test_abcseq_simple_sequence():
         ),
     )
     # first token
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {"length": 4, "distance_penalty": True, "pos": 1, "id": 1},
@@ -69,7 +69,7 @@ def test_abcseq_simple_sequence():
         ),
     )
     # second token
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {"length": 4, "distance_penalty": True, "pos": 2, "id": 2},
@@ -80,7 +80,7 @@ def test_abcseq_simple_sequence():
         ),
     )
     # skip ahead
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(3),
         (
             {"length": 4, "distance_penalty": True, "pos": 2, "id": 2},
@@ -91,7 +91,7 @@ def test_abcseq_simple_sequence():
         ),
     )
     # going backwards
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {"length": 4, "distance_penalty": True, "pos": 2, "id": 2},
@@ -102,7 +102,7 @@ def test_abcseq_simple_sequence():
         ),
     )
     # continue, third token
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(2),
         (
             {"length": 4, "distance_penalty": True, "pos": 3, "id": 3},
@@ -113,7 +113,7 @@ def test_abcseq_simple_sequence():
         ),
     )
     # complete
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(3),
         (
             {"length": 4, "distance_penalty": True, "pos": 4, "id": 4},
@@ -124,7 +124,7 @@ def test_abcseq_simple_sequence():
         ),
     )
     # move in the terminal state
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {"length": 4, "distance_penalty": True, "pos": 4, "id": 4},
@@ -135,7 +135,7 @@ def test_abcseq_simple_sequence():
         ),
     )
     # another move in the terminal state
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(4),
         (
             {"length": 4, "distance_penalty": True, "pos": 4, "id": 4},
@@ -312,16 +312,3 @@ def test_is_terminal_state():
         {"length": 2, "distance_penalty": True, "pos": 1}
     )
     assert abcseq.is_terminal_state({"length": 2, "distance_penalty": True, "pos": 2})
-
-
-def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
-    np.testing.assert_array_equal(output[0], expected[0])
-    assert output[1] == expected[1]
-    assert output[2] == expected[2]
-    assert output[3] == expected[3]
-    assert output[4] == expected[4]
-
-
-def assert_init_state(output: InitState, expected: InitState) -> None:
-    np.testing.assert_array_equal(output[0], expected[0])
-    assert output[1] == expected[1]

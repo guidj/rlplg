@@ -4,9 +4,8 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
-from rlplg.core import TimeStep
 from rlplg.environments import towerhanoi
-from tests.rlplg import dynamics
+from tests.rlplg import asserts, dynamics
 
 
 @hypothesis.given(disks=st.integers(min_value=1, max_value=4))
@@ -40,16 +39,19 @@ def test_towerofhanoi_init_with_too_many_disks(disks: int):
 def test_towerofhanoi_with_two_disks():
     environment = towerhanoi.TowerOfHanoi(num_disks=2)
     obs, info = environment.reset()
-    assert obs == {
-        "id": 0,
-        "num_pegs": 3,
-        "towers": (0, 0),
-    }
+    asserts.assert_observation(
+        obs,
+        {
+            "id": 0,
+            "num_pegs": 3,
+            "towers": (0, 0),
+        },
+    )
     assert info == {}
 
     # Try to move from peg 2 to peg 1 (no change)
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(5),
         (
             {
@@ -66,7 +68,7 @@ def test_towerofhanoi_with_two_disks():
 
     # Move from peg 0 to 1
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {
@@ -83,7 +85,7 @@ def test_towerofhanoi_with_two_disks():
 
     # Move from peg 0 to 2
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
@@ -101,7 +103,7 @@ def test_towerofhanoi_with_two_disks():
     # Try to move from peg 2 (large disk) to peg 1 (small disk)
     # No change in state
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(5),
         (
             {
@@ -118,7 +120,7 @@ def test_towerofhanoi_with_two_disks():
 
     # Complete game, by moving from peg 1 to peg 2
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(3),
         (
             {
@@ -136,7 +138,7 @@ def test_towerofhanoi_with_two_disks():
     # Try any change to no avail
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
     for action in range(6):
-        assert_time_step(
+        asserts.assert_time_step(
             environment.step(action),
             (
                 {
@@ -155,16 +157,19 @@ def test_towerofhanoi_with_two_disks():
 def test_towerofhanoi_with_three_disks():
     environment = towerhanoi.TowerOfHanoi(num_disks=3)
     obs, info = environment.reset()
-    assert obs == {
-        "id": 0,
-        "num_pegs": 3,
-        "towers": (0, 0, 0),
-    }
+    asserts.assert_observation(
+        obs,
+        {
+            "id": 0,
+            "num_pegs": 3,
+            "towers": (0, 0, 0),
+        },
+    )
     assert info == {}
 
     # Try to move from peg 2 to peg 1 (no change)
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(5),
         (
             {
@@ -181,7 +186,7 @@ def test_towerofhanoi_with_three_disks():
 
     # Move from peg 0 to peg 2
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
@@ -198,7 +203,7 @@ def test_towerofhanoi_with_three_disks():
 
     # Move from peg 0 to peg 1
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {
@@ -215,7 +220,7 @@ def test_towerofhanoi_with_three_disks():
 
     # Try to move from peg 0 (large) to peg 1 (medium)
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {
@@ -232,7 +237,7 @@ def test_towerofhanoi_with_three_disks():
 
     # Move from peg 2 to peg 1
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(5),
         (
             {
@@ -249,7 +254,7 @@ def test_towerofhanoi_with_three_disks():
 
     # Move from peg 0 to peg 2
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
@@ -266,7 +271,7 @@ def test_towerofhanoi_with_three_disks():
 
     # Move from peg 1 to peg 0
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(2),
         (
             {
@@ -283,7 +288,7 @@ def test_towerofhanoi_with_three_disks():
 
     # Move from peg 1 to peg 2
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(3),
         (
             {
@@ -300,7 +305,7 @@ def test_towerofhanoi_with_three_disks():
 
     # Move from peg 0 to peg 2
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
@@ -318,7 +323,7 @@ def test_towerofhanoi_with_three_disks():
     # Try any change to no avail
     # actions: (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)
     for action in range(6):
-        assert_time_step(
+        asserts.assert_time_step(
             environment.step(action),
             (
                 {
@@ -348,11 +353,3 @@ def test_towerofhanoi_render_with_invalid_modes():
         environment.reset()
         with pytest.raises(NotImplementedError):
             environment.render()
-
-
-def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
-    assert output[0] == expected[0]
-    assert output[1] == expected[1]
-    assert output[2] is expected[2]
-    assert output[3] is expected[3]
-    assert output[4] == expected[4]

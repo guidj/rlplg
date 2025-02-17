@@ -8,7 +8,7 @@ from hypothesis import strategies as st
 from PIL import Image as image
 
 from rlplg.environments import gridworld
-from tests.rlplg import dynamics
+from tests.rlplg import asserts, dynamics
 from tests.rlplg.environments import worlds
 
 
@@ -41,7 +41,7 @@ def test_gridworld_reset():
         size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
     )
     obs, info = environment.reset()
-    assert_observation(
+    asserts.assert_observation(
         obs,
         {
             "id": 36,
@@ -60,22 +60,23 @@ def test_gridworld_transition_step():
         size=(4, 12), cliffs=[], exits=[(3, 11)], start=(3, 0)
     )
     environment.reset()
-    obs, reward, finished, truncated, info = environment.step(gridworld.UP)
-    assert_observation(
-        obs,
-        {
-            "id": 24,
-            "start": (3, 0),
-            "agent": (2, 0),
-            "cliffs": [],
-            "exits": [(3, 11)],
-            "size": (4, 12),
-        },
+    asserts.assert_time_step(
+        environment.step(gridworld.UP),
+        (
+            {
+                "id": 24,
+                "start": (3, 0),
+                "agent": (2, 0),
+                "cliffs": [],
+                "exits": [(3, 11)],
+                "size": (4, 12),
+            },
+            -1,
+            False,
+            False,
+            {},
+        ),
     )
-    assert reward == -1
-    assert finished is False
-    assert truncated is False
-    assert info == {}
 
 
 def test_gridworld_transition_into_cliff():
@@ -83,22 +84,23 @@ def test_gridworld_transition_into_cliff():
         size=(4, 12), cliffs=[(3, 1)], exits=[(3, 11)], start=(3, 0)
     )
     environment.reset()
-    obs, reward, terminated, truncated, info = environment.step(gridworld.RIGHT)
-    assert_observation(
-        obs,
-        {
-            "id": 36,
-            "start": (3, 0),
-            "agent": (3, 0),  # sent back to the start
-            "cliffs": [(3, 1)],
-            "exits": [(3, 11)],
-            "size": (4, 12),
-        },
+    asserts.assert_time_step(
+        environment.step(gridworld.RIGHT),
+        (
+            {
+                "id": 36,
+                "start": (3, 0),
+                "agent": (3, 0),  # sent back to the start
+                "cliffs": [(3, 1)],
+                "exits": [(3, 11)],
+                "size": (4, 12),
+            },
+            -100.0,
+            False,
+            False,
+            {},
+        ),
     )
-    assert reward == -100.0
-    assert terminated is False
-    assert truncated is False
-    assert info == {}
 
 
 def test_gridworld_final_step():
@@ -106,39 +108,41 @@ def test_gridworld_final_step():
         size=(4, 12), cliffs=[], exits=[(3, 1)], start=(3, 0)
     )
     environment.reset()
-    obs, reward, terminated, truncated, info = environment.step(gridworld.RIGHT)
-    assert_observation(
-        obs,
-        {
-            "id": 37,
-            "start": (3, 0),
-            "agent": (3, 1),
-            "cliffs": [],
-            "exits": [(3, 1)],
-            "size": (4, 12),
-        },
+    asserts.assert_time_step(
+        environment.step(gridworld.RIGHT),
+        (
+            {
+                "id": 37,
+                "start": (3, 0),
+                "agent": (3, 1),
+                "cliffs": [],
+                "exits": [(3, 1)],
+                "size": (4, 12),
+            },
+            -1.0,
+            True,
+            False,
+            {},
+        ),
     )
-    assert reward == -1.0
-    assert terminated is True
-    assert truncated is False
-    assert info == {}
 
-    obs, reward, terminated, truncated, info = environment.step(gridworld.RIGHT)
-    assert_observation(
-        obs,
-        {
-            "id": 37,
-            "start": (3, 0),
-            "agent": (3, 1),
-            "cliffs": [],
-            "exits": [(3, 1)],
-            "size": (4, 12),
-        },
+    asserts.assert_observation(
+        environment.step(gridworld.RIGHT),
+        (
+            {
+                "id": 37,
+                "start": (3, 0),
+                "agent": (3, 1),
+                "cliffs": [],
+                "exits": [(3, 1)],
+                "size": (4, 12),
+            },
+            0,
+            True,
+            False,
+            {},
+        ),
     )
-    assert reward == 0
-    assert terminated is True
-    assert truncated is False
-    assert info == {}
 
 
 def test_gridworld_render():
@@ -208,7 +212,7 @@ def test_apply_action_going_up(x: int, y: int):
         "exits": [],
         "size": (worlds.HEIGHT, worlds.WIDTH),
     }
-    assert_observation(output_observation, expected)
+    asserts.assert_observation(output_observation, expected)
     assert output_reward == -1.0
 
 
@@ -237,7 +241,7 @@ def test_apply_action_going_down(x: int, y: int):
         "size": (worlds.HEIGHT, worlds.WIDTH),
     }
 
-    assert_observation(output_observation, expected_observation)
+    asserts.assert_observation(output_observation, expected_observation)
     assert output_reward == -1.0
 
 
@@ -265,7 +269,7 @@ def test_apply_action_going_left(x: int, y: int):
         "exits": [],
         "size": (worlds.HEIGHT, worlds.WIDTH),
     }
-    assert_observation(output_observation, expected)
+    asserts.assert_observation(output_observation, expected)
     assert output_reward == -1.0
 
 
@@ -293,7 +297,7 @@ def test_apply_action_going_right(x: int, y: int):
         "exits": [],
         "size": (worlds.HEIGHT, worlds.WIDTH),
     }
-    assert_observation(output_observation, expected)
+    asserts.assert_observation(output_observation, expected)
     assert output_reward == -1.0
 
 
@@ -337,7 +341,7 @@ def test_create_observation(
         "exits": exits,
         "size": (100, 100),
     }
-    assert_observation(output, expected)
+    asserts.assert_observation(output, expected)
 
 
 @hypothesis.given(
@@ -395,16 +399,6 @@ def test_as_grid():
         dtype=np.int64,
     )
     np.testing.assert_array_equal(output, expected)
-
-
-def assert_observation(output: Any, expected: Any) -> None:
-    assert len(output) == len(expected)
-    np.testing.assert_array_equal(output["id"], expected["id"])
-    np.testing.assert_array_equal(output["size"], expected["size"])
-    np.testing.assert_array_equal(output["agent"], expected["agent"])
-    np.testing.assert_array_equal(output["start"], expected["start"])
-    np.testing.assert_array_equal(output["cliffs"], expected["cliffs"])
-    np.testing.assert_array_equal(output["exits"], expected["exits"])
 
 
 @hypothesis.given(

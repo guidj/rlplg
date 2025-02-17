@@ -1,14 +1,11 @@
-from typing import Any
-
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
 from gymnasium import spaces
 
-from rlplg.core import TimeStep
 from rlplg.environments import randomwalk
-from tests.rlplg import dynamics
+from tests.rlplg import asserts, dynamics
 
 
 @hypothesis.given(steps=st.integers(min_value=3, max_value=10))
@@ -45,7 +42,7 @@ def test_state_randomwalk_reset(steps: int):
     environment = randomwalk.StateRandomWalk(steps=steps)
     obs, info = environment.reset()
     pos = steps // 2 - 1 if steps % 2 == 0 else steps // 2
-    assert_observation(
+    asserts.assert_observation(
         obs,
         {
             "id": pos,
@@ -62,9 +59,10 @@ def test_state_randomwalk_reset(steps: int):
 def test_state_randomwalk_end_left_sequence():
     environment = randomwalk.StateRandomWalk(5)
     obs, info = environment.reset()
-    assert_observation(
+    asserts.assert_observation(
         obs,
         {
+            "id": 2,
             "pos": 2,
             "steps": 5,
             "right_end_reward": 1.0,
@@ -75,10 +73,11 @@ def test_state_randomwalk_end_left_sequence():
     assert info == {}
 
     # go left
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {
+                "id": 1,
                 "pos": 1,
                 "steps": 5,
                 "right_end_reward": 1.0,
@@ -92,10 +91,11 @@ def test_state_randomwalk_end_left_sequence():
         ),
     )
     # go left (terminal state)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {
+                "id": 0,
                 "pos": 0,
                 "steps": 5,
                 "right_end_reward": 1.0,
@@ -109,10 +109,11 @@ def test_state_randomwalk_end_left_sequence():
         ),
     )
     # go right - no change (terminal state)
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
+                "id": 0,
                 "pos": 0,
                 "steps": 5,
                 "right_end_reward": 1.0,
@@ -131,7 +132,7 @@ def test_state_randomwalk_end_right_sequence():
     environment = randomwalk.StateRandomWalk(5)
     obs, info = environment.reset()
 
-    assert_observation(
+    asserts.assert_observation(
         obs,
         {
             "id": 2,
@@ -144,7 +145,7 @@ def test_state_randomwalk_end_right_sequence():
     )
     assert info == {}
     # go left
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {
@@ -162,7 +163,7 @@ def test_state_randomwalk_end_right_sequence():
         ),
     )
     # go right
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
@@ -180,7 +181,7 @@ def test_state_randomwalk_end_right_sequence():
         ),
     )
     # go right
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
@@ -198,7 +199,7 @@ def test_state_randomwalk_end_right_sequence():
         ),
     )
     # go right - terminal state
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
@@ -217,7 +218,7 @@ def test_state_randomwalk_end_right_sequence():
     )
 
     # go right - remain in terminal state
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
@@ -290,18 +291,3 @@ def test_state_representation():
         randomwalk.state_representation({"pos": 0, "steps": 3}),
         (1, 0, 0),
     )
-
-
-def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
-    assert_observation(output[0], expected[0])
-    assert output[1] == expected[1]
-    assert output[2] is expected[2]
-    assert output[3] is expected[3]
-    assert output[4] == expected[4]
-
-
-def assert_observation(output: Any, expected: Any) -> None:
-    assert len(output) == 6
-    for key, value in expected.items():  # type: ignore
-        assert key in output
-        np.testing.assert_allclose(output[key], value)

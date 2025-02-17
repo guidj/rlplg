@@ -1,4 +1,4 @@
-from typing import Any, Sequence
+from typing import Sequence
 
 import hypothesis
 import hypothesis.strategies as st
@@ -6,9 +6,8 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
-from rlplg.core import TimeStep
 from rlplg.environments import redgreen
-from tests.rlplg import dynamics
+from tests.rlplg import asserts, dynamics
 
 VALID_ACTIONS = ["red", "green", "wait"]
 
@@ -37,7 +36,7 @@ def test_redgreen_simple_sequence():
     cure = ["red", "green", "wait"]
     environment = redgreen.RedGreenSeq(cure)
     obs, info = environment.reset()
-    assert_observation(
+    asserts.assert_observation(
         obs,
         {
             "cure_sequence": (0, 1, 2),
@@ -47,7 +46,7 @@ def test_redgreen_simple_sequence():
     )
     assert info == {}
     # last treatment step, prematurely
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(2),
         (
             {
@@ -62,7 +61,7 @@ def test_redgreen_simple_sequence():
         ),
     )
     # first treatment step
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {
@@ -77,7 +76,7 @@ def test_redgreen_simple_sequence():
         ),
     )
     # second treatment step
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(1),
         (
             {
@@ -92,7 +91,7 @@ def test_redgreen_simple_sequence():
         ),
     )
     # wrong treatment step
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {
@@ -107,7 +106,7 @@ def test_redgreen_simple_sequence():
         ),
     )
     # third and final treatment step
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(2),
         (
             {
@@ -123,7 +122,7 @@ def test_redgreen_simple_sequence():
     )
 
     # another treatment step in the terminal state
-    assert_time_step(
+    asserts.assert_time_step(
         environment.step(0),
         (
             {
@@ -302,18 +301,3 @@ def test_state_representation():
         1,
         1,
     ]
-
-
-def assert_time_step(output: TimeStep, expected: TimeStep) -> None:
-    assert_observation(output[0], expected[0])
-    assert output[1] == expected[1]
-    assert output[2] is expected[2]
-    assert output[3] is expected[3]
-    assert output[4] == expected[4]
-
-
-def assert_observation(output: Any, expected: Any) -> None:
-    assert len(output) == 3
-    assert output["cure_sequence"] == expected["cure_sequence"]
-    assert output["pos"] == expected["pos"]
-    assert output["id"] == expected["id"]
