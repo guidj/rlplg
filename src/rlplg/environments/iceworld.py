@@ -252,7 +252,7 @@ def apply_action(observation: Mapping[str, Any], action: int) -> Tuple[Any, floa
     next_obs = dict(observation)
     next_obs[OBS_KEY_AGENT] = next_pos
     # row * cols + col
-    next_obs[OBS_KEY_ID] = next_pos[0] * next_obs[OBS_KEY_SIZE][0] + next_pos[1]
+    next_obs[OBS_KEY_ID] = pos_to_state_id(pos=next_pos, size=next_obs[OBS_KEY_SIZE])
     return next_obs, reward
 
 
@@ -302,7 +302,7 @@ def create_observation(
     and other information.
     """
     return {
-        OBS_KEY_ID: start[0] * size[0] + start[1],
+        OBS_KEY_ID: pos_to_state_id(pos=start, size=size),
         OBS_KEY_START: start,
         OBS_KEY_AGENT: agent,
         OBS_KEY_LAKES: lakes,
@@ -482,3 +482,13 @@ def position_as_string(
             return f"[{MOVES[last_move]}]"
         return "[S]"
     return "[ ]"
+
+
+def pos_to_state_id(pos: Tuple[int, int], size: Tuple[int, int]):
+    """
+    Maps grid positions to an Id.
+    """
+    row, col = pos
+    _, ncols = size
+    # row * cols + col
+    return row * ncols + col
