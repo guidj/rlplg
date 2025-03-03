@@ -108,8 +108,8 @@ class GridWorld(gym.Env[Mapping[str, Any], int]):
                     )
                 ),
                 "size": spaces.Box(
-                    low=np.array([self._height - 1, self._width - 1]),
-                    high=np.array([self._height - 1, self._width - 1]),
+                    low=np.array([self._height, self._width]),
+                    high=np.array([self._height, self._width]),
                     dtype=np.int64,
                 ),
             }

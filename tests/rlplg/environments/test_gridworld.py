@@ -27,8 +27,8 @@ def test_gridworld_init():
                 spaces.Tuple((spaces.Discrete(4), spaces.Discrete(12)))
             ),
             "size": spaces.Box(
-                low=np.array([3, 11]),
-                high=np.array([3, 11]),
+                low=np.array([4, 12]),
+                high=np.array([4, 12]),
                 dtype=np.int64,
             ),
         }
