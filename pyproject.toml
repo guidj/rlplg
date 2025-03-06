@@ -19,7 +19,7 @@ classifiers = [
 urls = {Homepage = "https://github.com/guidj/rlplg"}
 requires-python = ">=3.11"
 dependencies = [
-    "gymnasium==0.28.1",
+    "gymnasium>=0.28.1",
     "pillow>=10.4.0",
     "scipy>=1.14.1",
     "numpy>=1.26.4",
