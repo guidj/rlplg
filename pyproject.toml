@@ -19,7 +19,7 @@ classifiers = [
 urls = {Homepage = "https://github.com/guidj/rlplg"}
 requires-python = ">=3.11"
 dependencies = [
-    "gymnasium>=0.29.1",
+    "gymnasium==0.28.1",
     "pillow>=10.4.0",
     "scipy>=1.14.1",
     "numpy>=1.26.4",
@@ -153,7 +153,6 @@ dev = [
     "coverage>=7.6.1",
     "farama-notifications==0.0.4",
     "ghp-import==2.1.0",
-    "gymnasium==1.0.0",
     "hypothesis>=6.65.1",
     "iniconfig==2.0.0",
     "jinja2==3.1.2",
